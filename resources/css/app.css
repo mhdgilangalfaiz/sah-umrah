@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html { -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+    body { @apply bg-sand-50 text-slate-800 antialiased; }
+    h1, h2, h3, .font-heading { @apply font-serif tracking-tight text-slate-900; }
+    ::selection { @apply bg-gold-200 text-brand-900; }
+    [type='checkbox'] { @apply rounded text-brand-700 focus:ring-brand-600; }
+}
+
+@layer components {
+    .container-app { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+    .card { @apply rounded-2xl border border-slate-200/70 bg-white shadow-soft; }
+    .card-pad { @apply p-5 sm:p-6; }
+
+    .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50; }
+    .btn-primary { @apply btn bg-brand-700 text-white shadow-sm hover:bg-brand-800 focus-visible:ring-brand-600; }
+    .btn-gold { @apply btn bg-gold-400 text-brand-950 shadow-sm hover:bg-gold-300 focus-visible:ring-gold-500; }
+    .btn-outline { @apply btn border border-slate-300 bg-white text-slate-700 hover:border-brand-600 hover:text-brand-700 focus-visible:ring-brand-600; }
+    .btn-ghost { @apply btn text-slate-600 hover:bg-slate-100; }
+    .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500; }
+    .btn-sm { @apply px-3 py-1.5 text-xs rounded-lg; }
+
+    .input { @apply block w-full rounded-xl border-slate-300 bg-white text-sm shadow-sm placeholder:text-slate-400 focus:border-brand-600 focus:ring-brand-600; }
+    .label { @apply mb-1.5 block text-sm font-medium text-slate-700; }
+    .hint { @apply mt-1 text-xs text-slate-500; }
+    .error { @apply mt-1 text-xs font-medium text-red-600; }
+
+    .table-app { @apply min-w-full divide-y divide-slate-200 text-sm; }
+    .table-app th { @apply whitespace-nowrap bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
+    .table-app td { @apply whitespace-nowrap px-4 py-3 text-slate-700; }
+    .table-app tbody tr { @apply hover:bg-sand-50; }
+
+    .prose-app { @apply text-slate-700 leading-relaxed; }
+    .prose-app h2 { @apply mt-6 mb-2 text-2xl; }
+    .prose-app h3 { @apply mt-5 mb-2 text-xl; }
+    .prose-app p { @apply my-3; }
+    .prose-app ul { @apply my-3 list-disc pl-6 space-y-1; }
+    .prose-app ol { @apply my-3 list-decimal pl-6 space-y-1; }
+    .prose-app a { @apply text-brand-700 underline; }
+    .prose-app blockquote { @apply border-l-4 border-gold-400 pl-4 italic; }
+
+    /* Pola geometri islami halus */
+    .bg-pattern {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23C9A24B' stroke-opacity='.18' stroke-width='1'%3E%3Cpath d='M28 4l7 17 17 7-17 7-7 17-7-17-17-7 17-7z'/%3E%3Ccircle cx='28' cy='28' r='6'/%3E%3C/g%3E%3C/svg%3E");
+    }
+    /* Navbar publik */
+    .nav-pill { @apply inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-brand-50 hover:text-brand-700 xl:px-4; }
+    .nav-pill-active { @apply bg-brand-100 font-semibold text-brand-800; }
+
+    /* Landing page */
+    .landing-section { @apply scroll-mt-24; }
+    .landing-title { @apply font-sans text-2xl font-extrabold tracking-tight text-brand-800 sm:text-3xl; }
+    .chip-green { @apply inline-flex items-center rounded-full bg-brand-100 px-4 py-1.5 text-sm font-semibold text-brand-800; }
+
+    .scrollbar-none { scrollbar-width: none; }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+}

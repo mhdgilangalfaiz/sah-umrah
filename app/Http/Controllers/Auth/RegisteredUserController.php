@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Notifications\SystemNotification;
+use App\Support\Audit;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class RegisteredUserController extends Controller
+{
+    public function create(): Response
+    {
+        return Inertia::render('Auth/Register', ['googleEnabled' => (bool) config('services.google.client_id')]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $request->merge(['email' => strtolower(trim((string) $request->email))]);
+        $request->validate([
+            'name' => 'required|string|max:120',
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class, 'regex:/@gmail\.com$/i'],
+            'password' => ['required', 'confirmed', Rules\Password::min(8)->letters()->numbers()],
+            'consent' => ['accepted'],
+        ], [
+            'email.regex' => 'Pendaftaran wajib menggunakan alamat email @gmail.com.',
+            'email.unique' => 'Email ini sudah terdaftar. Silakan masuk.',
+            'consent.accepted' => 'Anda harus menyetujui Kebijakan Privasi & pemrosesan data pribadi (UU PDP).',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => $request->password,
+            'pdp_consent_at' => now(),
+        ]);
+
+        event(new Registered($user)); // kirim email verifikasi
+        Auth::login($user);
+        Audit::log('auth.registrasi', 'Registrasi akun baru '.$user->customer_code, $user);
+
+        $user->notify(new SystemNotification('akun', 'Registrasi Berhasil',
+            'Selamat datang di PT. Sumatera Andalan Haramain! Kode pelanggan Anda: '.$user->customer_code.'. Silakan verifikasi email Anda untuk mulai melakukan pemesanan.',
+            route('dashboard'), 'Buka Dashboard', false, false, 'success'));
+
+        return redirect(route('dashboard', absolute: false));
+    }
+}
