@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\MarkNotificationsSeen;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -41,9 +42,12 @@ class NotificationController extends Controller
         $n->markAsRead();
         $url = $n->data['url'] ?? null;
 
-        // hanya izinkan redirect ke domain sendiri (cegah open redirect)
-        if ($url && str_starts_with($url, config('app.url'))) {
-            return redirect($url);
+        // Hanya path yang dipakai (domain diabaikan) → selalu ke situs sendiri, aman dari open redirect,
+        // dan tetap berfungsi bila domain/HTTPS berubah setelah notifikasi dibuat.
+        if ($path = MarkNotificationsSeen::pathOf($url)) {
+            $query = parse_url($url, PHP_URL_QUERY);
+
+            return redirect($path.($query ? '?'.$query : ''));
         }
 
         return back();

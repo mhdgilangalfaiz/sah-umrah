@@ -22,7 +22,7 @@ class PublicController extends Controller
         // Paket unggulan diutamakan, lalu dilengkapi paket aktif lain hingga 4 kartu.
         return Inertia::render('Public/Home', [
             'featured' => Package::active()->with('upcomingDepartures')->orderByDesc('is_featured')->orderBy('price_quad')->take(4)->get(),
-            'galleries' => Gallery::latest()->take(30)->get(),
+            'galleries' => Gallery::latest('id')->take(60)->get(['id', 'title', 'type', 'image', 'category']),
             'testimonials' => Testimonial::where('is_active', true)->latest()->take(6)->get(),
             'faqs' => Faq::orderBy('sort')->get(['id', 'question', 'answer']),
         ]);

@@ -13,6 +13,9 @@ class InvoiceController extends Controller
         $this->ensureOwner($invoice);
         $name = ($invoice->type === 'kwitansi' ? 'kwitansi_' : 'invoice_').Str::slug(str_replace('/', '-', $invoice->number)).'.pdf';
 
-        return $service->pdf($invoice)->download($name);
+        // Ditampilkan inline di tab baru (penampil PDF browser), bukan dipaksa unduh.
+        // Chrome memblokir unduhan otomatis dari situs HTTP ("file may have been tampered with");
+        // dari penampil PDF, pengguna tetap bisa menyimpan/mencetak dengan nama file yang sama.
+        return $service->pdf($invoice)->stream($name);
     }
 }

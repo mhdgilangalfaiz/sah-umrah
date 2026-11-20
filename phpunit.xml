@@ -33,6 +33,7 @@
         <env name="FINANCE_OWNER_EMAIL" value="owner@example.com"/>
         <env name="WHATSAPP_TOKEN" value=""/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="LOGIN_CAPTCHA" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
     </php>
 </phpunit>

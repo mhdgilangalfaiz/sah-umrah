@@ -8,12 +8,15 @@ import { date, daysUntil, rupiah } from '@/lib/format';
 
 const STEPS = ['Jadwal & Kamar', 'Data Jamaah', 'Skema Bayar', 'Konfirmasi'];
 
-export default function CheckoutPackage({ package: p, selectedDeparture, roomTypes, jamaah, config }) {
-    const [step, setStep] = useState(0);
-    const [pax, setPax] = useState(1);
+export default function CheckoutPackage({ package: p, selectedDeparture, selectedRoom, selectedPax, roomTypes, jamaah, config }) {
+    const initialDep = p.upcoming_departures.find((d) => d.id === selectedDeparture && d.remaining > 0);
+    // Jadwal, kamar & jumlah jamaah sudah dipilih di halaman paket (dan kuota cukup) → mulai dari langkah Data Jamaah
+    const preselected = !!(initialDep && selectedRoom && selectedPax && selectedPax <= initialDep.remaining);
+    const [step, setStep] = useState(preselected ? 1 : 0);
+    const [pax, setPax] = useState(preselected ? selectedPax : 1);
     const { data, setData, post, processing, errors } = useForm({
-        departure_id: selectedDeparture ?? p.upcoming_departures.find((d) => d.remaining > 0)?.id ?? '',
-        room_type: 'quad',
+        departure_id: initialDep?.id ?? p.upcoming_departures.find((d) => d.remaining > 0)?.id ?? '',
+        room_type: selectedRoom ?? 'quad',
         scheme: 'cicilan',
         notes: '',
         agree: false,

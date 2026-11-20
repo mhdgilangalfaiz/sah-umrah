@@ -85,7 +85,7 @@ class CheckoutController extends Controller
         return [
             'passengers' => 'required|array|min:1|max:10',
             'passengers.*.jamaah_id' => 'nullable|integer',
-            'passengers.*.title' => 'nullable|in:Tn,Ny,Nn,An',
+            'passengers.*.title' => 'nullable|in:Bapak,Ibu,Abang,Kakak',
             'passengers.*.full_name' => 'required_without:passengers.*.jamaah_id|nullable|string|max:120',
             'passengers.*.gender' => 'required_without:passengers.*.jamaah_id|nullable|in:L,P',
             'passengers.*.birth_date' => 'required_without:passengers.*.jamaah_id|nullable|date|before:today',
@@ -106,6 +106,9 @@ class CheckoutController extends Controller
         return Inertia::render('Checkout/Package', [
             'package' => $package->load('upcomingDepartures'),
             'selectedDeparture' => $request->integer('departure') ?: null,
+            // Dari halaman detail paket: kamar & jumlah jamaah sudah dipilih → langsung ke langkah Data Jamaah
+            'selectedRoom' => array_key_exists($request->query('kamar'), Package::ROOM_TYPES) ? $request->query('kamar') : null,
+            'selectedPax' => $request->filled('jamaah') ? max(1, min(10, $request->integer('jamaah'))) : null,
             'roomTypes' => Package::ROOM_TYPES,
             'jamaah' => $this->savedJamaah($request),
             'config' => [

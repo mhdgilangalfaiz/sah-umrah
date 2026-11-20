@@ -143,7 +143,8 @@ class SmokeTest extends TestCase
             '/admin/pengaturan' => 'Admin/Settings', '/admin/promo' => 'Admin/Promotions', '/admin/akun-admin' => 'Admin/Admins',
             '/profile' => 'Profile/Edit',
         ];
-        foreach (['visa', 'chatbot', 'testimoni', 'galeri', 'faq', 'blog'] as $r) $pages["/admin/kelola/$r"] = 'Admin/Crud';
+        foreach (['visa', 'chatbot', 'testimoni', 'faq', 'blog'] as $r) $pages["/admin/kelola/$r"] = 'Admin/Crud';
+        $pages['/admin/kelola/galeri'] = 'Admin/Gallery';
         foreach ($pages as $url => $component) $this->ok($url, $component);
 
         // ekspor

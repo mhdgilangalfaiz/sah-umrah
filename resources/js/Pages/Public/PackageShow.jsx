@@ -144,7 +144,7 @@ export default function PackageShow({ package: p, roomTypes, payment }) {
                                 <span className="text-xl font-bold">{rupiah(sim.total)}</span>
                             </div>
                             {dep && dep.remaining > 0 ? (
-                                <Link href={route('checkout.package', { package: p.slug, departure: depId })} className="btn-primary mt-4 w-full py-3">
+                                <Link href={route('checkout.package', { package: p.slug, departure: depId, kamar: room, jamaah: pax })} className="btn-primary mt-4 w-full py-3">
                                     {auth.user ? 'Pesan Sekarang' : 'Masuk untuk Memesan'}
                                 </Link>
                             ) : (

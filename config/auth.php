@@ -112,4 +112,17 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    | Keamanan halaman login (anti bot / tebak sandi):
+    |  - captcha       : kode gambar wajib diisi setiap mencoba masuk
+    |  - free_attempts : jumlah salah sebelum dikunci (1 = langsung dikunci setelah 1x salah)
+    |  - lockout_minutes : lama kunci, bertambah setiap salah lagi (5, 10, 15, … menit)
+    | Kunci berlaku per kombinasi email + alamat IP dan reset setelah berhasil masuk.
+    */
+    'login' => [
+        'captcha' => (bool) env('LOGIN_CAPTCHA', true),
+        'free_attempts' => (int) env('LOGIN_FREE_ATTEMPTS', 1),
+        'lockout_minutes' => (int) env('LOGIN_LOCKOUT_MINUTES', 5),
+    ],
+
 ];

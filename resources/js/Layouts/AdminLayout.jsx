@@ -3,7 +3,7 @@ import {
     BarChart3, BookOpen, Bot, CalendarClock, ClipboardList, CreditCard, FileCheck2, FileText, Globe, Headset, Image, KeyRound, LayoutDashboard,
     LogOut, Megaphone, Menu, MessageSquareQuote, Package, Plane, RotateCcw, ScrollText, Settings, ShieldAlert, Stamp, Ticket, UserCog, Users, X, HelpCircle, Scale,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import NotificationBell from '@/Components/NotificationBell';
 import { Flash, cx } from '@/Components/ui';
 
@@ -38,7 +38,7 @@ const GROUPS = [
         ['Halaman', 'admin.pages.index', null, FileText, ['super_admin']],
         ['Blog', 'admin.crud.index', 'blog', BookOpen, ['super_admin']],
         ['Testimoni', 'admin.crud.index', 'testimoni', MessageSquareQuote, ['super_admin']],
-        ['Galeri', 'admin.crud.index', 'galeri', Image, ['super_admin']],
+        ['Galeri', 'admin.galeri.index', null, Image, ['super_admin']],
         ['Kirim Promo', 'admin.promotions.index', null, Megaphone, ['super_admin']],
         ['Pelanggan', 'admin.users.index', null, Users, ['super_admin']],
         ['Audit Log', 'admin.audit.index', null, ScrollText, ['super_admin']],
@@ -47,10 +47,34 @@ const GROUPS = [
     ]],
 ];
 
+/** Pathname dari URL route Ziggy: "http://x.test/admin/pesanan-tiket" → "/admin/pesanan-tiket" */
+const pathOf = (url) => { try { return new URL(url, window.location.origin).pathname.replace(/\/+$/, '') || '/'; } catch { return url; } };
+
 export default function AdminLayout({ title, children }) {
-    const { auth, adminBadges, paymentMode } = usePage().props;
+    const { auth, adminBadges, unreadByPath, paymentMode } = usePage().props;
     const user = auth.user;
     const [open, setOpen] = useState(false);
+
+    // Notifikasi belum dibaca → menu tujuan (awalan path terpanjang yang cocok), mis. order tiket baru → "Pesanan Tiket"
+    const unreadByMenu = useMemo(() => {
+        const menus = GROUPS.flatMap(([, items]) => items).map(([label, name, param]) => {
+            try { return [label, pathOf(param ? route(name, param) : route(name))]; } catch { return null; }
+        }).filter(Boolean);
+        const out = {};
+        Object.entries(unreadByPath ?? {}).forEach(([path, n]) => {
+            const best = menus.filter(([, m]) => path === m || path.startsWith(`${m}/`)).sort((a, b) => b[1].length - a[1].length)[0];
+            if (best) out[best[0]] = (out[best[0]] ?? 0) + n;
+        });
+        return out;
+    }, [unreadByPath]);
+
+    // Menu aktif selalu terlihat di sidebar (tidak perlu menggulir dulu), juga saat menu ponsel dibuka
+    useEffect(() => {
+        document.querySelectorAll('[data-admin-nav]').forEach((nav) => {
+            const active = nav.querySelector('[data-active="true"]');
+            if (active) nav.scrollTop = active.offsetTop - nav.clientHeight / 2 + active.offsetHeight / 2;
+        });
+    }, [open]);
 
     const allowed = (roles) => {
         if (!roles) return true;
@@ -63,7 +87,7 @@ export default function AdminLayout({ title, children }) {
     };
 
     const nav = (
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4 scrollbar-none">
+        <nav data-admin-nav className="relative flex-1 space-y-5 overflow-y-auto px-3 py-4 scrollbar-none">
             {GROUPS.map(([group, items]) => {
                 const visible = items.filter((i) => allowed(i[4]));
                 if (!visible.length) return null;
@@ -73,12 +97,18 @@ export default function AdminLayout({ title, children }) {
                         <div className="space-y-0.5">
                             {visible.map(([label, name, param, Icon, , badge, pattern]) => {
                                 const count = badge ? adminBadges?.[badge] : 0;
+                                const unread = unreadByMenu[label] ?? 0;
+                                const active = isActive(name, param, pattern);
                                 return (
-                                    <Link key={label} href={param ? route(name, param) : route(name)} onClick={() => setOpen(false)}
-                                        className={cx('flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition', isActive(name, param, pattern) ? 'bg-white/10 font-semibold text-white' : 'text-brand-100 hover:bg-white/5 hover:text-white')}>
+                                    <Link key={label} href={param ? route(name, param) : route(name)} onClick={() => setOpen(false)} data-active={active ? 'true' : undefined}
+                                        className={cx('flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition', active ? 'bg-white/10 font-semibold text-white' : 'text-brand-100 hover:bg-white/5 hover:text-white')}>
                                         <Icon className="h-4 w-4 shrink-0" />
                                         <span className="flex-1 truncate">{label}</span>
-                                        {count > 0 && <span className="rounded-full bg-gold-400 px-1.5 text-[10px] font-bold text-brand-950">{count}</span>}
+                                        {unread > 0 ? (
+                                            <span className="grid h-5 min-w-[20px] place-items-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white" title={`${unread} notifikasi baru belum dilihat`}>{unread > 99 ? '99+' : unread}</span>
+                                        ) : count > 0 && (
+                                            <span className="rounded-full bg-gold-400 px-1.5 text-[10px] font-bold text-brand-950" title="Menunggu tindakan">{count}</span>
+                                        )}
                                     </Link>
                                 );
                             })}

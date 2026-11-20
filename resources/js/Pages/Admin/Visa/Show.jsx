@@ -121,7 +121,7 @@ export default function Show({ application: v, customer, applicants, statuses, p
                     <Card title="Pemohon"><DefList items={[['Nama', customer.name], ['Kode', customer.customer_code], ['Email', customer.email], ['HP', customer.phone]]} /></Card>
                     <Card title="Ringkasan">
                         <DefList items={[['Rencana berangkat', v.planned_departure], ['Total', rupiah(v.total_amount)], ['Dibayar', rupiah(v.paid_amount)], ['Catatan', v.notes]]} />
-                        {v.invoices.map((i) => <a key={i.id} href={route('invoices.pdf', i.id)} className="mt-3 flex items-center justify-between rounded-lg border border-slate-100 p-2 text-sm hover:bg-sand-50"><span>{i.number} <StatusBadge status={i.status} /></span><Download className="h-4 w-4" /></a>)}
+                        {v.invoices.map((i) => <a key={i.id} target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="mt-3 flex items-center justify-between rounded-lg border border-slate-100 p-2 text-sm hover:bg-sand-50"><span>{i.number} <StatusBadge status={i.status} /></span><Download className="h-4 w-4" /></a>)}
                     </Card>
                     <Card title="Transaksi">{payments.length === 0 ? <p className="text-sm text-slate-500">Belum ada.</p> : payments.map((p) => <div key={p.id} className="flex justify-between py-1 text-sm"><span>{p.code}</span><StatusBadge status={p.status} /></div>)}</Card>
                 </div>

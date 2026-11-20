@@ -61,7 +61,7 @@ export default function Show({ booking: b, customer, passengers, payments, outst
                         <DefList items={[['Kamar', b.room_type.toUpperCase()], ['Harga/pax', rupiah(b.unit_price)], ['Skema', b.payment_scheme], ['Batas lunas', date(b.payment_deadline)], ['Kursi', b.seats_confirmed ? 'Terkonfirmasi' : 'Ditahan'], ['Catatan', b.notes]]} />
                     </Card>
                     <Card title="Invoice">
-                        {b.invoices.map((i) => <div key={i.id} className="flex items-center justify-between py-1 text-sm"><span>{i.number}</span><a href={route('invoices.pdf', i.id)} className="btn-ghost btn-sm"><Download className="h-4 w-4" /></a></div>)}
+                        {b.invoices.map((i) => <div key={i.id} className="flex items-center justify-between py-1 text-sm"><span>{i.number}</span><a target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="btn-ghost btn-sm"><Download className="h-4 w-4" /></a></div>)}
                     </Card>
                     <Card title="Log pengingat otomatis">
                         {reminders.length === 0 ? <p className="text-sm text-slate-500">Belum ada pengingat terkirim.</p> : (

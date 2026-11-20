@@ -33,14 +33,16 @@ class GoogleController extends Controller
         }
 
         $email = strtolower($g->getEmail());
+        // Pesan disamakan: tidak memberi tahu aturan domain atau bahwa email tsb milik admin
+        $denied = 'Akun Google ini tidak dapat digunakan untuk masuk.';
         if (! str_ends_with($email, '@gmail.com')) {
-            return redirect()->route('login')->withErrors(['email' => 'Akun pelanggan wajib menggunakan alamat @gmail.com.']);
+            return redirect()->route('login')->withErrors(['email' => $denied]);
         }
 
         $user = User::where('google_id', $g->getId())->orWhere('email', $email)->first();
 
         if ($user?->isAdmin()) {
-            return redirect()->route('login')->withErrors(['email' => 'Akun admin harus masuk menggunakan email & kata sandi.']);
+            return redirect()->route('login')->withErrors(['email' => $denied]);
         }
         if ($user && ! $user->is_active) {
             return redirect()->route('login')->withErrors(['email' => 'Akun Anda dinonaktifkan.']);

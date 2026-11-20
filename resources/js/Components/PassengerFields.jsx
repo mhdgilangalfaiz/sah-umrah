@@ -1,6 +1,9 @@
 import { UserCheck, UserPlus } from 'lucide-react';
 import { cx } from './ui';
 
+/** Sapaan penumpang (harus sama dengan validasi di CheckoutController) */
+export const PASSENGER_TITLES = ['Bapak', 'Ibu', 'Abang', 'Kakak'];
+
 export const emptyPassenger = () => ({ jamaah_id: '', title: '', full_name: '', gender: '', birth_date: '', nik: '', passport_number: '', passport_expiry: '', mahram_name: '', mahram_relation: '', save: true, relation: 'lainnya' });
 
 /** Form data jamaah/penumpang: pilih dari data tersimpan atau isi manual (opsional simpan) */
@@ -39,8 +42,8 @@ export default function PassengerFields({ index, value, onChange, saved, errors,
             ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                     {showTitle && (
-                        <F label="Titel" err={err('title')}>
-                            <select className="input" value={value.title} onChange={(e) => set('title', e.target.value)}><option value="">Pilih</option><option>Tn</option><option>Ny</option><option>Nn</option><option>An</option></select>
+                        <F label="Sapaan" err={err('title')}>
+                            <select className="input" value={value.title} onChange={(e) => set('title', e.target.value)}><option value="">Pilih</option>{PASSENGER_TITLES.map((t) => <option key={t}>{t}</option>)}</select>
                         </F>
                     )}
                     <F label={passportRequired ? 'Nama lengkap (sesuai paspor)' : 'Nama lengkap'} err={err('full_name')} className={showTitle ? '' : 'sm:col-span-2'}>

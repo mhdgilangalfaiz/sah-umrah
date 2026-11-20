@@ -72,7 +72,7 @@ export default function PaymentShow({ payment, order, canSimulate }) {
                             <p className="mt-1 text-sm text-slate-600">Alhamdulillah, pembayaran Anda telah diterima. Kwitansi telah terbit otomatis.</p>
                             <p className="mt-3 text-sm">Sisa tagihan: <b>{rupiah(order.outstanding)}</b></p>
                             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-                                {payment.receipt_id && <a href={route('invoices.pdf', payment.receipt_id)} className="btn-outline"><Download className="h-4 w-4" />Unduh Kwitansi</a>}
+                                {payment.receipt_id && <a target="_blank" rel="noopener" href={route('invoices.pdf', payment.receipt_id)} className="btn-outline"><Download className="h-4 w-4" />Unduh Kwitansi</a>}
                                 <Link href={order.url} className="btn-primary">Lihat Pesanan</Link>
                             </div>
                         </div>

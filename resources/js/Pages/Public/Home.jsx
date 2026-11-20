@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     ArrowRight, BedDouble, ChevronLeft, ChevronRight, Building2, CalendarDays, Check, ChevronDown, Clock, Goal, Headset, Layers, MapPin, Plane, Quote, ShieldCheck, Star, Stamp, UserCheck, UserRound, ZoomIn,
+    Film, Image as ImageIcon, Play,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import PublicLayout from '@/Layouts/PublicLayout';
@@ -26,7 +27,7 @@ const LAYANAN = [
 const DEFAULT_GALLERY = [
     'Jamaah berdoa di Masjidil Haram', 'Kubah Hijau Masjid Nabawi', 'Masjid Quba, Madinah', 'Payung raksasa Masjid Nabawi',
     'Interior Masjid Nabawi', 'Jabal Rahmah, Arafah', 'Kota Makkah di malam hari',
-].map((title, i) => ({ id: `d${i + 1}`, title, image_url: `/images/landing/galeri-${i + 1}.jpg` }));
+].map((title, i) => ({ id: `d${i + 1}`, title, type: 'foto', image_url: `/images/landing/galeri-${i + 1}.jpg` }));
 
 export default function Home({ featured, galleries, testimonials, faqs }) {
     const [faqOpen, setFaqOpen] = useState(0);
@@ -37,8 +38,12 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
         if (id) requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start' }));
     }, []);
 
-    const photos = galleries.length ? galleries : DEFAULT_GALLERY;
-    const [viewer, setViewer] = useState(null); // index foto galeri yang sedang diperbesar
+    const uploadedPhotos = galleries.filter((g) => g.type !== 'video');
+    const photos = uploadedPhotos.length ? uploadedPhotos : DEFAULT_GALLERY;
+    const videos = galleries.filter((g) => g.type === 'video');
+    const [galleryTab, setGalleryTab] = useState('foto'); // 'foto' | 'video'
+    const galleryItems = galleryTab === 'video' ? videos : photos;
+    const [viewer, setViewer] = useState(null); // index item galeri yang sedang dibuka
 
     return (
         <PublicLayout title="Biro Perjalanan Umrah Terpercaya di Medan">
@@ -156,10 +161,17 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
             <section id="galeri" className="landing-section pb-14 sm:pb-20">
                 <div className="container-app">
                     <Heading title="Galeri Kegiatan" subtitle="Dokumentasi perjalanan ibadah umrah bersama jamaah kami." />
-                    <GalleryCarousel photos={photos} onOpen={setViewer} />
+                    <GalleryTabs value={galleryTab} onChange={(t) => { setGalleryTab(t); setViewer(null); }} counts={{ foto: photos.length, video: videos.length }} />
+                    {galleryItems.length ? (
+                        <GalleryCarousel key={galleryTab} items={galleryItems} onOpen={setViewer} />
+                    ) : (
+                        <p className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
+                            {galleryTab === 'video' ? 'Belum ada video kegiatan.' : 'Belum ada foto kegiatan.'}
+                        </p>
+                    )}
                 </div>
             </section>
-            {viewer !== null && <GalleryLightbox photos={photos} index={viewer} onIndex={setViewer} onClose={() => setViewer(null)} />}
+            {viewer !== null && galleryItems[viewer] && <GalleryLightbox items={galleryItems} index={viewer} onIndex={setViewer} onClose={() => setViewer(null)} />}
 
             {/* ============ TESTIMONI ============ */}
             <section id="testimoni" className="landing-section bg-brand-50/60 py-14 sm:py-20">
@@ -227,8 +239,33 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
     );
 }
 
-/** Galeri satu baris yang bisa digulir dengan tombol kiri/kanan; klik foto untuk memperbesar. */
-function GalleryCarousel({ photos, onOpen }) {
+/** Pemisah galeri: Foto | Video */
+function GalleryTabs({ value, onChange, counts }) {
+    const tabs = [['foto', 'Foto', ImageIcon], ['video', 'Video', Film]];
+    return (
+        <div className="mb-7 flex justify-center">
+            <div role="tablist" aria-label="Jenis galeri" className="inline-flex items-center rounded-full border border-brand-100 bg-white p-1 shadow-soft">
+                {tabs.map(([key, label, Icon], i) => (
+                    <div key={key} className="flex items-center">
+                        {i > 0 && <span className="mx-1 h-5 w-px bg-slate-300" aria-hidden />}
+                        <button type="button" role="tab" aria-selected={value === key} onClick={() => onChange(key)}
+                            className={cx('flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition sm:px-7',
+                                value === key ? 'bg-brand-700 text-white shadow' : 'text-slate-600 hover:text-brand-700')}>
+                            <Icon className="h-4 w-4" />{label}
+                            <span className={cx('rounded-full px-1.5 text-xs tabular-nums', value === key ? 'bg-white/20' : 'bg-slate-100 text-slate-500')}>{counts[key]}</span>
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Galeri satu baris yang bisa digulir dengan tombol kiri/kanan; klik untuk membuka detail.
+ * Tinggi seragam, lebar mengikuti bentuk asli file — hasil crop admin tampil utuh tanpa terpotong lagi.
+ */
+function GalleryCarousel({ items, onOpen }) {
     const track = useRef(null);
     const [edge, setEdge] = useState({ start: true, end: false });
 
@@ -242,26 +279,38 @@ function GalleryCarousel({ photos, onOpen }) {
         update();
         window.addEventListener('resize', update);
         return () => window.removeEventListener('resize', update);
-    }, [update, photos.length]);
+    }, [update, items.length]);
 
-    // Geser satu foto per klik
+    // Lebar item berbeda-beda, jadi geser ±80% lebar area per klik
     const slide = (dir) => {
         const el = track.current;
-        const item = el?.firstElementChild;
-        if (!item) return;
-        el.scrollBy({ left: dir * (item.getBoundingClientRect().width + 12), behavior: 'smooth' });
+        if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' });
     };
 
     return (
         <div className="relative">
-            <div ref={track} onScroll={update} className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth scrollbar-none">
-                {photos.map((g, i) => (
-                    <button key={g.id} type="button" onClick={() => onOpen(i)} aria-label={`Perbesar foto: ${g.title}`}
-                        className="group relative shrink-0 basis-[calc((100%-0.75rem)/2)] snap-start cursor-zoom-in overflow-hidden rounded-2xl shadow-soft sm:basis-[calc((100%-1.5rem)/3)] lg:basis-[calc((100%-3rem)/5)]">
-                        <img src={g.image_url} alt={g.title} loading="lazy" className="aspect-[16/10] h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                        <span className="absolute inset-0 grid place-items-center opacity-0 transition group-hover:bg-black/25 group-hover:opacity-100">
-                            <ZoomIn className="h-7 w-7 text-white drop-shadow" />
-                        </span>
+            <div ref={track} onScroll={update} className="flex snap-x gap-3 overflow-x-auto scroll-smooth scrollbar-none">
+                {items.map((g, i) => (
+                    <button key={g.id} type="button" onClick={() => onOpen(i)} aria-label={`${g.type === 'video' ? 'Putar video' : 'Perbesar foto'}: ${g.title}`}
+                        className={cx('group relative h-48 shrink-0 snap-start overflow-hidden rounded-2xl bg-slate-100 shadow-soft sm:h-60', g.type === 'video' ? 'cursor-pointer' : 'cursor-zoom-in')}>
+                        {g.type === 'video' ? (
+                            <video src={`${g.image_url}#t=0.1`} preload="metadata" muted playsInline
+                                className="pointer-events-none h-full w-auto max-w-[85vw] object-contain transition duration-500 group-hover:scale-105" />
+                        ) : (
+                            <img src={g.image_url} alt={g.title} loading="lazy"
+                                className="h-full w-auto max-w-[85vw] object-contain transition duration-500 group-hover:scale-105" />
+                        )}
+                        {g.type === 'video' ? (
+                            <span className="absolute inset-0 grid place-items-center bg-black/15 transition group-hover:bg-black/30">
+                                <span className="grid h-14 w-14 place-items-center rounded-full bg-white/90 text-brand-800 shadow-lg transition group-hover:scale-110">
+                                    <Play className="ml-1 h-6 w-6 fill-current" />
+                                </span>
+                            </span>
+                        ) : (
+                            <span className="absolute inset-0 grid place-items-center opacity-0 transition group-hover:bg-black/25 group-hover:opacity-100">
+                                <ZoomIn className="h-7 w-7 text-white drop-shadow" />
+                            </span>
+                        )}
                     </button>
                 ))}
             </div>

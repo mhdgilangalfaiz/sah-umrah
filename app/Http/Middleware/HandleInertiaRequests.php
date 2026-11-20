@@ -47,6 +47,12 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
             'unreadNotifications' => fn () => $user ? $user->unreadNotifications()->count() : 0,
+            // Admin: jumlah notifikasi belum dibaca per halaman tujuan → dipetakan ke menu di sidebar
+            'unreadByPath' => fn () => $user?->isAdmin()
+                ? $user->unreadNotifications()->get(['data'])
+                    ->map(fn ($n) => MarkNotificationsSeen::pathOf($n->data['url'] ?? null))
+                    ->filter()->countBy()->all()
+                : null,
             'adminBadges' => fn () => $user?->isAdmin() ? [
                 'support' => SupportTicket::where('status', 'menunggu_admin')->count(),
                 'documents' => Document::where('status', 'menunggu')->count(),

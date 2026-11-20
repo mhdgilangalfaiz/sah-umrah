@@ -26,7 +26,7 @@ export default function Billing({ invoices, payments }) {
                                         <td className="font-medium">{i.number}</td><td className="capitalize">{i.type}</td>
                                         <td>{i.order ? <Link href={i.order.url} className="text-brand-700 hover:underline">{i.order.code}</Link> : '-'}</td>
                                         <td className="text-right">{rupiah(i.amount)}</td><td><StatusBadge status={i.status} /></td><td>{i.issued_at}</td>
-                                        <td><a href={route('invoices.pdf', i.id)} className="btn-outline btn-sm"><Download className="h-3.5 w-3.5" />PDF</a></td>
+                                        <td><a target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="btn-outline btn-sm"><Download className="h-3.5 w-3.5" />PDF</a></td>
                                     </tr>
                                 ))}
                             </tbody>

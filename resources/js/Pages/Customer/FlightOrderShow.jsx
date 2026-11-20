@@ -39,7 +39,7 @@ export default function FlightOrderShow({ order: o, payments, documents, payBox 
                         {o.invoices.map((i) => (
                             <div key={i.id} className="flex items-center justify-between py-1.5 text-sm">
                                 <span>{i.number}<br /><span className="text-xs text-slate-500">{rupiah(i.amount)}</span></span>
-                                <a href={route('invoices.pdf', i.id)} className="btn-outline btn-sm"><Download className="h-3.5 w-3.5" />PDF</a>
+                                <a target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="btn-outline btn-sm"><Download className="h-3.5 w-3.5" />PDF</a>
                             </div>
                         ))}
                         {payments.length > 0 && <p className="mt-3 text-xs text-slate-500">{payments.length} transaksi tercatat.</p>}

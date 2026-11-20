@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ChatbotIntent;
 use App\Models\Faq;
-use App\Models\Gallery;
 use App\Models\Post;
 use App\Models\Testimonial;
 use App\Models\VisaService;
@@ -60,15 +59,6 @@ class CrudController extends Controller
                     ['name' => 'rating', 'label' => 'Rating (1-5)', 'type' => 'number', 'rules' => 'required|integer|min:1|max:5'],
                     ['name' => 'photo', 'label' => 'Foto', 'type' => 'image', 'rules' => 'nullable|image|max:2048'],
                     ['name' => 'is_active', 'label' => 'Tampilkan', 'type' => 'checkbox', 'rules' => 'boolean'],
-                ],
-            ],
-            'galeri' => [
-                'model' => Gallery::class, 'title' => 'Galeri', 'roles' => ['super_admin'],
-                'columns' => ['image' => 'Foto', 'title' => 'Judul', 'category' => 'Kategori'],
-                'fields' => [
-                    ['name' => 'title', 'label' => 'Judul', 'type' => 'text', 'rules' => 'required|string|max:120'],
-                    ['name' => 'category', 'label' => 'Kategori', 'type' => 'select', 'options' => ['umum' => 'Umum', 'makkah' => 'Makkah', 'madinah' => 'Madinah', 'hotel' => 'Hotel', 'manasik' => 'Manasik'], 'rules' => 'required|string'],
-                    ['name' => 'image', 'label' => 'Foto', 'type' => 'image', 'rules' => 'required_without:id|nullable|image|max:4096'],
                 ],
             ],
             'faq' => [

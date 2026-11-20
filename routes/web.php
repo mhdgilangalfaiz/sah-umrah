@@ -47,8 +47,9 @@ Route::middleware(['signed', 'throttle:10,1'])->group(function () {
     Route::post('/keamanan/rekening/{account}', [BankDecisionController::class, 'store']);
 });
 
-// Login Google
+// Login Google & captcha halaman login
 Route::middleware('guest')->group(function () {
+    Route::get('/captcha/login', \App\Http\Controllers\Auth\CaptchaController::class)->middleware('throttle:30,1')->name('captcha.login');
     Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('auth.google');
     Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 });
@@ -193,7 +194,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::post('/bantuan/{ticket}/status', [Admin\SupportController::class, 'status'])->name('support.status');
     });
 
-    // Kelola konten sederhana (generic CRUD): testimoni, galeri, faq, chatbot, visa, blog
+    // Galeri foto & video (halaman khusus: unggah banyak foto + crop, video) — didaftarkan sebelum CRUD generik
+    Route::middleware('admin:super_admin')->group(function () {
+        Route::get('/kelola/galeri', [Admin\GalleryController::class, 'index'])->name('galeri.index');
+        Route::post('/kelola/galeri', [Admin\GalleryController::class, 'store'])->name('galeri.store');
+        Route::post('/kelola/galeri/{gallery}', [Admin\GalleryController::class, 'update'])->name('galeri.update');
+        Route::delete('/kelola/galeri/{gallery}', [Admin\GalleryController::class, 'destroy'])->name('galeri.destroy');
+    });
+
+    // Kelola konten sederhana (generic CRUD): testimoni, faq, chatbot, visa, blog
     Route::get('/kelola/{resource}', [Admin\CrudController::class, 'index'])->name('crud.index');
     Route::post('/kelola/{resource}', [Admin\CrudController::class, 'store'])->name('crud.store');
     Route::post('/kelola/{resource}/{id}', [Admin\CrudController::class, 'update'])->name('crud.update');
