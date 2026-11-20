@@ -3,34 +3,37 @@
 namespace App\Services\Flights;
 
 use App\Models\Flight;
+use Carbon\Carbon;
 
 /**
- * Pencarian penerbangan.
- * Saat ini TIDAK ada kerja sama API — data dikelola admin di tabel `flights`.
- * Arsitektur siap diganti: buat provider baru (Amadeus, dsb.) dengan method yang sama
- * lalu bind di AppServiceProvider.
+ * Pencarian seat pesawat.
+ * TIDAK memakai API maskapai: seat diperoleh dari mitra dan diperbarui manual oleh admin setiap hari.
+ * Setiap pembelian di web langsung mengurangi seats_available (lihat CheckoutController::storeFlight).
+ * Arsitektur tetap siap diganti provider lain dengan method yang sama bila suatu saat diperlukan.
  */
 class FlightSearch
 {
+    private function base()
+    {
+        return Flight::where('is_active', true)->where('depart_at', '>', now()->addHours(6));
+    }
+
     public function search(array $c)
     {
-        $pax = (int) ($c['penumpang'] ?? 1);
-
-        return Flight::where('is_active', true)
-            ->where('depart_at', '>', now()->addHours(6))
-            ->where('seats_available', '>=', $pax)
+        return $this->base()
             ->when($c['asal'] ?? null, fn ($q, $v) => $q->where('origin_code', strtoupper($v)))
             ->when($c['tujuan'] ?? null, fn ($q, $v) => $q->where('destination_code', strtoupper($v)))
-            ->when($c['tanggal'] ?? null, fn ($q, $v) => $q->whereDate('depart_at', '>=', $v)->whereDate('depart_at', '<=', \Carbon\Carbon::parse($v)->addDays(3)))
+            ->when($c['tanggal'] ?? null, fn ($q, $v) => $q->whereDate('depart_at', '>=', $v)->whereDate('depart_at', '<=', Carbon::parse($v)->addDays(3)))
             ->when($c['kelas'] ?? null, fn ($q, $v) => $q->where('cabin_class', $v))
+            ->when($c['jenis'] ?? null, fn ($q, $v) => $q->where('trip_type', $v))
+            ->when($c['transit'] ?? null, fn ($q, $v) => $v === 'langsung' ? $q->where('transit_count', 0) : $q->where('transit_count', '>', 0))
             ->orderBy('depart_at')->orderBy('price')
-            ->limit(50)->get();
+            ->limit(60)->get();
     }
 
     public function upcoming()
     {
-        return Flight::where('is_active', true)->where('depart_at', '>', now()->addHours(6))
-            ->where('seats_available', '>', 0)->orderBy('depart_at')->limit(12)->get();
+        return $this->base()->orderBy('depart_at')->limit(20)->get();
     }
 
     public function airports(): array

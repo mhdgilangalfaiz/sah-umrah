@@ -22,7 +22,9 @@ class PublicController extends Controller
         // Paket unggulan diutamakan, lalu dilengkapi paket aktif lain hingga 4 kartu.
         return Inertia::render('Public/Home', [
             'featured' => Package::active()->with('upcomingDepartures')->orderByDesc('is_featured')->orderBy('price_quad')->take(4)->get(),
-            'galleries' => Gallery::latest()->take(5)->get(),
+            'galleries' => Gallery::latest()->take(30)->get(),
+            'testimonials' => Testimonial::where('is_active', true)->latest()->take(6)->get(),
+            'faqs' => Faq::orderBy('sort')->get(['id', 'question', 'answer']),
         ]);
     }
 
@@ -74,14 +76,18 @@ class PublicController extends Controller
             'tujuan' => 'nullable|string|max:5',
             'tanggal' => 'nullable|date',
             'penumpang' => 'nullable|integer|min:1|max:9',
-            'kelas' => 'nullable|in:ekonomi,bisnis,first',
+            'kelas' => 'nullable|in:ekonomi,bisnis',
+            'jenis' => 'nullable|in:oneway,pp',
+            'transit' => 'nullable|in:langsung,transit',
         ]);
+        $searched = $request->hasAny(['asal', 'tujuan', 'tanggal', 'jenis', 'transit']);
 
         return Inertia::render('Public/Flights', [
             'criteria' => $criteria,
-            'results' => $request->hasAny(['asal', 'tujuan', 'tanggal']) ? $search->search($criteria) : $search->upcoming(),
-            'searched' => $request->hasAny(['asal', 'tujuan', 'tanggal']),
+            'results' => $searched ? $search->search($criteria) : $search->upcoming(),
+            'searched' => $searched,
             'airports' => $search->airports(),
+            'checkedAt' => now()->format('Y-m-d H:i:s'),
         ]);
     }
 

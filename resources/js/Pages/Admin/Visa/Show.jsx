@@ -5,13 +5,13 @@ import { Card, DefList, Input, PageHeader, Select, StatusBadge, Stepper, Textare
 import { VISA_STEPS, visaStep } from '@/Pages/Customer/VisaShow';
 import { dateTime, fileSize, rupiah } from '@/lib/format';
 
-export default function Show({ application: v, customer, applicants, statuses, payments, documents }) {
+export default function Show({ application: v, customer, applicants, statuses, payments, documents, usdRate }) {
     const { auth } = usePage().props;
     const canOps = ['super_admin', 'operasional'].includes(auth.user.role);
     const editableInvoice = ['menunggu_invoice', 'menunggu_pembayaran'].includes(v.status) && v.paid_amount === 0;
 
     const inv = useForm({
-        pax_count: v.pax_count, unit_price: v.unit_price, extra_fee: v.extra_fee, extra_fee_label: v.extra_fee_label ?? '', discount: v.discount, note: '',
+        pax_count: v.pax_count, unit_price: v.unit_price, exchange_rate: v.exchange_rate ?? usdRate ?? '', extra_fee: v.extra_fee, extra_fee_label: v.extra_fee_label ?? '', discount: v.discount, note: '',
         applicants: applicants.map((a) => ({ full_name: a.full_name, passport_number: a.passport_number ?? '' })),
     });
     const total = Number(inv.data.unit_price) * Number(inv.data.pax_count) + Number(inv.data.extra_fee || 0) - Number(inv.data.discount || 0);
@@ -32,6 +32,15 @@ export default function Show({ application: v, customer, applicants, statuses, p
                     {canOps && editableInvoice && (
                         <Card title={v.status === 'menunggu_invoice' ? 'Terbitkan invoice' : 'Ubah invoice (belum dibayar)'}>
                             <form onSubmit={(e) => { e.preventDefault(); inv.post(route('admin.visa.invoice', v.code), { preserveScroll: true }); }} className="space-y-4">
+                                {v.unit_price_usd && (
+                                    <div className="grid items-end gap-3 rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200 sm:grid-cols-[auto_1fr_auto]">
+                                        <p className="text-sm text-amber-900">Harga <b>USD {Number(v.unit_price_usd)}</b>/orang ×</p>
+                                        <Input label="Kurs hari ini (Rp per USD)" type="number" value={inv.data.exchange_rate}
+                                            onChange={(e) => { const r = e.target.value; inv.setData((d) => ({ ...d, exchange_rate: r, unit_price: Math.round((Number(v.unit_price_usd) * Number(r || 0)) / 100) * 100 })); }}
+                                            error={inv.errors.exchange_rate} hint={`Kurs saat pengajuan: Rp${Number(v.exchange_rate ?? 0).toLocaleString('id-ID')} · kurs di Pengaturan: Rp${Number(usdRate).toLocaleString('id-ID')}`} />
+                                        <p className="pb-2 text-sm font-semibold text-amber-900">= {rupiah(inv.data.unit_price)}/orang</p>
+                                    </div>
+                                )}
                                 <div className="grid gap-4 sm:grid-cols-3">
                                     <Input label="Jumlah pemesan visa" type="number" value={inv.data.pax_count} onChange={(e) => inv.setData('pax_count', e.target.value)} error={inv.errors.pax_count} />
                                     <Input label="Harga per orang" type="number" value={inv.data.unit_price} onChange={(e) => inv.setData('unit_price', e.target.value)} error={inv.errors.unit_price} />

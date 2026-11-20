@@ -145,6 +145,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::get('/keberangkatan', [Admin\DepartureController::class, 'index'])->name('departures.index');
         Route::get('/keberangkatan/{departure}/manifest', [Admin\DepartureController::class, 'manifest'])->name('departures.manifest');
 
+        // Update seat & harga harian (manual dari mitra) langsung dari tabel
+        Route::patch('penerbangan/{flight}/seat', [Admin\FlightController::class, 'updateSeats'])->name('flights.seats');
         Route::resource('penerbangan', Admin\FlightController::class)->parameters(['penerbangan' => 'flight'])->names('flights')->except('show');
 
         Route::get('/dokumen', [Admin\DocumentController::class, 'index'])->name('documents.index');

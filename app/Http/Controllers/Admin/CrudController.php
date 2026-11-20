@@ -27,13 +27,13 @@ class CrudController extends Controller
         return [
             'visa' => [
                 'model' => VisaService::class, 'title' => 'Jenis Layanan Visa', 'roles' => ['operasional'],
-                'columns' => ['name' => 'Nama', 'price' => 'Harga', 'processing_days' => 'Estimasi (hari)', 'is_active' => 'Aktif'],
+                'columns' => ['name' => 'Nama', 'price_usd' => 'Harga (USD)', 'price' => 'Estimasi Rp (kurs kini)', 'processing_days' => 'Estimasi (hari)', 'is_active' => 'Aktif'],
                 'fields' => [
                     ['name' => 'name', 'label' => 'Nama layanan', 'type' => 'text', 'rules' => 'required|string|max:120'],
                     ['name' => 'description', 'label' => 'Deskripsi', 'type' => 'textarea', 'rules' => 'nullable|string|max:3000'],
                     ['name' => 'requirements', 'label' => 'Persyaratan dokumen (satu per baris)', 'type' => 'list', 'rules' => 'nullable|array'],
                     ['name' => 'processing_days', 'label' => 'Estimasi proses (hari kerja)', 'type' => 'number', 'rules' => 'required|integer|min:1|max:90'],
-                    ['name' => 'price', 'label' => 'Biaya per orang (Rp)', 'type' => 'number', 'rules' => 'required|integer|min:0', 'audit_price' => true],
+                    ['name' => 'price_usd', 'label' => 'Biaya per orang (USD) — Rupiah mengikuti kurs di Pengaturan', 'type' => 'number', 'rules' => 'required|numeric|min:0|max:100000', 'audit_price' => true],
                     ['name' => 'is_active', 'label' => 'Aktif', 'type' => 'checkbox', 'rules' => 'boolean'],
                 ],
             ],

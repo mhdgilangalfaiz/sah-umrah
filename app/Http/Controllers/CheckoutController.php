@@ -226,7 +226,9 @@ class CheckoutController extends Controller
                 'pax_count' => $data['pax_count'],
                 'planned_departure' => $data['planned_departure'] ?? null,
                 'notes' => $data['notes'] ?? null,
-                'unit_price' => $service->price,
+                'unit_price' => $service->price, // Rupiah dengan kurs saat pengajuan (estimasi; final di invoice)
+                'unit_price_usd' => $service->price_usd,
+                'exchange_rate' => $service->price_usd ? VisaService::currentRate() : null,
                 'status' => 'menunggu_invoice',
             ]);
             $app->recalculateTotal();

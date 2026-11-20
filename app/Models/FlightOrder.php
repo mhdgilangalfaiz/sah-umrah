@@ -51,7 +51,7 @@ class FlightOrder extends Model implements Payable
 
     public function payableLabel(): string
     {
-        return 'Tiket '.$this->flight->airline.' '.$this->flight->origin_code.'→'.$this->flight->destination_code.' ('.$this->code.')';
+        return 'Tiket '.$this->flight->airline.' '.$this->flight->route_label.' ('.$this->code.')';
     }
 
     public function customerUrl(): string

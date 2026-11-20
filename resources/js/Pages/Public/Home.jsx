@@ -1,9 +1,11 @@
 import { Link } from '@inertiajs/react';
 import {
-    ArrowRight, BedDouble, Building2, CalendarDays, Check, Clock, Goal, Layers, Plane, ShieldCheck, Star, Stamp, UserCheck, UserRound,
+    ArrowRight, BedDouble, ChevronLeft, ChevronRight, Building2, CalendarDays, Check, ChevronDown, Clock, Goal, Headset, Layers, MapPin, Plane, Quote, ShieldCheck, Star, Stamp, UserCheck, UserRound, ZoomIn,
 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import PublicLayout from '@/Layouts/PublicLayout';
+import PackageDetailModal from '@/Components/PackageDetailModal';
+import GalleryLightbox from '@/Components/GalleryLightbox';
 import { cx } from '@/Components/ui';
 import { date, rupiah } from '@/lib/format';
 
@@ -21,16 +23,22 @@ const LAYANAN = [
 ];
 
 // Foto bawaan bila admin belum mengunggah galeri. Ganti dengan foto asli resolusi tinggi di public/images/landing.
-const DEFAULT_GALLERY = [1, 2, 3, 4, 5].map((n) => ({ id: `d${n}`, title: 'Dokumentasi jamaah', image_url: `/images/landing/galeri-${n}.jpg` }));
+const DEFAULT_GALLERY = [
+    'Jamaah berdoa di Masjidil Haram', 'Kubah Hijau Masjid Nabawi', 'Masjid Quba, Madinah', 'Payung raksasa Masjid Nabawi',
+    'Interior Masjid Nabawi', 'Jabal Rahmah, Arafah', 'Kota Makkah di malam hari',
+].map((title, i) => ({ id: `d${i + 1}`, title, image_url: `/images/landing/galeri-${i + 1}.jpg` }));
 
-export default function Home({ featured, galleries }) {
+export default function Home({ featured, galleries, testimonials, faqs }) {
+    const [faqOpen, setFaqOpen] = useState(0);
+    const [selected, setSelected] = useState(null); // paket yang detailnya sedang dibuka (popup)
     // Datang dari halaman lain lewat link "/#galeri" dsb → gulir ke section yang dimaksud.
     useEffect(() => {
         const id = window.location.hash.slice(1);
         if (id) requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start' }));
     }, []);
 
-    const photos = galleries.length ? galleries.slice(0, 5) : DEFAULT_GALLERY;
+    const photos = galleries.length ? galleries : DEFAULT_GALLERY;
+    const [viewer, setViewer] = useState(null); // index foto galeri yang sedang diperbesar
 
     return (
         <PublicLayout title="Biro Perjalanan Umrah Terpercaya di Medan">
@@ -89,10 +97,15 @@ export default function Home({ featured, galleries }) {
                         <span className="chip-green">Tentang Kami</span>
                         <h2 className="mt-4 font-sans text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">PT. Sumatera Andalan Haramain</h2>
                         <p className="mt-3 text-base leading-relaxed text-slate-600">Perusahaan penyelenggara perjalanan ibadah umrah yang berkomitmen memberikan layanan terbaik, amanah, dan profesional.</p>
+                        <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
+                            Berkantor pusat di Kota Medan, kami melayani jamaah dengan keberangkatan dari Bandara Kualanamu, hotel dekat Masjidil Haram dan Masjid Nabawi,
+                            serta pendampingan pembimbing ibadah berpengalaman. Seluruh pendaftaran dan pembayaran dilakukan melalui sistem resmi sehingga setiap transaksi tercatat dengan aman.
+                        </p>
                         <div className="mt-8 grid gap-8 sm:grid-cols-2 sm:divide-x sm:divide-slate-200">
                             <div>
                                 <h3 className="flex items-center gap-2 font-sans text-xl font-extrabold text-brand-700"><Goal className="h-6 w-6" /> Visi</h3>
                                 <p className="mt-3 text-sm leading-relaxed text-slate-600">Menjadi penyelenggara perjalanan ibadah umrah yang terpercaya, profesional, dan unggul di Indonesia.</p>
+                                <p className="mt-2 text-sm leading-relaxed text-slate-600">Kami ingin setiap jamaah dapat beribadah dengan tenang dan khusyuk, didukung pelayanan yang amanah sejak persiapan keberangkatan, selama di Tanah Suci, hingga kembali ke tanah air.</p>
                             </div>
                             <div className="sm:pl-8">
                                 <h3 className="flex items-center gap-2 font-sans text-xl font-extrabold text-brand-700"><Layers className="h-6 w-6" /> Misi</h3>
@@ -131,7 +144,7 @@ export default function Home({ featured, galleries }) {
                         action={<Link href={route('packages.index')} className="inline-flex items-center gap-2 rounded-full border-2 border-brand-600 px-5 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-50">Lihat Semua Paket <ArrowRight className="h-4 w-4" /></Link>} />
                     {featured.length ? (
                         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                            {featured.map((p, i) => <LandingPackageCard key={p.id} p={p} best={i === 0} />)}
+                            {featured.map((p, i) => <LandingPackageCard key={p.id} p={p} best={i === 0} onSelect={() => setSelected(p)} />)}
                         </div>
                     ) : (
                         <p className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500">Paket umrah segera hadir.</p>
@@ -143,16 +156,133 @@ export default function Home({ featured, galleries }) {
             <section id="galeri" className="landing-section pb-14 sm:pb-20">
                 <div className="container-app">
                     <Heading title="Galeri Kegiatan" subtitle="Dokumentasi perjalanan ibadah umrah bersama jamaah kami." />
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                        {photos.map((g, i) => (
-                            <figure key={g.id} className={cx('group overflow-hidden rounded-2xl shadow-soft', i === 0 && 'col-span-2 sm:col-span-1')}>
-                                <img src={g.image_url} alt={g.title} loading="lazy" className="aspect-[16/10] h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                            </figure>
-                        ))}
-                    </div>
+                    <GalleryCarousel photos={photos} onOpen={setViewer} />
                 </div>
             </section>
+            {viewer !== null && <GalleryLightbox photos={photos} index={viewer} onIndex={setViewer} onClose={() => setViewer(null)} />}
+
+            {/* ============ TESTIMONI ============ */}
+            <section id="testimoni" className="landing-section bg-brand-50/60 py-14 sm:py-20">
+                <div className="container-app">
+                    <Heading title="Testimoni Jamaah" subtitle="Cerita dan pengalaman jamaah yang telah berangkat bersama kami." />
+                    {testimonials.length ? (
+                        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                            {testimonials.map((t) => (
+                                <figure key={t.id} className="relative flex flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-soft">
+                                    <Quote className="absolute right-5 top-5 h-8 w-8 text-brand-100" fill="currentColor" strokeWidth={0} />
+                                    <div className="flex gap-0.5 text-amber-400">
+                                        {Array.from({ length: 5 }).map((_, i) => <Star key={i} className={cx('h-4 w-4', i < t.rating ? 'fill-current' : 'text-slate-200')} />)}
+                                    </div>
+                                    <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-slate-700">“{t.content}”</blockquote>
+                                    <figcaption className="mt-5 flex items-center gap-3 border-t border-slate-100 pt-4">
+                                        {t.photo_url
+                                            ? <img src={t.photo_url} alt={t.name} className="h-11 w-11 rounded-full object-cover" />
+                                            : <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-700 font-bold text-white">{t.name.replace(/^(Hj?\.|Bapak|Ibu)\s*/i, '').charAt(0)}</span>}
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-900">{t.name}</p>
+                                            {t.city && <p className="flex items-center gap-1 text-xs text-slate-500"><MapPin className="h-3 w-3" />{t.city}</p>}
+                                        </div>
+                                    </figcaption>
+                                </figure>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="rounded-2xl border border-dashed border-brand-200 bg-white p-10 text-center text-slate-500">Testimoni jamaah segera hadir.</p>
+                    )}
+                </div>
+            </section>
+
+            {/* ============ FAQ (tanpa menu navbar) ============ */}
+            {faqs.length > 0 && (
+                <section id="faq" className="landing-section py-14 sm:py-20">
+                    <div className="container-app max-w-4xl">
+                        <Heading title="Pertanyaan yang Sering Diajukan" subtitle="Informasi seputar layanan umrah PT. Sumatera Andalan Haramain." />
+                        <div className="space-y-3">
+                            {faqs.map((f, i) => {
+                                const open = faqOpen === i;
+                                return (
+                                    <div key={f.id} className={cx('overflow-hidden rounded-2xl border bg-white transition', open ? 'border-brand-200 shadow-soft' : 'border-slate-200')}>
+                                        <button type="button" onClick={() => setFaqOpen(open ? -1 : i)} aria-expanded={open}
+                                            className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left font-semibold text-slate-900 hover:text-brand-700">
+                                            {f.question}
+                                            <span className={cx('grid h-8 w-8 shrink-0 place-items-center rounded-full transition', open ? 'rotate-180 bg-brand-700 text-white' : 'bg-brand-50 text-brand-700')}>
+                                                <ChevronDown className="h-4 w-4" />
+                                            </span>
+                                        </button>
+                                        {open && <p className="animate-fade-up px-5 pb-5 text-sm leading-relaxed text-slate-600">{f.answer}</p>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="mt-6 flex items-start gap-3 rounded-2xl bg-brand-50 p-4 text-sm text-brand-900">
+                            <Headset className="mt-0.5 h-5 w-5 shrink-0" />
+                            <p>Masih ada pertanyaan? Klik tombol <b>Butuh Bantuan?</b> di pojok kanan bawah untuk berkonsultasi langsung dengan tim kami.</p>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {selected && <PackageDetailModal p={selected} onClose={() => setSelected(null)} />}
         </PublicLayout>
+    );
+}
+
+/** Galeri satu baris yang bisa digulir dengan tombol kiri/kanan; klik foto untuk memperbesar. */
+function GalleryCarousel({ photos, onOpen }) {
+    const track = useRef(null);
+    const [edge, setEdge] = useState({ start: true, end: false });
+
+    const update = useCallback(() => {
+        const el = track.current;
+        if (!el) return;
+        setEdge({ start: el.scrollLeft <= 4, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 });
+    }, []);
+
+    useEffect(() => {
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, [update, photos.length]);
+
+    // Geser satu foto per klik
+    const slide = (dir) => {
+        const el = track.current;
+        const item = el?.firstElementChild;
+        if (!item) return;
+        el.scrollBy({ left: dir * (item.getBoundingClientRect().width + 12), behavior: 'smooth' });
+    };
+
+    return (
+        <div className="relative">
+            <div ref={track} onScroll={update} className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth scrollbar-none">
+                {photos.map((g, i) => (
+                    <button key={g.id} type="button" onClick={() => onOpen(i)} aria-label={`Perbesar foto: ${g.title}`}
+                        className="group relative shrink-0 basis-[calc((100%-0.75rem)/2)] snap-start cursor-zoom-in overflow-hidden rounded-2xl shadow-soft sm:basis-[calc((100%-1.5rem)/3)] lg:basis-[calc((100%-3rem)/5)]">
+                        <img src={g.image_url} alt={g.title} loading="lazy" className="aspect-[16/10] h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                        <span className="absolute inset-0 grid place-items-center opacity-0 transition group-hover:bg-black/25 group-hover:opacity-100">
+                            <ZoomIn className="h-7 w-7 text-white drop-shadow" />
+                        </span>
+                    </button>
+                ))}
+            </div>
+            {!(edge.start && edge.end) && (
+                <>
+                    <CarouselArrow side="left" disabled={edge.start} onClick={() => slide(-1)} />
+                    <CarouselArrow side="right" disabled={edge.end} onClick={() => slide(1)} />
+                </>
+            )}
+        </div>
+    );
+}
+
+function CarouselArrow({ side, disabled, onClick }) {
+    const Icon = side === 'left' ? ChevronLeft : ChevronRight;
+    return (
+        <button type="button" onClick={onClick} disabled={disabled} aria-label={side === 'left' ? 'Foto sebelumnya' : 'Foto berikutnya'}
+            className={cx('absolute top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white text-brand-700 shadow-lg ring-1 ring-slate-200 transition hover:bg-brand-700 hover:text-white disabled:pointer-events-none disabled:opacity-0',
+                side === 'left' ? 'left-1 sm:-left-5' : 'right-1 sm:-right-5')}>
+            <Icon className="h-5 w-5" />
+        </button>
     );
 }
 
@@ -172,17 +302,23 @@ function Heading({ title, subtitle, action }) {
     );
 }
 
-function LandingPackageCard({ p, best }) {
+function LandingPackageCard({ p, best, onSelect }) {
     const next = p.upcoming_departures?.[0];
-    const facilities = (p.facilities ?? []).slice(0, 6);
     return (
-        <div className="relative flex flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-soft transition hover:-translate-y-1 hover:shadow-lift">
+        <div className="relative flex flex-col rounded-2xl border border-slate-100 bg-white p-3 shadow-soft transition hover:-translate-y-1 hover:shadow-lift">
             {best && (
-                <span className="absolute -top-3 left-4 inline-flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-white shadow">
+                <span className="absolute -top-3 left-4 z-10 inline-flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-white shadow">
                     <Star className="h-3 w-3 fill-current" /> Best Seller
                 </span>
             )}
-            <p className="mt-2 text-sm font-semibold text-slate-500">Paket Umrah</p>
+            {/* Poster paket — tinggi mengikuti rasio poster */}
+            <button type="button" onClick={onSelect} className="block overflow-hidden rounded-xl bg-slate-100" aria-label={`Lihat detail ${p.name}`}>
+                {p.cover_url
+                    ? <img src={p.cover_url} alt={`Poster ${p.name}`} loading="lazy" className="block h-auto w-full transition duration-500 hover:scale-[1.03]" />
+                    : <div className="grid aspect-[4/5] place-items-center bg-brand-800"><img src="/images/logo-sah-footer.png" alt="" className="h-16" /></div>}
+            </button>
+            <div className="flex flex-1 flex-col px-1 pt-3">
+            <p className="text-sm font-semibold text-slate-500">Paket Umrah</p>
             <h3 className="font-sans text-base font-bold leading-snug text-slate-900">{p.name}</h3>
             <p className="mt-2 text-2xl font-extrabold text-brand-800">{rupiah(p.price_quad)}<span className="text-xs font-medium text-slate-500"> /Pax</span></p>
 
@@ -196,16 +332,12 @@ function LandingPackageCard({ p, best }) {
                 <li className="flex items-center gap-2"><Building2 className="h-4 w-4 shrink-0 text-brand-700" /><span className="truncate">{p.hotel_makkah}</span></li>
                 <li className="flex items-center gap-2"><BedDouble className="h-4 w-4 shrink-0 text-brand-700" /><span className="truncate">{p.hotel_madinah}</span></li>
             </ul>
+            <div className="min-h-4 flex-1" />
 
-            {facilities.length > 0 && (
-                <ul className="mt-3 space-y-1 rounded-xl bg-brand-50 p-3 text-xs text-slate-700">
-                    {facilities.map((f) => <li key={f} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-600" strokeWidth={3} /><span className="line-clamp-1">{f}</span></li>)}
-                </ul>
-            )}
-
-            <Link href={route('packages.show', p.slug)} className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-700 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800">
+            <button type="button" onClick={onSelect} className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-700 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800">
                 Pilih Paket <ArrowRight className="h-4 w-4" />
-            </Link>
+            </button>
+            </div>
         </div>
     );
 }

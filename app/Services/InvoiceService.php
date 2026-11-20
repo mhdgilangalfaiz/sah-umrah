@@ -23,7 +23,7 @@ class InvoiceService
                 'qty' => $payable->pax_count, 'price' => $payable->unit_price, 'total' => $payable->unit_price * $payable->pax_count,
             ]])),
             $payable instanceof FlightOrder => [[
-                'description' => 'Tiket '.$payable->flight->airline.' '.$payable->flight->flight_number.' '.$payable->flight->origin_code.' → '.$payable->flight->destination_code.' ('.$payable->flight->depart_at->translatedFormat('d M Y H:i').')',
+                'description' => 'Tiket '.$payable->flight->airline.' '.$payable->flight->flight_number.' '.$payable->flight->route_label.' ('.$payable->flight->depart_at->translatedFormat('d M Y H:i').($payable->flight->return_depart_at ? ' – kembali '.$payable->flight->return_depart_at->translatedFormat('d M Y H:i') : '').')',
                 'qty' => $payable->pax_count, 'price' => $payable->unit_price, 'total' => $payable->total_amount,
             ]],
             $payable instanceof VisaApplication => array_values(array_filter([

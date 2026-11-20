@@ -12,5 +12,7 @@ Foto bersumber dari Wikimedia Commons. Ganti dengan foto dokumentasi milik perus
 | galeri-3.jpg | File:Quba Mosque (2024).jpg | Kaliper1 | CC BY-SA 4.0 |
 | galeri-4.jpg | File:Umbrellas at Prophet's Mosque in Medina.jpg | Ahmed Sadoon | CC BY 2.0 |
 | galeri-5.jpg | File:Insidemasjedolnabi4.JPG | Mardetanha | CC BY-SA 3.0 |
+| galeri-6.jpg | File:Jabal-e-Rehmat (Mount of Mercy) Mount Arafat.jpg | Fahad Faisal | CC BY-SA 4.0 |
+| galeri-7.jpg | File:Mecca at night.jpg | عباد ديرانية | CC BY-SA 3.0 |
 
 Lisensi CC BY / CC BY-SA mewajibkan pencantuman nama pembuat & lisensi bila foto dipublikasikan.

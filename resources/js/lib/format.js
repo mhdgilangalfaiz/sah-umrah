@@ -45,3 +45,9 @@ export const uuid = () =>
         }));
 
 export const fileSize = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
+
+/** Contoh: usd(135) → "USD 135", usd(135.5) → "USD 135,50" */
+export const usd = (n) => {
+    const v = Number(n || 0);
+    return 'USD ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits: 2 }).format(v);
+};

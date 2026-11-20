@@ -66,7 +66,7 @@ class PackageController extends Controller
             'document_requirements.*' => 'string|max:200',
             'is_featured' => 'boolean',
             'is_active' => 'boolean',
-            'cover' => 'nullable|image|max:4096',
+            'cover' => 'nullable|image|max:8192',
             'gallery_new' => 'nullable|array|max:12',
             'gallery_new.*' => 'image|max:4096',
             'gallery_keep' => 'nullable|array',

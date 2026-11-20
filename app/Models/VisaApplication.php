@@ -27,7 +27,7 @@ class VisaApplication extends Model implements Payable
     ];
 
     protected $fillable = [
-        'code', 'user_id', 'visa_service_id', 'pax_count', 'planned_departure', 'notes', 'status', 'unit_price',
+        'code', 'user_id', 'visa_service_id', 'pax_count', 'planned_departure', 'notes', 'status', 'unit_price', 'unit_price_usd', 'exchange_rate',
         'extra_fee', 'extra_fee_label', 'discount', 'total_amount', 'paid_amount', 'invoice_issued_at',
         'rejection_reason', 'issued_at',
     ];

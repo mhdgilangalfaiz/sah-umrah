@@ -35,6 +35,7 @@ class VisaController extends Controller
             'customer' => $v->user->only('name', 'email', 'phone', 'customer_code'),
             'applicants' => $v->passengers->map(fn ($p) => ['id' => $p->id, 'full_name' => $p->full_name, 'passport_number' => $p->passport_number]),
             'statuses' => VisaApplication::STATUSES,
+            'usdRate' => \App\Models\VisaService::currentRate(),
             'payments' => $v->payments()->get(),
             'documents' => $v->documents()->latest()->get()->map(fn ($d) => [
                 'id' => $d->id, 'type' => $d->type, 'type_label' => $d->type_label, 'file_name' => $d->file_name, 'status' => $d->status,
@@ -52,6 +53,7 @@ class VisaController extends Controller
         $data = $request->validate([
             'pax_count' => 'required|integer|min:1|max:500',
             'unit_price' => 'required|integer|min:0',
+            'exchange_rate' => 'nullable|numeric|min:1000|max:100000',
             'extra_fee' => 'nullable|integer|min:0',
             'extra_fee_label' => 'nullable|string|max:100',
             'discount' => 'nullable|integer|min:0',
@@ -63,7 +65,8 @@ class VisaController extends Controller
 
         $old = $visaApplication->only('pax_count', 'unit_price', 'extra_fee', 'discount', 'total_amount');
         $visaApplication->fill([
-            'pax_count' => $data['pax_count'], 'unit_price' => $data['unit_price'], 'extra_fee' => $data['extra_fee'] ?? 0,
+            'pax_count' => $data['pax_count'], 'unit_price' => $data['unit_price'],
+            'exchange_rate' => $visaApplication->unit_price_usd ? ($data['exchange_rate'] ?? $visaApplication->exchange_rate) : null, 'extra_fee' => $data['extra_fee'] ?? 0,
             'extra_fee_label' => $data['extra_fee_label'] ?? null, 'discount' => $data['discount'] ?? 0, 'invoice_issued_at' => now(),
         ]);
         $visaApplication->recalculateTotal();

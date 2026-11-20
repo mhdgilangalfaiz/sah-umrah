@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { Clock, FileArchive, FileText, Receipt, ShieldCheck, Stamp, Upload, CreditCard, Search } from 'lucide-react';
 import PublicLayout from '@/Layouts/PublicLayout';
-import { rupiah } from '@/lib/format';
+import { rupiah, usd } from '@/lib/format';
 
 const FLOW = [
     [FileText, 'Ajukan visa', 'Isi jumlah pemohon & data singkat.'],
@@ -47,8 +47,16 @@ export default function Visa({ services }) {
                             </ul>
                         </div>
                         <div className="rounded-2xl bg-sand-100 p-6">
-                            <p className="text-sm text-slate-500">Estimasi biaya</p>
-                            <p className="text-3xl font-bold text-brand-700">{rupiah(s.price)}<span className="text-sm font-normal text-slate-500">/orang</span></p>
+                            <p className="text-sm text-slate-500">Biaya</p>
+                            {s.price_usd ? (
+                                <>
+                                    <p className="text-3xl font-bold text-brand-700">{usd(s.price_usd)}<span className="text-sm font-normal text-slate-500">/orang</span></p>
+                                    <p className="mt-1 text-sm text-slate-600">≈ {rupiah(s.price)} <span className="text-xs text-slate-500">(kurs Rp{Number(s.usd_rate).toLocaleString('id-ID')}/USD hari ini)</span></p>
+                                    <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 ring-1 ring-amber-200">* Kurs menyesuaikan waktu pembelian. Pembayaran dalam Rupiah sesuai kurs yang berlaku saat invoice diterbitkan.</p>
+                                </>
+                            ) : (
+                                <p className="text-3xl font-bold text-brand-700">{rupiah(s.price)}<span className="text-sm font-normal text-slate-500">/orang</span></p>
+                            )}
                             <p className="mt-3 flex items-center gap-2 text-sm text-slate-600"><Clock className="h-4 w-4 text-gold-500" />Estimasi proses ±{s.processing_days} hari kerja</p>
                             <p className="mt-2 text-xs text-slate-500">Biaya final tercantum pada invoice yang diterbitkan admin setelah pengajuan.</p>
                             <Link href={route('checkout.visa', { layanan: s.id })} className="btn-primary mt-6 w-full py-3">Ajukan Visa</Link>

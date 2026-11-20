@@ -15,12 +15,13 @@ class Setting extends Model
     public const DEFAULTS = [
         'company_name' => 'PT. Sumatera Andalan Haramain',
         'company_tagline' => 'Biro Perjalanan Umrah Terpercaya dari Kota Medan',
-        'company_address' => 'Jl. Sisingamangaraja No. 88, Kota Medan, Sumatera Utara 20217',
+        'company_address' => 'Jl. Eka Rasmi Springville Residence No.32, Gedung Johor, Kec. Medan Johor, Kota Medan, Sumatera Utara 20147',
         'company_phone' => '(061) 1234 5678',
         'company_email' => 'info@sumateraandalanharamain.co.id',
-        'license_ppiu' => 'PPIU No. U.123 Tahun 2024',
+        'license_ppiu' => 'No. PPIU: 91201032614170001',
         'office_hours' => 'Senin – Sabtu, 08.30 – 17.00 WIB',
         'map_embed' => 'https://www.google.com/maps?q=Medan&output=embed',
+        'usd_rate' => '16500', // kurs USD → Rupiah untuk layanan berharga USD (mis. visa)
         'hero_title' => 'Wujudkan Perjalanan Suci ke Tanah Haram dengan Tenang',
         'hero_subtitle' => 'Paket umrah resmi berizin Kemenag, hotel dekat Masjidil Haram, dan skema cicilan yang ringan — semua transaksi tercatat aman di sistem.',
     ];

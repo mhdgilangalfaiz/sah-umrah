@@ -2,7 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { Input, PageHeader, Stepper, Textarea, cx } from '@/Components/ui';
-import { rupiah } from '@/lib/format';
+import { rupiah, usd } from '@/lib/format';
 
 const STEPS = ['Pengajuan', 'Invoice Admin', 'Pembayaran', 'Unggah Berkas', 'Verifikasi', 'Visa Terbit'];
 
@@ -31,7 +31,7 @@ export default function CheckoutVisa({ services, selected, jamaah }) {
                             <div className="grid gap-2 sm:grid-cols-2">
                                 {services.map((s) => (
                                     <button key={s.id} type="button" onClick={() => setData('visa_service_id', s.id)} className={cx('rounded-xl border p-3 text-left', Number(data.visa_service_id) === s.id ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-slate-200')}>
-                                        <p className="font-semibold">{s.name}</p><p className="text-xs text-slate-500">{rupiah(s.price)}/orang · ±{s.processing_days} hari kerja</p>
+                                        <p className="font-semibold">{s.name}</p><p className="text-xs text-slate-500">{s.price_usd ? `${usd(s.price_usd)} (≈ ${rupiah(s.price)})` : rupiah(s.price)}/orang · ±{s.processing_days} hari kerja</p>
                                     </button>
                                 ))}
                             </div>
@@ -68,7 +68,14 @@ export default function CheckoutVisa({ services, selected, jamaah }) {
                     </div>
 
                     <div className="card card-pad space-y-3">
-                        {svc && <div className="flex justify-between text-sm"><span className="text-slate-500">Estimasi biaya ({data.pax_count} × {rupiah(svc.price)})</span><span className="font-bold text-brand-700">{rupiah(svc.price * (Number(data.pax_count) || 0))}</span></div>}
+                        {svc && (
+                            <div className="flex justify-between gap-3 text-sm">
+                                <span className="text-slate-500">Estimasi biaya ({data.pax_count} × {svc.price_usd ? usd(svc.price_usd) : rupiah(svc.price)})</span>
+                                <span className="text-right"><span className="block font-bold text-brand-700">{rupiah(svc.price * (Number(data.pax_count) || 0))}</span>
+                                    {svc.price_usd && <span className="block text-xs text-slate-500">{usd(svc.price_usd * (Number(data.pax_count) || 0))} × kurs Rp{Number(svc.usd_rate).toLocaleString('id-ID')}</span>}</span>
+                            </div>
+                        )}
+                        {svc?.price_usd && <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 ring-1 ring-amber-200">* Kurs menyesuaikan waktu pembelian. Nilai Rupiah final mengikuti kurs saat invoice diterbitkan.</p>}
                         <p className="text-xs text-slate-500">Biaya final mengikuti invoice resmi yang diterbitkan admin. Berkas (ZIP/RAR) diunggah setelah invoice lunas.</p>
                         <label className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-0.5" checked={data.agree} onChange={(e) => setData('agree', e.target.checked)} />Saya menyetujui Syarat & Ketentuan dan Kebijakan Privasi.</label>
                         {errors.agree && <p className="error">{errors.agree}</p>}

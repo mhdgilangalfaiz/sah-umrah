@@ -1,26 +1,28 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
-    ChevronDown, House, Image, Info, Layers, Landmark, Mail, MapPin, Menu, Phone, Plane, Stamp, X,
+    ChevronDown, House, Image, Info, Layers, Landmark, Mail, MapPin, Menu, MessageSquareQuote, Phone, Plane, Stamp, X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ChatWidget from '@/Components/ChatWidget';
 import NotificationBell from '@/Components/NotificationBell';
 import { Flash, cx } from '@/Components/ui';
 
-/** Menu yang mengarah ke section di landing page (scroll, tidak pindah halaman). */
+/** Menu yang mengarah ke section di landing page (scroll, tidak pindah halaman).
+ *  nav: false → tidak tampil di navbar (hanya di footer); logo sudah berfungsi sebagai tombol beranda. */
 export const SECTIONS = [
-    { id: 'beranda', label: 'Beranda', icon: House },
+    { id: 'beranda', label: 'Beranda', icon: House, nav: false },
     { id: 'tentang', label: 'Tentang Kami', icon: Info },
     { id: 'layanan', label: 'Layanan Kami', icon: Layers, dropdown: true },
     { id: 'galeri', label: 'Galeri', icon: Image },
+    { id: 'testimoni', label: 'Testimoni', icon: MessageSquareQuote },
     { id: 'kontak', label: 'Kontak', icon: Phone },
 ];
 
 /** Isi dropdown "Layanan Kami" — masing-masing pindah ke halaman sendiri. */
 export const SERVICES = [
-    { label: 'Paket Umrah', desc: 'Pilihan paket umrah lengkap', route: 'packages.index', icon: Landmark },
-    { label: 'Tiket Pesawat Umrah', desc: 'Rute Indonesia ↔ Jeddah / Madinah', route: 'flights.index', icon: Plane },
-    { label: 'Layanan Visa', desc: 'Pengurusan visa umrah resmi', route: 'visa.index', icon: Stamp },
+    { label: 'Paket Umrah', route: 'packages.index', icon: Landmark },
+    { label: 'Tiket Pesawat', route: 'flights.index', icon: Plane },
+    { label: 'Layanan Visa', route: 'visa.index', icon: Stamp },
 ];
 
 export function Logo({ className = 'h-10' }) {
@@ -75,12 +77,11 @@ function ServicesDropdown({ highlighted }) {
                 <ChevronDown className={cx('h-3.5 w-3.5 transition', open && 'rotate-180')} />
             </button>
             {open && (
-                <div className="absolute left-1/2 top-full z-50 w-72 -translate-x-1/2 pt-3">
+                <div className="absolute left-1/2 top-full z-50 w-52 -translate-x-1/2 pt-3">
                     <div className="animate-pop rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
-                        {SERVICES.map(({ label, desc, route: r }) => (
-                            <Link key={r} href={route(r)} className="group block rounded-xl px-4 py-2.5 transition hover:bg-brand-50">
-                                <span className="block text-sm font-semibold text-slate-800 group-hover:text-brand-700">{label}</span>
-                                <span className="block truncate text-xs text-slate-500">{desc}</span>
+                        {SERVICES.map(({ label, route: r }) => (
+                            <Link key={r} href={route(r)} className="block rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-brand-50 hover:text-brand-700">
+                                {label}
                             </Link>
                         ))}
                     </div>
@@ -112,7 +113,7 @@ export default function PublicLayout({ title, children }) {
                     </Link>
 
                     <nav className="hidden items-center gap-1 lg:flex">
-                        {SECTIONS.map(({ id, label, dropdown }) => dropdown ? (
+                        {SECTIONS.filter((s) => s.nav !== false).map(({ id, label, dropdown }) => dropdown ? (
                             <ServicesDropdown key={id} highlighted={onServicePage || (onHome && active === id)} />
                         ) : (
                             <SectionLink key={id} id={id} onHome={onHome} className={cx('nav-pill', onHome && active === id && 'nav-pill-active')}>
@@ -151,7 +152,7 @@ export default function PublicLayout({ title, children }) {
                             <button onClick={() => setOpen(false)} className="rounded-lg p-2 hover:bg-slate-100" aria-label="Tutup"><X className="h-5 w-5" /></button>
                         </div>
                         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-                            {SECTIONS.map(({ id, label, dropdown }) => dropdown ? (
+                            {SECTIONS.filter((s) => s.nav !== false).map(({ id, label, dropdown }) => dropdown ? (
                                 <div key={id}>
                                     <button onClick={() => setMobileServices((v) => !v)} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-700 hover:bg-brand-50">
                                         {label}

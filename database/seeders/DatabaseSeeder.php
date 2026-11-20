@@ -43,71 +43,15 @@ class DatabaseSeeder extends Seeder
         $demo->jamaah()->create(['full_name' => 'Siti Aminah', 'relation' => 'istri', 'gender' => 'P', 'birth_date' => '1992-05-12',
             'passport_number' => 'C7654321', 'passport_expiry' => now()->addYears(3)->toDateString(), 'mahram_id' => $self->id, 'mahram_relation' => 'suami']);
 
-        // ---------- Paket umrah ----------
-        $itin = fn (int $days) => collect([
-            ['day' => 1, 'title' => 'Medan (KNO) → Jeddah', 'description' => 'Berkumpul di Bandara Kualanamu, penerbangan menuju Jeddah. Tiba dan transfer ke Madinah.'],
-            ['day' => 2, 'title' => 'Madinah — Ziarah Masjid Nabawi', 'description' => 'Sholat berjamaah di Masjid Nabawi, ziarah Raudhah dan makam Rasulullah ﷺ.'],
-            ['day' => 3, 'title' => 'City Tour Madinah', 'description' => 'Masjid Quba, Jabal Uhud, Kebun Kurma, Masjid Qiblatain.'],
-            ['day' => 4, 'title' => 'Madinah → Makkah (Miqat Bir Ali)', 'description' => 'Mengambil miqat di Bir Ali, perjalanan ke Makkah, pelaksanaan umrah pertama.'],
-            ['day' => 5, 'title' => 'Ibadah di Masjidil Haram', 'description' => 'Memperbanyak ibadah di Masjidil Haram.'],
-            ['day' => 6, 'title' => 'City Tour Makkah', 'description' => 'Jabal Tsur, Jabal Rahmah, Arafah, Muzdalifah, Mina. Miqat Ji\'ranah untuk umrah kedua.'],
-            ['day' => $days - 1, 'title' => 'Thawaf Wada\'', 'description' => 'Thawaf perpisahan dan persiapan kepulangan.'],
-            ['day' => $days, 'title' => 'Jeddah → Medan', 'description' => 'Penerbangan kembali ke tanah air. Tiba di Kualanamu, alhamdulillah.'],
-        ])->unique('day')->sortBy('day')->values()->all();
+        // ---------- Paket umrah (sesuai brosur resmi + poster) ----------
+        $this->call(PackageSeeder::class);
 
-        $facilities = ['Tiket pesawat PP kelas ekonomi', 'Visa umrah', 'Hotel sesuai paket', 'Makan 3x sehari menu Indonesia', 'Muthawwif & tour leader berpengalaman',
-            'Manasik umrah 2x', 'Air zam-zam 5 liter', 'Perlengkapan umrah (koper, ihram/mukena, buku doa)', 'Asuransi perjalanan', 'Bus AC eksklusif'];
-        $docs = ['Paspor berlaku minimal 8 bulan', 'Pas foto 4x6 latar putih (80% wajah)', 'Fotokopi KTP & Kartu Keluarga', 'Buku nikah (suami-istri)', 'Akta lahir (anak)', 'Sertifikat vaksin meningitis'];
-
-        $packages = [
-            ['Umrah Reguler Barokah 9 Hari', 'reguler', 9, 'Saudia Airlines', 'Hilton Suites Makkah', 5, '150 m', 'Pullman Zamzam Madinah', 5, '100 m', 32500000, 30500000, 28900000, true],
-            ['Umrah Hemat Ramadhan 12 Hari', 'hemat', 12, 'Lion Air', 'Elaf Ajyad Makkah', 4, '400 m', 'Al Haram Hotel Madinah', 4, '200 m', 27900000, 26500000, 25500000, true],
-            ['Umrah Plus Turki 15 Hari', 'plus', 15, 'Turkish Airlines', 'Swissotel Al Maqam', 5, '50 m', 'Dar Al Taqwa Madinah', 5, '50 m', 45900000, 43500000, 41900000, true],
-            ['Umrah VIP Haramain 12 Hari', 'vip', 12, 'Garuda Indonesia', 'Raffles Makkah Palace', 5, '30 m', 'The Oberoi Madinah', 5, '30 m', 59900000, 56900000, 54500000, false],
-        ];
-        foreach ($packages as $i => [$name, $type, $days, $air, $hm, $hms, $hmd, $hmad, $hmas, $hmadd, $pq, $pt, $pd, $feat]) {
-            $p = Package::create([
-                'name' => $name, 'slug' => Str::slug($name), 'type' => $type, 'duration_days' => $days, 'airline' => $air,
-                'departure_city' => 'Medan (KNO)', 'hotel_makkah' => $hm, 'hotel_makkah_star' => $hms, 'hotel_makkah_distance' => $hmd,
-                'hotel_madinah' => $hmad, 'hotel_madinah_star' => $hmas, 'hotel_madinah_distance' => $hmadd,
-                'price_quad' => $pq, 'price_triple' => $pt, 'price_double' => $pd, 'min_deposit' => 3000000,
-                'summary' => "Paket {$days} hari bersama {$air}, menginap di {$hm} ({$hmd} dari Masjidil Haram).",
-                'description' => 'Perjalanan ibadah umrah yang nyaman dan khusyuk, dibimbing muthawwif bersertifikat dan didampingi tour leader dari Medan. Seluruh transaksi tercatat aman di sistem kami.',
-                'itinerary' => $itin($days), 'facilities' => $facilities, 'excludes' => ['Pembuatan paspor', 'Kelebihan bagasi', 'Pengeluaran pribadi', 'Vaksin meningitis'],
-                'document_requirements' => $docs, 'is_featured' => $feat, 'is_active' => true,
-            ]);
-            foreach ([45 + $i * 10, 80 + $i * 12, 130 + $i * 15] as $offset) {
-                $dep = now()->addDays($offset)->startOfDay();
-                $p->departures()->create(['departure_date' => $dep, 'return_date' => $dep->copy()->addDays($days - 1), 'quota' => 45, 'booked' => rand(5, 25)]);
-            }
-        }
-
-        // ---------- Jadwal penerbangan (dikelola admin) ----------
-        $routes = [
-            ['KNO', 'Medan', 'JED', 'Jeddah', 'Saudia Airlines', 'SV', 'SV 5121', 9 * 60 + 40, 0, null, 9850000],
-            ['KNO', 'Medan', 'MED', 'Madinah', 'Garuda Indonesia', 'GA', 'GA 980', 10 * 60 + 15, 0, null, 11250000],
-            ['KNO', 'Medan', 'JED', 'Jeddah', 'Emirates', 'EK', 'EK 349', 14 * 60 + 30, 1, 'Transit Dubai (DXB) 3j 20m', 8750000],
-            ['CGK', 'Jakarta', 'JED', 'Jeddah', 'Saudia Airlines', 'SV', 'SV 817', 9 * 60 + 25, 0, null, 9250000],
-            ['JED', 'Jeddah', 'KNO', 'Medan', 'Saudia Airlines', 'SV', 'SV 5122', 9 * 60 + 5, 0, null, 9650000],
-            ['MED', 'Madinah', 'KNO', 'Medan', 'Garuda Indonesia', 'GA', 'GA 981', 9 * 60 + 50, 0, null, 10950000],
-        ];
-        foreach ([7, 14, 21, 35, 50] as $d) {
-            foreach ($routes as [$o, $oc, $t, $tc, $air, $code, $no, $dur, $tr, $tinfo, $price]) {
-                $dep = now()->addDays($d + rand(0, 3))->setTime(rand(6, 22), [0, 15, 30, 45][rand(0, 3)]);
-                Flight::create([
-                    'airline' => $air, 'airline_code' => $code, 'flight_number' => $no, 'origin_code' => $o, 'origin_city' => $oc,
-                    'destination_code' => $t, 'destination_city' => $tc, 'depart_at' => $dep, 'arrive_at' => $dep->copy()->addMinutes($dur),
-                    'transit_count' => $tr, 'transit_info' => $tinfo, 'cabin_class' => 'ekonomi', 'price' => $price + rand(-5, 8) * 100000,
-                    'baggage_kg' => 30, 'cabin_baggage_kg' => 7, 'seats_available' => rand(8, 40),
-                    'refund_policy' => 'Refund dikenakan potongan 25% dari harga tiket bila diajukan ≥ 14 hari sebelum keberangkatan; kurang dari itu tidak dapat direfund (sesuai kebijakan maskapai).',
-                    'reschedule_policy' => 'Reschedule maksimal 1x, paling lambat 7 hari sebelum keberangkatan, dikenakan biaya Rp750.000 + selisih harga.',
-                ]);
-            }
-        }
+        // ---------- Seat penerbangan (contoh; di produksi diinput manual admin dari mitra) ----------
+        $this->call(FlightSeeder::class);
 
         // ---------- Layanan visa ----------
         VisaService::create([
-            'name' => 'Visa Umrah', 'price' => 2750000, 'processing_days' => 7,
+            'name' => 'Visa Umrah', 'price' => 0, 'price_usd' => 135, 'processing_days' => 7,
             'description' => 'Pengurusan visa umrah resmi melalui provider terdaftar. Cocok untuk jamaah mandiri maupun rombongan/travel mitra.',
             'requirements' => ['Scan paspor (halaman biodata) berlaku minimal 8 bulan', 'Pas foto latar putih ukuran 4x6 (JPG)', 'Scan KTP & Kartu Keluarga',
                 'Buku nikah / akta lahir untuk mahram', 'Tiket pesawat PP (bila sudah ada)', 'Semua berkas dikompres dalam satu file ZIP/RAR'],
@@ -136,7 +80,10 @@ class DatabaseSeeder extends Seeder
             ['Apakah bisa dicicil?', 'Bisa. Bayar deposit awal minimal Rp3.000.000 per jamaah, kemudian cicil dengan nominal bebas hingga lunas paling lambat H-30 sebelum keberangkatan.'],
             ['Metode pembayaran apa saja yang tersedia?', 'Virtual Account Bank Mandiri, BSI, Bank Muamalat, dan QRIS (semua e-wallet & m-banking). Semua pembayaran hanya melalui sistem.'],
             ['Bagaimana jika saya ingin membatalkan?', 'Ajukan refund melalui dashboard dengan melampirkan foto bukti. Besaran pengembalian mengikuti Kebijakan Refund.'],
-            ['Bagaimana cara konsultasi?', 'Gunakan Pusat Bantuan (ikon chat di pojok kanan bawah). Asisten otomatis akan menjawab, dan Anda dapat dihubungkan langsung dengan admin kapan saja.'],
+            ['Dari kota mana keberangkatannya?', 'Keberangkatan utama dari Bandara Internasional Kualanamu, Medan (KNO). Untuk jamaah dari luar Medan, tim kami dapat membantu mengatur penerbangan penghubung.'],
+            ['Apakah ada manasik dan pembimbing selama di Tanah Suci?', 'Ada. Jamaah mengikuti manasik umrah 2x sebelum berangkat, dan selama di Tanah Suci didampingi muthawwif bersertifikat serta tour leader dari Medan.'],
+            ['Apa saja yang termasuk dalam harga paket?', 'Tiket pesawat PP, visa umrah, hotel sesuai paket, makan 3x sehari, muthawwif & tour leader, manasik, perlengkapan umrah, air zam-zam, asuransi perjalanan, dan bus AC. Rincian lengkap ada di halaman setiap paket.'],
+            ['Bagaimana cara konsultasi?','Gunakan Pusat Bantuan (ikon chat di pojok kanan bawah). Asisten otomatis akan menjawab, dan Anda dapat dihubungkan langsung dengan admin kapan saja.'],
         ];
         foreach ($faqs as $i => [$q, $a]) Faq::create(['question' => $q, 'answer' => $a, 'sort' => $i]);
 

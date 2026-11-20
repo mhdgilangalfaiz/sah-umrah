@@ -3,7 +3,7 @@ import { Download, FileArchive, Hourglass, Stamp, Upload } from 'lucide-react';
 import CustomerLayout from '@/Layouts/CustomerLayout';
 import PayBox from '@/Components/PayBox';
 import { Card, DefList, PageHeader, StatusBadge, Stepper } from '@/Components/ui';
-import { dateTime, fileSize, rupiah } from '@/lib/format';
+import { dateTime, fileSize, rupiah, usd } from '@/lib/format';
 
 export const VISA_STEPS = ['Pengajuan', 'Invoice', 'Pembayaran', 'Menunggu Dokumen', 'Diverifikasi', 'Diproses', 'Terbit'];
 export const visaStep = (s) => ({ menunggu_invoice: 1, menunggu_pembayaran: 2, menunggu_dokumen: 3, diverifikasi: 4, diproses: 5, terbit: 6, ditolak: 5 }[s] ?? 0);
@@ -66,7 +66,7 @@ export default function VisaShow({ application: v, statuses, payments, documents
                     </Card>
 
                     <Card title="Detail pengajuan">
-                        <DefList items={[['Jumlah pemohon', v.pax_count], ['Rencana berangkat', v.planned_departure ?? '-'], ['Biaya/orang', v.unit_price ? rupiah(v.unit_price) : '-'], ['Total', v.total_amount ? rupiah(v.total_amount) : 'Menunggu invoice'], ['Catatan', v.notes]]} />
+                        <DefList items={[['Jumlah pemohon', v.pax_count], ['Rencana berangkat', v.planned_departure ?? '-'], ['Biaya/orang', v.unit_price ? (v.unit_price_usd ? `${usd(v.unit_price_usd)} × kurs Rp${Number(v.exchange_rate).toLocaleString('id-ID')} = ${rupiah(v.unit_price)}` : rupiah(v.unit_price)) : '-'], ['Total', v.total_amount ? rupiah(v.total_amount) : 'Menunggu invoice'], ['Catatan', v.notes]]} />
                         {v.passengers.length > 0 && <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-100 text-sm">{v.passengers.map((p) => <li key={p.id} className="p-2.5">{p.full_name}</li>)}</ul>}
                     </Card>
                 </div>

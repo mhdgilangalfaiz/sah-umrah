@@ -28,7 +28,7 @@ export default function Packages({ packages, filters, types }) {
                         </select>
                         <select className="input" value={filters.durasi ?? ''} onChange={(e) => set('durasi', e.target.value)}>
                             <option value="">Semua durasi</option>
-                            {[9, 12, 15].map((d) => <option key={d} value={d}>{d} hari</option>)}
+                            {[9, 12, 13, 15].map((d) => <option key={d} value={d}>{d} hari</option>)}
                         </select>
                         <select className="input" value={filters.jenis ?? ''} onChange={(e) => set('jenis', e.target.value)}>
                             <option value="">Semua jenis</option>

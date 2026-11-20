@@ -84,9 +84,10 @@ export default function Form({ package: p, types }) {
                         </div>
                     </Card>
                     <Card title="Media">
-                        {p?.cover_url && <img src={p.cover_url} alt="" className="mb-3 aspect-video w-full rounded-xl object-cover" />}
-                        <label className="label">Foto sampul</label>
+                        {p?.cover_url && <img src={p.cover_url} alt="" className="mx-auto mb-3 block h-auto max-h-96 w-auto max-w-full rounded-xl" />}
+                        <label className="label">Poster paket</label>
                         <input type="file" accept="image/*" onChange={(e) => setData('cover', e.target.files[0])} className="text-sm" />
+                        <p className="hint">Unggah poster/brosur paket (JPG/PNG/WebP, maks. 8 MB). Ukuran bebas — tampilan menyesuaikan rasio poster.</p>
                         {errors.cover && <p className="error">{errors.cover}</p>}
                         <label className="label mt-4">Galeri</label>
                         <div className="mb-2 grid grid-cols-3 gap-2">
