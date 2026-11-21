@@ -1,49 +1,60 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
-    BarChart3, BookOpen, Bot, CalendarClock, ClipboardList, CreditCard, FileCheck2, FileText, Globe, Headset, Image, KeyRound, LayoutDashboard,
-    LogOut, Megaphone, Menu, MessageSquareQuote, Package, Plane, RotateCcw, ScrollText, Settings, ShieldAlert, Stamp, Ticket, UserCog, Users, X, HelpCircle, Scale,
+    BarChart3, BookOpen, Bot, CalendarClock, ClipboardList, CreditCard, FileCheck2, FileText, Globe, Headset, Image, KeyRound, LayoutDashboard, LayoutTemplate,
+    LogOut, Megaphone, Menu, MessageSquareQuote, Package, Plane, Receipt, RotateCcw, ScrollText, Settings, ShieldAlert, Stamp, Ticket, UserCog, Users, X, HelpCircle, Scale,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import NotificationBell from '@/Components/NotificationBell';
 import { Flash, cx } from '@/Components/ui';
 
 // [label, routeName, params, Icon, roles(null = semua admin), badgeKey, activePattern]
+// Peran: 'admin' = kelola seluruh website; 'super_admin' = lihat pembelian, laporan & invoice, buat akun admin.
+const A = ['admin'];
+const VIEW = ['admin', 'super_admin'];
+const SA = ['super_admin'];
 const GROUPS = [
     ['Utama', [
         ['Dashboard', 'admin.dashboard', null, LayoutDashboard, null],
     ]],
-    ['Operasional', [
-        ['Paket Umrah', 'admin.packages.index', null, Package, ['operasional'], null, 'admin.packages.*'],
-        ['Keberangkatan', 'admin.departures.index', null, CalendarClock, ['operasional']],
-        ['Pesanan Umrah', 'admin.bookings.index', null, ClipboardList, ['operasional', 'finance', 'cs'], null, 'admin.bookings.*'],
-        ['Jadwal Penerbangan', 'admin.flights.index', null, Plane, ['operasional'], null, 'admin.flights.*'],
-        ['Pesanan Tiket', 'admin.flight-orders.index', null, Ticket, ['operasional', 'finance', 'cs'], null, 'admin.flight-orders.*'],
-        ['Pengajuan Visa', 'admin.visa.index', null, Stamp, ['operasional', 'finance', 'cs'], 'visa', 'admin.visa.*'],
-        ['Layanan Visa', 'admin.crud.index', 'visa', Globe, ['operasional']],
-        ['Verifikasi Dokumen', 'admin.documents.index', null, FileCheck2, ['operasional'], 'documents'],
+    ['Pembelian', [
+        ['Pesanan Umrah', 'admin.bookings.index', null, ClipboardList, VIEW, null, 'admin.bookings.*'],
+        ['Pesanan Tiket', 'admin.flight-orders.index', null, Ticket, VIEW, null, 'admin.flight-orders.*'],
+        ['Pengajuan Visa', 'admin.visa.index', null, Stamp, VIEW, 'visa', 'admin.visa.*'],
+        ['Pembayaran', 'admin.payments.index', null, CreditCard, VIEW, null, 'admin.payments.*'],
+    ]],
+    ['Laporan', [
+        ['Rekap Penjualan', 'admin.reports.index', null, BarChart3, VIEW],
+        ['Laporan Invoice', 'admin.invoices.index', null, Receipt, VIEW],
+    ]],
+    ['Produk & Layanan', [
+        ['Paket Umrah', 'admin.packages.index', null, Package, A, null, 'admin.packages.*'],
+        ['Keberangkatan', 'admin.departures.index', null, CalendarClock, A],
+        ['Jadwal Penerbangan', 'admin.flights.index', null, Plane, A, null, 'admin.flights.*'],
+        ['Layanan Visa', 'admin.crud.index', 'visa', Globe, A],
+        ['Verifikasi Dokumen', 'admin.documents.index', null, FileCheck2, A, 'documents'],
     ]],
     ['Keuangan', [
-        ['Pembayaran', 'admin.payments.index', null, CreditCard, ['finance']],
-        ['Rekonsiliasi', 'admin.payments.reconcile', null, Scale, ['finance']],
-        ['Refund', 'admin.refunds.index', null, RotateCcw, ['finance'], 'refunds'],
-        ['Laporan', 'admin.reports.index', null, BarChart3, ['finance']],
-        ['Keamanan Keuangan', 'admin.finance.bank.index', null, ShieldAlert, ['finance']],
+        ['Refund', 'admin.refunds.index', null, RotateCcw, A, 'refunds'],
+        ['Keamanan Keuangan', 'admin.finance.bank.index', null, ShieldAlert, A],
     ]],
     ['Layanan Pelanggan', [
-        ['Pusat Bantuan', 'admin.support.index', null, Headset, ['cs'], 'support', 'admin.support.*'],
-        ['Jawaban Chatbox', 'admin.crud.index', 'chatbot', Bot, ['cs']],
-        ['FAQ', 'admin.crud.index', 'faq', HelpCircle, ['cs']],
+        ['Pusat Bantuan', 'admin.support.index', null, Headset, A, 'support', 'admin.support.*'],
+        ['Jawaban Chatbox', 'admin.crud.index', 'chatbot', Bot, A],
+        ['FAQ', 'admin.crud.index', 'faq', HelpCircle, A],
     ]],
-    ['Konten & Sistem', [
-        ['Halaman', 'admin.pages.index', null, FileText, ['super_admin']],
-        ['Blog', 'admin.crud.index', 'blog', BookOpen, ['super_admin']],
-        ['Testimoni', 'admin.crud.index', 'testimoni', MessageSquareQuote, ['super_admin']],
-        ['Galeri', 'admin.galeri.index', null, Image, ['super_admin']],
-        ['Kirim Promo', 'admin.promotions.index', null, Megaphone, ['super_admin']],
-        ['Pelanggan', 'admin.users.index', null, Users, ['super_admin']],
-        ['Audit Log', 'admin.audit.index', null, ScrollText, ['super_admin']],
-        ['Pengaturan', 'admin.settings.index', null, Settings, ['super_admin']],
-        ['Akun Admin', 'admin.admins.index', null, UserCog, ['primary']],
+    ['Konten Website', [
+        ['Konten Beranda', 'admin.landing.edit', null, LayoutTemplate, A],
+        ['Galeri', 'admin.galeri.index', null, Image, A],
+        ['Testimoni', 'admin.crud.index', 'testimoni', MessageSquareQuote, A],
+        ['Blog', 'admin.crud.index', 'blog', BookOpen, A],
+        ['Halaman', 'admin.pages.index', null, FileText, A],
+        ['Kirim Promo', 'admin.promotions.index', null, Megaphone, A],
+    ]],
+    ['Sistem', [
+        ['Pelanggan', 'admin.users.index', null, Users, A],
+        ['Audit Log', 'admin.audit.index', null, ScrollText, A],
+        ['Pengaturan', 'admin.settings.index', null, Settings, A],
+        ['Akun Admin', 'admin.admins.index', null, UserCog, SA],
     ]],
 ];
 
@@ -76,11 +87,7 @@ export default function AdminLayout({ title, children }) {
         });
     }, [open]);
 
-    const allowed = (roles) => {
-        if (!roles) return true;
-        if (roles.includes('primary')) return user.is_primary_admin;
-        return user.role === 'super_admin' || roles.includes(user.role);
-    };
+    const allowed = (roles) => !roles || roles.includes(user.role);
     const isActive = (name, param, pattern) => {
         if (param) return route().current(name, { resource: param }) || route().current(name, param);
         return route().current(name) || (pattern && route().current(pattern));
@@ -156,7 +163,7 @@ export default function AdminLayout({ title, children }) {
                         <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-700 text-sm font-bold text-white">{user.name.charAt(0)}</span>
                         <span className="hidden text-left leading-tight md:block">
                             <span className="block text-sm font-semibold">{user.name}</span>
-                            <span className="flex items-center gap-1 text-[11px] text-slate-500">{user.is_primary_admin && <KeyRound className="h-3 w-3 text-gold-500" />}{user.is_primary_admin ? 'Admin Utama' : user.role_label}</span>
+                            <span className="flex items-center gap-1 text-[11px] text-slate-500">{user.role === 'super_admin' && <KeyRound className="h-3 w-3 text-gold-500" />}{user.role_label}</span>
                         </span>
                     </Link>
                 </header>

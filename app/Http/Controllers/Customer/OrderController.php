@@ -135,7 +135,7 @@ class OrderController extends Controller
             'note' => 'Berkas '.$doc->file_name.' diunggah, menunggu verifikasi admin.', 'changed_by' => $request->user()->id,
         ]);
         Audit::log('visa.berkas_unggah', "Unggah berkas visa {$doc->file_name} untuk {$visaApplication->code}", $visaApplication);
-        AdminNotifier::notify(['operasional'], 'dokumen', 'Berkas visa masuk — '.$visaApplication->code, 'Mohon verifikasi berkas '.$doc->file_name, route('admin.visa.show', $visaApplication));
+        AdminNotifier::notify('dokumen', 'Berkas visa masuk — '.$visaApplication->code, 'Mohon verifikasi berkas '.$doc->file_name, route('admin.visa.show', $visaApplication));
 
         return back()->with('success', 'Berkas berhasil diunggah. Admin akan segera memverifikasi.');
     }

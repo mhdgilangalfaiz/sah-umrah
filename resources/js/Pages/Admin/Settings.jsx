@@ -9,6 +9,7 @@ const FIELDS = [
 
 export default function Settings({ settings }) {
     const { data, setData, put, processing, errors } = useForm(settings);
+    // Teks & gambar landing page dikelola di menu Konten Beranda
     return (
         <AdminLayout title="Pengaturan">
             <PageHeader title="Pengaturan Perusahaan" subtitle="Ditampilkan di footer, invoice PDF, dan halaman kontak." />
@@ -24,12 +25,6 @@ export default function Settings({ settings }) {
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Input label="Kurs USD → Rupiah" type="number" value={data.usd_rate ?? ''} onChange={(e) => setData('usd_rate', e.target.value)} error={errors.usd_rate}
                             hint="Dipakai untuk layanan berharga USD (mis. visa). Perbarui sesuai kurs hari ini — pengajuan baru memakai kurs ini." />
-                    </div>
-                </Card>
-                <Card title="Beranda">
-                    <div className="space-y-4">
-                        <Input label="Judul hero" value={data.hero_title ?? ''} onChange={(e) => setData('hero_title', e.target.value)} error={errors.hero_title} />
-                        <Textarea rows={3} label="Subjudul hero" value={data.hero_subtitle ?? ''} onChange={(e) => setData('hero_subtitle', e.target.value)} />
                     </div>
                 </Card>
                 <button disabled={processing} className="btn-primary px-8">Simpan Pengaturan</button>

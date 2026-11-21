@@ -28,27 +28,27 @@ export function PackageCard({ p }) {
                     </div>
                 )}
             </div>
-            <div className="flex flex-1 flex-col p-5">
+            <div className="flex flex-1 flex-col p-4">
                 {p.cover_url && (
                     <div className="mb-2 flex gap-2">
                         <Badge className="bg-gold-50 text-gold-800 ring-gold-200">{TYPE_LABEL[p.type] ?? p.type}</Badge>
                         <Badge className="bg-brand-50 text-brand-800 ring-brand-200">{p.duration_days} Hari</Badge>
                     </div>
                 )}
-                <h3 className="text-lg leading-snug group-hover:text-brand-700">{p.name}</h3>
-                <div className="mt-3 space-y-1.5 text-sm text-slate-600">
+                <h3 className="text-base leading-snug group-hover:text-brand-700">{p.name}</h3>
+                <div className="mt-2.5 space-y-1 text-xs text-slate-600">
                     <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-gold-500" />{next ? `Berangkat ${date(next.departure_date)}` : 'Jadwal segera hadir'}</p>
                     <p className="flex items-center gap-2"><Plane className="h-4 w-4 text-gold-500" />{p.airline} · dari {p.departure_city}</p>
                     <p className="flex items-center gap-2"><BedDouble className="h-4 w-4 text-gold-500" /><span className="truncate">Makkah: {p.hotel_makkah}</span><span className="flex shrink-0 text-gold-400">{Array.from({ length: p.hotel_makkah_star }).map((_, i) => <Star key={i} className="h-3 w-3 fill-current" />)}</span></p>
                     <p className="flex items-center gap-2"><BedDouble className="h-4 w-4 text-gold-500" /><span className="truncate">Madinah: {p.hotel_madinah}</span><span className="flex shrink-0 text-gold-400">{Array.from({ length: p.hotel_madinah_star }).map((_, i) => <Star key={i} className="h-3 w-3 fill-current" />)}</span></p>
                 </div>
-                <div className="mt-auto flex items-end justify-between border-t border-slate-100 pt-4">
+                <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-100 pt-3">
                     <div>
                         <p className="text-xs text-slate-500">Mulai dari</p>
-                        <p className="text-xl font-bold text-brand-700">{rupiah(p.price_quad)}</p>
+                        <p className="text-lg font-bold text-brand-700">{rupiah(p.price_quad)}</p>
                         <p className="text-[11px] text-slate-500">DP {rupiah(p.min_deposit)}/jamaah</p>
                     </div>
-                    <span className="btn-gold btn-sm">Lihat Detail</span>
+                    <span className="btn-gold btn-sm shrink-0 px-3">Detail</span>
                 </div>
             </div>
         </Link>

@@ -9,7 +9,7 @@ export default function Complete({ profile, needsConsent }) {
 
     return (
         <GuestLayout title="Lengkapi Profil">
-            <div className="card card-pad">
+            <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-gold-600">Langkah terakhir</p>
                 <h1 className="mt-1 text-2xl">Lengkapi data profil Anda</h1>
                 <p className="mt-1 text-sm text-slate-500">

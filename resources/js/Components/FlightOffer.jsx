@@ -60,7 +60,7 @@ export function ItineraryRow({ dir, label, icon: Icon = PlaneTakeoff }) {
                         <Plane className="ml-1 h-4 w-4 text-brand-600" />
                     </div>
                     <span className={cx('mt-2 text-center text-[11px]', dir.stops ? 'text-amber-700' : 'text-emerald-700')}>
-                        {dir.stops ? dir.layovers.map((l) => `Transit ${l.city} ${l.duration}`).join(' · ') : 'Penerbangan langsung'}
+                        {dir.stops ? dir.layovers.map((l) => `Transit di ${l.city}`).join(' · ') : 'Penerbangan langsung'}
                     </span>
                 </div>
                 <div className="w-16 shrink-0 text-right">

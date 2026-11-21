@@ -44,8 +44,6 @@ class ContentController extends Controller
             'office_hours' => 'nullable|string|max:150',
             'map_embed' => 'nullable|url|max:1000',
             'usd_rate' => 'required|numeric|min:1000|max:100000',
-            'hero_title' => 'required|string|max:200',
-            'hero_subtitle' => 'nullable|string|max:400',
         ]);
         $old = Setting::allCached();
         foreach ($data as $k => $v) {

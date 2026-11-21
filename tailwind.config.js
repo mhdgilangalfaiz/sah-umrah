@@ -37,10 +37,12 @@ export default {
             keyframes: {
                 'fade-up': { '0%': { opacity: 0, transform: 'translateY(8px)' }, '100%': { opacity: 1, transform: 'none' } },
                 'pop': { '0%': { opacity: 0, transform: 'scale(.96)' }, '100%': { opacity: 1, transform: 'none' } },
+                'page-in': { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
             },
             animation: {
                 'fade-up': 'fade-up .45s ease-out both',
                 pop: 'pop .2s ease-out both',
+                'page-in': 'page-in .25s ease-out',
             },
         },
     },

@@ -35,9 +35,10 @@ export default function Login({ status, canResetPassword, googleEnabled, captcha
 
     return (
         <GuestLayout title="Masuk">
-            <div className="card card-pad">
-                <h1 className="text-3xl">Masuk</h1>
-                <p className="mt-1 text-sm text-slate-500">Masuk ke akun Anda untuk melanjutkan.</p>
+            <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-600">Selamat datang kembali</p>
+                <h1 className="mt-1">Masuk ke akun Anda</h1>
+                <p className="mt-1 text-sm text-slate-500">Kelola pesanan umrah, tiket, dan visa Anda dalam satu tempat.</p>
 
                 {status && <div className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{status}</div>}
 
@@ -48,7 +49,7 @@ export default function Login({ status, canResetPassword, googleEnabled, captcha
                     </>
                 )}
 
-                <form onSubmit={submit} className="mt-6 space-y-4">
+                <form onSubmit={submit} className="mt-5 space-y-3">
                     <Input label="Email" type="email" autoComplete="username" value={data.email} onChange={(e) => setData('email', e.target.value)} error={locked ? null : errors.email} required autoFocus />
                     <div>
                         <label className="label">Kata sandi</label>
@@ -65,14 +66,14 @@ export default function Login({ status, canResetPassword, googleEnabled, captcha
                         <div>
                             <label className="label" htmlFor="captcha">Kode keamanan</label>
                             <div className="flex items-center gap-2">
+                                <input id="captcha" className="input min-w-0 flex-1 uppercase tracking-[0.2em]" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={10}
+                                    placeholder="Ketik kode" value={data.captcha} onChange={(e) => setData('captcha', e.target.value.toUpperCase())} required />
                                 <img src={`${route('captcha.login')}?t=${captchaKey}`} alt="Kode captcha" width={180} height={56}
-                                    className="h-14 w-[180px] shrink-0 select-none rounded-lg border border-slate-200 bg-brand-50" draggable={false} />
-                                <button type="button" onClick={refreshCaptcha} className="btn-ghost btn-sm shrink-0" aria-label="Ganti kode" title="Ganti kode">
+                                    className="h-11 w-[142px] shrink-0 select-none rounded-lg border border-slate-200 bg-brand-50" draggable={false} />
+                                <button type="button" onClick={refreshCaptcha} className="btn-ghost btn-sm shrink-0 px-2" aria-label="Ganti kode" title="Ganti kode">
                                     <RefreshCw className="h-4 w-4" />
                                 </button>
                             </div>
-                            <input id="captcha" className="input mt-2 uppercase tracking-[0.3em]" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={10}
-                                placeholder="Ketik kode di atas" value={data.captcha} onChange={(e) => setData('captcha', e.target.value.toUpperCase())} required />
                             {errors.captcha && <p className="error">{errors.captcha}</p>}
                         </div>
                     )}
@@ -93,11 +94,11 @@ export default function Login({ status, canResetPassword, googleEnabled, captcha
                         </label>
                         {canResetPassword && <Link href={route('password.request')} className="text-sm font-medium text-brand-700 hover:underline">Lupa kata sandi?</Link>}
                     </div>
-                    <button disabled={processing || locked} className="btn-primary w-full py-3">
+                    <button disabled={processing || locked} className="btn-primary w-full py-2.5">
                         <LogIn className="h-4 w-4" />{locked ? `Tunggu ${clock(lockLeft)}` : processing ? 'Memproses…' : 'Masuk'}
                     </button>
                 </form>
-                <p className="mt-6 text-center text-sm text-slate-600">
+                <p className="mt-4 text-center text-sm text-slate-600">
                     Belum punya akun? <Link href={route('register')} className="font-semibold text-brand-700 hover:underline">Daftar sekarang</Link>
                 </p>
             </div>

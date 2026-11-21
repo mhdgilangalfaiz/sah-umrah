@@ -39,7 +39,7 @@ class UserFactory extends Factory
     }
 
     /** Akun admin (role & flag diisi lewat forceFill karena tidak fillable) */
-    public function admin(string $role = 'super_admin', bool $primary = false): static
+    public function admin(string $role = 'admin', bool $primary = false): static
     {
         return $this->state(fn () => ['email' => Str::lower(Str::random(8)).'@sah.co.id'])
             ->afterMaking(fn ($u) => $u->forceFill(['role' => $role, 'is_primary_admin' => $primary]));

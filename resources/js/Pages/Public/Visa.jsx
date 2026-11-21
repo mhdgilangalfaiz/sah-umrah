@@ -51,8 +51,7 @@ export default function Visa({ services }) {
                             {s.price_usd ? (
                                 <>
                                     <p className="text-3xl font-bold text-brand-700">{usd(s.price_usd)}<span className="text-sm font-normal text-slate-500">/orang</span></p>
-                                    <p className="mt-1 text-sm text-slate-600">≈ {rupiah(s.price)} <span className="text-xs text-slate-500">(kurs Rp{Number(s.usd_rate).toLocaleString('id-ID')}/USD hari ini)</span></p>
-                                    <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 ring-1 ring-amber-200">* Kurs menyesuaikan waktu pembelian. Pembayaran dalam Rupiah sesuai kurs yang berlaku saat invoice diterbitkan.</p>
+                                    <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 ring-1 ring-amber-200">* Kurs mengikuti kurs per hari pengajuan.</p>
                                 </>
                             ) : (
                                 <p className="text-3xl font-bold text-brand-700">{rupiah(s.price)}<span className="text-sm font-normal text-slate-500">/orang</span></p>

@@ -28,7 +28,7 @@ class ServicesFlowTest extends TestCase
     {
         Storage::fake('local');
         $u = User::factory()->create(['name' => 'Jaya']);
-        $ops = User::factory()->admin('operasional')->create();
+        $ops = User::factory()->admin()->create();
         $svc = VisaService::create(['name' => 'Visa Umrah', 'price' => 2500000, 'processing_days' => 7]);
 
         $this->actingAs($u)->post('/pesan/visa', ['visa_service_id' => $svc->id, 'pax_count' => 3, 'agree' => true])->assertSessionHasNoErrors();
@@ -74,7 +74,7 @@ class ServicesFlowTest extends TestCase
     public function test_chatbox_menjawab_otomatis_lalu_eskalasi_ke_admin(): void
     {
         $u = User::factory()->create();
-        $cs = User::factory()->admin('cs')->create();
+        $cs = User::factory()->admin()->create();
         ChatbotIntent::create(['title' => 'Cicilan', 'keywords' => 'cicilan, dp, deposit', 'answer' => 'Deposit awal minimal Rp3.000.000.']);
 
         $this->actingAs($u)->getJson('/bantuan/chat')->assertOk()->assertJsonPath('ticket.status', 'bot');
@@ -102,7 +102,7 @@ class ServicesFlowTest extends TestCase
     {
         Notification::fake();
         $guard = app(BankAccountGuard::class);
-        $finance = User::factory()->admin('finance')->create();
+        $finance = User::factory()->admin()->create();
 
         // ajukan → belum aktif, email terkirim ke pemilik
         $a = $guard->requestChange(['bank_name' => 'BSI', 'account_number' => '7123456789', 'account_holder' => 'PT SAH'], $finance);

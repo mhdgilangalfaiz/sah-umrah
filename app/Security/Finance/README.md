@@ -15,7 +15,7 @@ Folder ini berisi semua logika yang melindungi **rekening bank perusahaan** dari
 3. Email peringatan dikirim ke `FINANCE_OWNER_EMAIL` (diatur di `.env`, **tidak bisa diubah dari web**).
 4. Pemilik klik:
    - **Setujui** → rekening aktif, rekening lama berstatus *Diganti*.
-   - **Batalkan & Blokir** → rekening baru langsung **diblokir & dimatikan**, akun admin pengaju dinonaktifkan dan sesinya diputus (kecuali admin utama).
+   - **Batalkan & Blokir** → rekening baru langsung **diblokir & dimatikan**, akun admin pengaju dinonaktifkan dan sesinya diputus (kecuali Super Admin).
 5. Tidak ada keputusan dalam `FINANCE_APPROVAL_HOURS` jam → otomatis diblokir.
 6. `php artisan finance:verify-integrity` (terjadwal tiap 15 menit) mengecek segel HMAC. Jika data diubah langsung lewat database (mis. peretas mengakses DB), segel tidak cocok → rekening diblokir + alarm keamanan + email ke super admin.
 

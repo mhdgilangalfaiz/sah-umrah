@@ -7,7 +7,7 @@ export default function ResetPassword({ token, email }) {
 
     return (
         <GuestLayout title="Atur Ulang Kata Sandi">
-            <div className="card card-pad">
+            <div>
                 <h1 className="text-2xl">Atur ulang kata sandi</h1>
                 <form onSubmit={(e) => { e.preventDefault(); post(route('password.store'), { onFinish: () => reset('password', 'password_confirmation') }); }} className="mt-6 space-y-4">
                     <Input label="Email" type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} error={errors.email} required />

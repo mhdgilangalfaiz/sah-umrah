@@ -22,7 +22,7 @@ use RuntimeException;
  *  3. Pemilik memilih:
  *       - "Setujui"  → rekening baru aktif, rekening lama berstatus `replaced`.
  *       - "Batalkan & Blokir" → rekening baru langsung DIBLOKIR & dimatikan; akun admin pengaju dinonaktifkan
- *         (kecuali admin utama) dan semua sesinya diputus.
+ *         (kecuali Super Admin) dan semua sesinya diputus.
  *  4. Tidak ada respons dalam FINANCE_APPROVAL_HOURS jam → otomatis diblokir (finance:verify-integrity).
  *  5. Setiap baris disegel HMAC dengan FINANCE_INTEGRITY_KEY; perubahan langsung di DB terdeteksi & diblokir.
  */
@@ -137,7 +137,7 @@ class BankAccountGuard
                 $this->persist($account);
             });
             Audit::log('keuangan.rekening_disetujui', "Pemilik menyetujui rekening {$account->bank_name} {$account->masked_number}", $account, [], [], null);
-            AdminNotifier::notify(['finance'], 'keamanan', 'Rekening baru disetujui pemilik',
+            AdminNotifier::notify('keamanan', 'Rekening baru disetujui pemilik',
                 "{$account->bank_name} {$account->masked_number} kini aktif.", route('admin.finance.bank.index'), false, 'success');
 
             return 'Rekening baru telah DISETUJUI dan aktif.';
@@ -157,9 +157,9 @@ class BankAccountGuard
             $account->approval_token_hash = null;
             $this->persist($account);
 
-            // Nonaktifkan akun pengaju (bukan admin utama) & putus semua sesinya
+            // Nonaktifkan akun pengaju (bukan Super Admin) & putus semua sesinya
             $requester = $account->requester;
-            if ($suspendRequester && $requester && ! $requester->is_primary_admin) {
+            if ($suspendRequester && $requester && ! $requester->isSuperAdmin()) {
                 $requester->forceFill(['is_active' => false, 'remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $requester->id)->delete();
             }
@@ -167,7 +167,7 @@ class BankAccountGuard
 
         $this->alert('bank_account_blocked', "Rekening {$account->bank_name} {$account->masked_number} DIBLOKIR: $reason", ['account_id' => $account->id]);
         Audit::log('keuangan.rekening_diblokir', "Rekening {$account->bank_name} {$account->masked_number} diblokir: $reason", $account, [], [], null);
-        AdminNotifier::notify([], 'keamanan', 'PERINGATAN: rekening diblokir', $reason, route('admin.finance.bank.index'), true, 'danger');
+        AdminNotifier::notify('keamanan', 'PERINGATAN: rekening diblokir', $reason, route('admin.finance.bank.index'), true, 'danger');
     }
 
     /** Cron: periksa segel semua rekening + blokir permintaan yang kedaluwarsa */

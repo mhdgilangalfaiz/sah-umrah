@@ -81,7 +81,7 @@ class SendInstallmentReminders extends Command
             });
 
         if ($overdueCount > 0) {
-            AdminNotifier::notify(['finance'], 'cicilan', "{$overdueCount} pesanan umrah terlambat bayar",
+            AdminNotifier::notify('cicilan', "{$overdueCount} pesanan umrah terlambat bayar",
                 'Pengingat otomatis telah dikirim ke pelanggan hari ini.', route('admin.bookings.index', ['terlambat' => 1]));
         }
         $this->info("Pengingat terkirim: $sent | Terlambat: $overdueCount");

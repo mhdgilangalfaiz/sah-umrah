@@ -38,7 +38,7 @@ class LoginSecurityTest extends TestCase
 
     public function test_failure_message_is_identical_and_does_not_mention_gmail(): void
     {
-        User::factory()->admin('finance')->create(['email' => 'finance@sah.co.id']);
+        User::factory()->admin()->create(['email' => 'finance@sah.co.id']);
         $cases = [
             ['email' => 'orang@yahoo.com', 'password' => 'x'],          // pelanggan non-gmail
             ['email' => 'finance@sah.co.id', 'password' => 'salah'],     // admin, sandi salah

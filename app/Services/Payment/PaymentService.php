@@ -226,7 +226,7 @@ class PaymentService
             $payable->customerUrl(), 'Lihat Pesanan'
         ));
 
-        \App\Support\AdminNotifier::notify(['finance'], 'pembayaran', 'Pembayaran masuk '.$payable->code,
+        \App\Support\AdminNotifier::notify('pembayaran', 'Pembayaran masuk '.$payable->code,
             'Rp'.number_format($payment->amount, 0, ',', '.').' via '.$payment->method_label, route('admin.payments.index'));
     }
 

@@ -12,14 +12,20 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
+    /**
+     * Tiga peran:
+     *  - customer    : pengguna/jamaah (pesan paket, tiket, visa)
+     *  - admin       : mengelola seluruh isi website, konten & gambar, pesanan, pembayaran, dan rekap penjualan
+     *  - super_admin : hanya MELIHAT pembelian & laporan/invoice, serta membuat akun admin
+     */
     public const ROLE_CUSTOMER = 'customer';
-    public const ADMIN_ROLES = ['super_admin', 'finance', 'operasional', 'cs'];
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_SUPER_ADMIN = 'super_admin';
+    public const ADMIN_ROLES = [self::ROLE_ADMIN, self::ROLE_SUPER_ADMIN];
     public const ROLE_LABELS = [
-        'customer' => 'Pelanggan',
+        'customer' => 'User',
+        'admin' => 'Admin',
         'super_admin' => 'Super Admin',
-        'finance' => 'Finance',
-        'operasional' => 'Operasional',
-        'cs' => 'Customer Service',
     ];
 
     protected $fillable = [
@@ -67,7 +73,12 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function hasRole(string ...$roles): bool
     {
-        return $this->role === 'super_admin' || in_array($this->role, $roles, true);
+        return in_array($this->role, $roles, true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_SUPER_ADMIN;
     }
 
     public function needsProfileCompletion(): bool

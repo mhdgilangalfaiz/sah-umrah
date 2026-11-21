@@ -20,7 +20,7 @@ class GalleryTest extends TestCase
     {
         parent::setUp();
         Storage::fake('public');
-        $this->admin = User::factory()->admin('super_admin', true)->create();
+        $this->admin = User::factory()->admin()->create();
     }
 
     public function test_single_photo_is_named_date_and_title_without_number(): void
@@ -126,9 +126,9 @@ class GalleryTest extends TestCase
             ->assertInertia(fn ($p) => $p->component('Public/Home')->has('galleries', 2)->where('galleries.0.type', 'video'));
     }
 
-    public function test_non_super_admin_cannot_manage_gallery(): void
+    public function test_super_admin_cannot_manage_gallery(): void
     {
-        $this->actingAs(User::factory()->admin('cs')->create())
+        $this->actingAs(User::factory()->admin('super_admin', true)->create())
             ->get(route('admin.galeri.index'))->assertForbidden();
     }
 }

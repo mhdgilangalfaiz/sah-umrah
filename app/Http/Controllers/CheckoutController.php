@@ -192,7 +192,7 @@ class CheckoutController extends Controller
         $request->user()->notify(new SystemNotification('pesanan', 'Pesanan Tiket Dibuat — '.$order->code,
             'Kursi Anda ditahan sampai '.$order->expires_at->translatedFormat('d M Y H:i').' WIB. Segera selesaikan pembayaran.',
             $order->customerUrl(), 'Bayar Sekarang'));
-        AdminNotifier::notify(['operasional'], 'pesanan', 'Order tiket baru '.$order->code, $request->user()->name.' — '.$pax.' penumpang', route('admin.flight-orders.show', $order));
+        AdminNotifier::notify('pesanan', 'Order tiket baru '.$order->code, $request->user()->name.' — '.$pax.' penumpang', route('admin.flight-orders.show', $order));
 
         return redirect()->route('customer.flight-orders.show', $order)->with('success', 'Pesanan tiket dibuat. Silakan lakukan pembayaran.');
     }
@@ -248,7 +248,7 @@ class CheckoutController extends Controller
         $request->user()->notify(new SystemNotification('visa', 'Pengajuan Visa Diterima — '.$app->code,
             'Pengajuan visa untuk '.$app->pax_count.' orang telah kami terima. Admin akan menerbitkan invoice, kemudian Anda dapat melakukan pembayaran.',
             $app->customerUrl(), 'Lihat Pengajuan'));
-        AdminNotifier::notify(['operasional'], 'visa', 'Pengajuan visa baru '.$app->code, $request->user()->name.' — '.$app->pax_count.' orang. Terbitkan invoice.', route('admin.visa.show', $app), true);
+        AdminNotifier::notify('visa', 'Pengajuan visa baru '.$app->code, $request->user()->name.' — '.$app->pax_count.' orang. Terbitkan invoice.', route('admin.visa.show', $app), true);
 
         return redirect()->route('customer.visa.show', $app)->with('success', 'Pengajuan visa terkirim. Mohon tunggu invoice dari admin.');
     }

@@ -12,6 +12,7 @@ use App\Models\Setting;
 use App\Models\Testimonial;
 use App\Models\VisaService;
 use App\Services\Flights\FlightSearch;
+use App\Support\LandingContent;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -19,10 +20,14 @@ class PublicController extends Controller
 {
     public function home()
     {
-        // Paket unggulan diutamakan, lalu dilengkapi paket aktif lain hingga 4 kartu.
+        $content = LandingContent::forDisplay();
+
+        // Paket unggulan diutamakan, lalu dilengkapi paket aktif lain (jumlah kartu diatur admin).
         return Inertia::render('Public/Home', [
-            'featured' => Package::active()->with('upcomingDepartures')->orderByDesc('is_featured')->orderBy('price_quad')->take(4)->get(),
+            'content' => $content,
+            'featured' => Package::active()->with('upcomingDepartures')->orderByDesc('is_featured')->orderBy('price_quad')->take($content['packages']['count'])->get(),
             'galleries' => Gallery::latest('id')->take(60)->get(['id', 'title', 'type', 'image', 'category']),
+            'galleryCategories' => Gallery::CATEGORIES,
             'testimonials' => Testimonial::where('is_active', true)->latest()->take(6)->get(),
             'faqs' => Faq::orderBy('sort')->get(['id', 'question', 'answer']),
         ]);
@@ -48,7 +53,7 @@ class PublicController extends Controller
         $sort === 'termahal' ? $q->orderByDesc('price_quad') : $q->orderBy('price_quad');
 
         return Inertia::render('Public/Packages', [
-            'packages' => $q->paginate(9)->withQueryString(),
+            'packages' => $q->paginate(12)->withQueryString(),
             'filters' => $request->only('bulan', 'durasi', 'jenis', 'harga_maks', 'urut'),
             'types' => Package::TYPES,
         ]);

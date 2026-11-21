@@ -47,7 +47,7 @@ class SendDepartureReminders extends Command
         }
 
         if ($summary) {
-            AdminNotifier::notify(['operasional'], 'keberangkatan', 'Keberangkatan mendekat', implode(' | ', $summary), route('admin.departures.index'), false, 'warning');
+            AdminNotifier::notify('keberangkatan', 'Keberangkatan mendekat', implode(' | ', $summary), route('admin.departures.index'), false, 'warning');
         }
         $this->info($summary ? implode(' | ', $summary) : 'Tidak ada keberangkatan H-30/H-7/H-1.');
 

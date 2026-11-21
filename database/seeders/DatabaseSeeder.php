@@ -19,17 +19,15 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ---------- Akun admin ----------
+        // ---------- Akun admin: Super Admin (lihat pembelian & laporan, buat akun admin) + Admin (kelola website) ----------
         $make = function (string $name, string $email, string $role, bool $primary = false) {
             $u = new User(['name' => $name, 'email' => $email, 'password' => env('SEED_ADMIN_PASSWORD', 'Admin#SAH2026')]);
             $u->forceFill(['role' => $role, 'is_primary_admin' => $primary, 'is_active' => true, 'email_verified_at' => now()])->save();
 
             return $u;
         };
-        $owner = $make('Admin Utama SAH', env('SEED_ADMIN_EMAIL', 'admin@sah.co.id'), 'super_admin', true);
-        $make('Finance SAH', 'finance@sah.co.id', 'finance');
-        $make('Operasional SAH', 'operasional@sah.co.id', 'operasional');
-        $make('CS SAH', 'cs@sah.co.id', 'cs');
+        $make('Super Admin SAH', env('SEED_SUPERADMIN_EMAIL', 'superadmin@sah.co.id'), User::ROLE_SUPER_ADMIN, true);
+        $owner = $make('Admin SAH', env('SEED_ADMIN_EMAIL', 'admin@sah.co.id'), User::ROLE_ADMIN);
 
         // ---------- Pelanggan demo ----------
         $demo = User::create([

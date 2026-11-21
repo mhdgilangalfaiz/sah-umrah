@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-    html { -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+    html { -webkit-tap-highlight-color: transparent; }
     body { @apply bg-sand-50 text-slate-800 antialiased; }
     h1, h2, h3, .font-heading { @apply font-serif tracking-tight text-slate-900; }
     ::selection { @apply bg-gold-200 text-brand-900; }

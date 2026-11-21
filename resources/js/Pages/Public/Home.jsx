@@ -10,26 +10,21 @@ import GalleryLightbox from '@/Components/GalleryLightbox';
 import { cx } from '@/Components/ui';
 import { date, rupiah } from '@/lib/format';
 
-const MISI = [
-    'Memberikan layanan ibadah umrah yang aman & nyaman.',
-    'Menyediakan paket perjalanan yang berkualitas.',
-    'Memberikan pendampingan ibadah oleh tim berpengalaman.',
-    'Menjaga kepercayaan dan kepuasan seluruh jamaah.',
-];
-
+// Tujuan & ikon bawaan kartu layanan; judul, keterangan, dan ikon gambar diatur admin (Konten Beranda).
 const LAYANAN = [
-    { title: 'Paket Umrah', text: 'Pilihan paket umrah terbaik dengan fasilitas lengkap.', route: 'packages.index', icon: KaabahIcon },
-    { title: 'Tiket Pesawat Ibadah Umrah', text: 'Pemesanan tiket pesawat untuk keberangkatan umrah dengan harga kompetitif.', route: 'flights.index', icon: PlaneIcon },
-    { title: 'Layanan Visa', text: 'Pengurusan visa umrah secara cepat, aman, dan sesuai ketentuan resmi.', route: 'visa.index', icon: VisaIcon },
+    { route: 'packages.index', icon: KaabahIcon },
+    { route: 'flights.index', icon: PlaneIcon },
+    { route: 'visa.index', icon: VisaIcon },
 ];
+const POINT_ICONS = [ShieldCheck, UserCheck, Star, Check];
 
 // Foto bawaan bila admin belum mengunggah galeri. Ganti dengan foto asli resolusi tinggi di public/images/landing.
 const DEFAULT_GALLERY = [
-    'Jamaah berdoa di Masjidil Haram', 'Kubah Hijau Masjid Nabawi', 'Masjid Quba, Madinah', 'Payung raksasa Masjid Nabawi',
-    'Interior Masjid Nabawi', 'Jabal Rahmah, Arafah', 'Kota Makkah di malam hari',
-].map((title, i) => ({ id: `d${i + 1}`, title, type: 'foto', image_url: `/images/landing/galeri-${i + 1}.jpg` }));
+    ['Jamaah berdoa di Masjidil Haram', 'makkah'], ['Kubah Hijau Masjid Nabawi', 'madinah'], ['Masjid Quba, Madinah', 'madinah'], ['Payung raksasa Masjid Nabawi', 'madinah'],
+    ['Interior Masjid Nabawi', 'madinah'], ['Jabal Rahmah, Arafah', 'makkah'], ['Kota Makkah di malam hari', 'makkah'],
+].map(([title, category], i) => ({ id: `d${i + 1}`, title, category, type: 'foto', image_url: `/images/landing/galeri-${i + 1}.jpg` }));
 
-export default function Home({ featured, galleries, testimonials, faqs }) {
+export default function Home({ content: c, featured, galleries, galleryCategories = {}, testimonials, faqs }) {
     const [faqOpen, setFaqOpen] = useState(0);
     const [selected, setSelected] = useState(null); // paket yang detailnya sedang dibuka (popup)
     // Datang dari halaman lain lewat link "/#galeri" dsb → gulir ke section yang dimaksud.
@@ -42,8 +37,13 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
     const photos = uploadedPhotos.length ? uploadedPhotos : DEFAULT_GALLERY;
     const videos = galleries.filter((g) => g.type === 'video');
     const [galleryTab, setGalleryTab] = useState('foto'); // 'foto' | 'video'
-    const galleryItems = galleryTab === 'video' ? videos : photos;
-    const [viewer, setViewer] = useState(null); // index item galeri yang sedang dibuka
+    const tabItems = galleryTab === 'video' ? videos : photos;
+    // Satu kartu per kategori (Umum, Makkah, Hotel, …); isi kategori baru tampil saat kartunya diklik.
+    const catKeys = Object.keys(galleryCategories);
+    const albums = [...catKeys, ...new Set(tabItems.map((g) => g.category).filter((k) => !catKeys.includes(k)))]
+        .map((k) => ({ key: k, label: galleryCategories[k] ?? 'Lainnya', items: tabItems.filter((g) => (g.category ?? 'umum') === k) }))
+        .filter((a) => a.items.length);
+    const [viewer, setViewer] = useState(null); // { items, index } — album yang sedang dibuka
 
     return (
         <PublicLayout title="Biro Perjalanan Umrah Terpercaya di Medan">
@@ -55,24 +55,22 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
 
                 <div className="container-app relative grid items-center gap-10 py-10 lg:grid-cols-[1fr_1.1fr] lg:py-14">
                     <div className="animate-fade-up">
-                        <span className="inline-flex rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-sm font-semibold text-brand-800 shadow-sm">PT. Sumatera Andalan Haramain</span>
+                        {c.hero.badge && <span className="inline-flex rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-sm font-semibold text-brand-800 shadow-sm">{c.hero.badge}</span>}
                         <h1 className="mt-5 font-sans text-[2rem] font-extrabold leading-[1.15] tracking-tight text-slate-900 sm:text-5xl lg:text-[3.25rem]">
-                            Melayani Perjalanan Ibadah Umrah Anda <span className="text-brand-700">dengan Amanah &amp; Profesional</span>
+                            {c.hero.title}{c.hero.highlight && <> <span className="text-brand-700">{c.hero.highlight}</span></>}
                         </h1>
-                        <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
-                            Solusi lengkap kebutuhan umrah Anda, mulai dari paket umrah terbaik, tiket pesawat, visa, hingga pembimbing yang berpengalaman.
-                        </p>
+                        {c.hero.subtitle && <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">{c.hero.subtitle}</p>}
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                             <Link href={route('packages.index')} className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-700 px-6 py-3.5 font-semibold text-white shadow-lift transition hover:bg-brand-800">
-                                <Layers className="h-5 w-5" /> Lihat Paket Umrah <ArrowRight className="h-4 w-4" />
+                                <Layers className="h-5 w-5" /> {c.hero.primary_label} <ArrowRight className="h-4 w-4" />
                             </Link>
                             <a href="#tentang" className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-600 bg-white px-6 py-3 font-semibold text-brand-700 transition hover:bg-brand-50">
-                                <UserRound className="h-5 w-5" /> Pelayanan Profesional
+                                <UserRound className="h-5 w-5" /> {c.hero.secondary_label}
                             </a>
                         </div>
                         <ul className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-medium text-slate-700">
-                            {[[ShieldCheck, 'Terpercaya'], [UserCheck, 'Berpengalaman'], [Star, 'Aman & Nyaman']].map(([Icon, label], i) => (
-                                <li key={label} className={cx('flex items-center gap-2', i > 0 && 'sm:border-l sm:border-slate-200 sm:pl-6')}>
+                            {c.hero.points.map((label, i) => [POINT_ICONS[i % POINT_ICONS.length], label]).map(([Icon, label], i) => (
+                                <li key={i} className={cx('flex items-center gap-2', i > 0 && 'sm:border-l sm:border-slate-200 sm:pl-6')}>
                                     <Icon className="h-5 w-5 text-brand-700" /> {label}
                                 </li>
                             ))}
@@ -84,7 +82,7 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
                         <div className="absolute -left-3 -top-3 bottom-6 right-0 rounded-bl-[48px] rounded-tl-[180px] border-l-[10px] border-t-[10px] border-brand-500/90 sm:rounded-tl-[220px]" />
                         <div className="absolute -left-6 -top-6 bottom-10 right-0 rounded-tl-[200px] border-l-4 border-t-4 border-brand-200 sm:rounded-tl-[240px]" />
                         <div className="relative overflow-hidden rounded-bl-[40px] rounded-tl-[170px] shadow-2xl sm:rounded-tl-[210px]">
-                            <img src="/images/landing/hero-kaabah.jpg" alt="Ka'bah dan Masjidil Haram" className="aspect-[16/11] w-full object-cover object-[45%_40%]" />
+                            <img src={c.hero.image} alt="Ka'bah dan Masjidil Haram" className="aspect-[16/11] w-full object-cover object-[45%_40%]" />
                         </div>
                     </div>
                 </div>
@@ -95,27 +93,25 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
                 <div className="container-app grid items-center gap-10 lg:grid-cols-[0.9fr_1.3fr]">
                     <div className="relative">
                         <div className="absolute -bottom-3 -left-3 h-24 w-24 rounded-3xl bg-brand-100" />
-                        <img src="/images/landing/nabawi.jpg" alt="Masjid Nabawi, Madinah"
+                        <img src={c.about.image} alt={c.about.title}
                             className="relative aspect-[5/3] w-full rounded-3xl object-cover object-[60%_80%] shadow-xl [clip-path:polygon(0_0,100%_0,88%_100%,0_100%)]" />
                     </div>
                     <div>
-                        <span className="chip-green">Tentang Kami</span>
-                        <h2 className="mt-4 font-sans text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">PT. Sumatera Andalan Haramain</h2>
-                        <p className="mt-3 text-base leading-relaxed text-slate-600">Perusahaan penyelenggara perjalanan ibadah umrah yang berkomitmen memberikan layanan terbaik, amanah, dan profesional.</p>
-                        <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-                            Berkantor pusat di Kota Medan, kami melayani jamaah dengan keberangkatan dari Bandara Kualanamu, hotel dekat Masjidil Haram dan Masjid Nabawi,
-                            serta pendampingan pembimbing ibadah berpengalaman. Seluruh pendaftaran dan pembayaran dilakukan melalui sistem resmi sehingga setiap transaksi tercatat dengan aman.
-                        </p>
+                        <span className="chip-green">{c.about.label}</span>
+                        <h2 className="mt-4 font-sans text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">{c.about.title}</h2>
+                        {c.about.lead && <p className="mt-3 text-base leading-relaxed text-slate-600">{c.about.lead}</p>}
+                        {c.about.body && <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-600 sm:text-base">{c.about.body}</p>}
                         <div className="mt-8 grid gap-8 sm:grid-cols-2 sm:divide-x sm:divide-slate-200">
                             <div>
                                 <h3 className="flex items-center gap-2 font-sans text-xl font-extrabold text-brand-700"><Goal className="h-6 w-6" /> Visi</h3>
-                                <p className="mt-3 text-sm leading-relaxed text-slate-600">Menjadi penyelenggara perjalanan ibadah umrah yang terpercaya, profesional, dan unggul di Indonesia.</p>
-                                <p className="mt-2 text-sm leading-relaxed text-slate-600">Kami ingin setiap jamaah dapat beribadah dengan tenang dan khusyuk, didukung pelayanan yang amanah sejak persiapan keberangkatan, selama di Tanah Suci, hingga kembali ke tanah air.</p>
+                                {(c.about.vision || '').split(/\n+/).filter(Boolean).map((v, i) => (
+                                    <p key={i} className={cx('text-sm leading-relaxed text-slate-600', i ? 'mt-2' : 'mt-3')}>{v}</p>
+                                ))}
                             </div>
                             <div className="sm:pl-8">
                                 <h3 className="flex items-center gap-2 font-sans text-xl font-extrabold text-brand-700"><Layers className="h-6 w-6" /> Misi</h3>
                                 <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                                    {MISI.map((m) => <li key={m} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" strokeWidth={3} />{m}</li>)}
+                                    {c.about.mission.map((m) => <li key={m} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" strokeWidth={3} />{m}</li>)}
                                 </ul>
                             </div>
                         </div>
@@ -126,14 +122,14 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
             {/* ============ LAYANAN UTAMA ============ */}
             <section id="layanan" className="landing-section pb-14 sm:pb-20">
                 <div className="container-app">
-                    <Heading title="Layanan Utama Kami" subtitle="Tiga layanan utama untuk memenuhi kebutuhan perjalanan ibadah umrah Anda." />
+                    <Heading title={c.services_heading.title} subtitle={c.services_heading.subtitle} />
                     <div className="grid gap-5 md:grid-cols-3">
-                        {LAYANAN.map(({ title, text, route: r, icon: Icon }) => (
+                        {LAYANAN.map(({ route: r, icon }, i) => ({ r, Icon: icon, ...c.services[i] })).map(({ title, text, image, r, Icon }) => (
                             <Link key={r} href={route(r)} className="group flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-soft transition hover:-translate-y-1 hover:border-brand-200 hover:shadow-lift">
-                                <span className="grid h-24 w-24 shrink-0 place-items-center rounded-full bg-[radial-gradient(circle,#fff7d6_0%,#fdf3c4_45%,#ffffff_72%)]"><Icon /></span>
+                                <span className="grid h-24 w-24 shrink-0 place-items-center rounded-full bg-[radial-gradient(circle,#fff7d6_0%,#fdf3c4_45%,#ffffff_72%)]">{image ? <img src={image} alt="" className="h-14 w-14 object-contain" /> : <Icon />}</span>
                                 <span className="min-w-0 flex-1">
                                     <span className="block text-lg font-bold leading-snug text-slate-900">{title}</span>
-                                    <span className="mt-1 block text-sm leading-relaxed text-slate-600">{text}</span>
+                                    {text && <span className="mt-1 block text-sm leading-relaxed text-slate-600">{text}</span>}
                                 </span>
                                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-700 text-white transition group-hover:translate-x-1"><ArrowRight className="h-4 w-4" /></span>
                             </Link>
@@ -145,11 +141,11 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
             {/* ============ PILIHAN PAKET ============ */}
             <section id="paket" className="landing-section pb-14 sm:pb-20">
                 <div className="container-app">
-                    <Heading title="Pilihan Paket Umrah Terbaik" subtitle="Berbagai pilihan paket dengan fasilitas lengkap, maskapai terpercaya, dan harga kompetitif."
+                    <Heading title={c.packages.title} subtitle={c.packages.subtitle}
                         action={<Link href={route('packages.index')} className="inline-flex items-center gap-2 rounded-full border-2 border-brand-600 px-5 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-50">Lihat Semua Paket <ArrowRight className="h-4 w-4" /></Link>} />
                     {featured.length ? (
-                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                            {featured.map((p, i) => <LandingPackageCard key={p.id} p={p} best={i === 0} onSelect={() => setSelected(p)} />)}
+                        <div className={cx('grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4', c.packages.count % 5 === 0 && 'xl:grid-cols-5')}>
+                            {featured.map((p, i) => <LandingPackageCard key={p.id} p={p} badge={i === 0 ? c.packages.badge : null} onSelect={() => setSelected(p)} />)}
                         </div>
                     ) : (
                         <p className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500">Paket umrah segera hadir.</p>
@@ -160,10 +156,10 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
             {/* ============ GALERI ============ */}
             <section id="galeri" className="landing-section pb-14 sm:pb-20">
                 <div className="container-app">
-                    <Heading title="Galeri Kegiatan" subtitle="Dokumentasi perjalanan ibadah umrah bersama jamaah kami." />
+                    <Heading title={c.gallery.title} subtitle={c.gallery.subtitle} />
                     <GalleryTabs value={galleryTab} onChange={(t) => { setGalleryTab(t); setViewer(null); }} counts={{ foto: photos.length, video: videos.length }} />
-                    {galleryItems.length ? (
-                        <GalleryCarousel key={galleryTab} items={galleryItems} onOpen={setViewer} />
+                    {albums.length ? (
+                        <GalleryCarousel key={galleryTab} albums={albums} onOpen={(a) => setViewer({ items: a.items, index: 0 })} />
                     ) : (
                         <p className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
                             {galleryTab === 'video' ? 'Belum ada video kegiatan.' : 'Belum ada foto kegiatan.'}
@@ -171,12 +167,12 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
                     )}
                 </div>
             </section>
-            {viewer !== null && galleryItems[viewer] && <GalleryLightbox items={galleryItems} index={viewer} onIndex={setViewer} onClose={() => setViewer(null)} />}
+            {viewer && <GalleryLightbox items={viewer.items} index={viewer.index} onIndex={(i) => setViewer((v) => ({ ...v, index: i }))} onClose={() => setViewer(null)} />}
 
             {/* ============ TESTIMONI ============ */}
             <section id="testimoni" className="landing-section bg-brand-50/60 py-14 sm:py-20">
                 <div className="container-app">
-                    <Heading title="Testimoni Jamaah" subtitle="Cerita dan pengalaman jamaah yang telah berangkat bersama kami." />
+                    <Heading title={c.testimonials.title} subtitle={c.testimonials.subtitle} />
                     {testimonials.length ? (
                         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                             {testimonials.map((t) => (
@@ -208,7 +204,7 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
             {faqs.length > 0 && (
                 <section id="faq" className="landing-section py-14 sm:py-20">
                     <div className="container-app max-w-4xl">
-                        <Heading title="Pertanyaan yang Sering Diajukan" subtitle="Informasi seputar layanan umrah PT. Sumatera Andalan Haramain." />
+                        <Heading title={c.faq.title} subtitle={c.faq.subtitle} />
                         <div className="space-y-3">
                             {faqs.map((f, i) => {
                                 const open = faqOpen === i;
@@ -226,10 +222,12 @@ export default function Home({ featured, galleries, testimonials, faqs }) {
                                 );
                             })}
                         </div>
-                        <div className="mt-6 flex items-start gap-3 rounded-2xl bg-brand-50 p-4 text-sm text-brand-900">
-                            <Headset className="mt-0.5 h-5 w-5 shrink-0" />
-                            <p>Masih ada pertanyaan? Klik tombol <b>Butuh Bantuan?</b> di pojok kanan bawah untuk berkonsultasi langsung dengan tim kami.</p>
-                        </div>
+                        {c.faq.note && (
+                            <div className="mt-6 flex items-start gap-3 rounded-2xl bg-brand-50 p-4 text-sm text-brand-900">
+                                <Headset className="mt-0.5 h-5 w-5 shrink-0" />
+                                <p>{c.faq.note}</p>
+                            </div>
+                        )}
                     </div>
                 </section>
             )}
@@ -265,7 +263,7 @@ function GalleryTabs({ value, onChange, counts }) {
  * Galeri satu baris yang bisa digulir dengan tombol kiri/kanan; klik untuk membuka detail.
  * Tinggi seragam, lebar mengikuti bentuk asli file — hasil crop admin tampil utuh tanpa terpotong lagi.
  */
-function GalleryCarousel({ items, onOpen }) {
+function GalleryCarousel({ albums, onOpen }) {
     const track = useRef(null);
     const [edge, setEdge] = useState({ start: true, end: false });
 
@@ -279,7 +277,7 @@ function GalleryCarousel({ items, onOpen }) {
         update();
         window.addEventListener('resize', update);
         return () => window.removeEventListener('resize', update);
-    }, [update, items.length]);
+    }, [update, albums.length]);
 
     // Lebar item berbeda-beda, jadi geser ±80% lebar area per klik
     const slide = (dir) => {
@@ -290,29 +288,30 @@ function GalleryCarousel({ items, onOpen }) {
     return (
         <div className="relative">
             <div ref={track} onScroll={update} className="flex snap-x gap-3 overflow-x-auto scroll-smooth scrollbar-none">
-                {items.map((g, i) => (
-                    <button key={g.id} type="button" onClick={() => onOpen(i)} aria-label={`${g.type === 'video' ? 'Putar video' : 'Perbesar foto'}: ${g.title}`}
-                        className={cx('group relative h-48 shrink-0 snap-start overflow-hidden rounded-2xl bg-slate-100 shadow-soft sm:h-60', g.type === 'video' ? 'cursor-pointer' : 'cursor-zoom-in')}>
-                        {g.type === 'video' ? (
-                            <video src={`${g.image_url}#t=0.1`} preload="metadata" muted playsInline
-                                className="pointer-events-none h-full w-auto max-w-[85vw] object-contain transition duration-500 group-hover:scale-105" />
-                        ) : (
-                            <img src={g.image_url} alt={g.title} loading="lazy"
-                                className="h-full w-auto max-w-[85vw] object-contain transition duration-500 group-hover:scale-105" />
-                        )}
-                        {g.type === 'video' ? (
-                            <span className="absolute inset-0 grid place-items-center bg-black/15 transition group-hover:bg-black/30">
-                                <span className="grid h-14 w-14 place-items-center rounded-full bg-white/90 text-brand-800 shadow-lg transition group-hover:scale-110">
-                                    <Play className="ml-1 h-6 w-6 fill-current" />
-                                </span>
+                {albums.map((a) => {
+                    const g = a.items[0]; // sampul album = item terbaru
+                    return (
+                        <button key={a.key} type="button" onClick={() => onOpen(a)} aria-label={`Buka galeri ${a.label}`}
+                            className="group relative h-48 shrink-0 snap-start overflow-hidden rounded-2xl bg-slate-100 shadow-soft sm:h-60">
+                            {g.type === 'video' ? (
+                                <video src={`${g.image_url}#t=0.1`} preload="metadata" muted playsInline
+                                    className="pointer-events-none h-full w-auto min-w-[180px] max-w-[85vw] object-cover transition duration-500 group-hover:scale-105" />
+                            ) : (
+                                <img src={g.image_url} alt={a.label} loading="lazy"
+                                    className="h-full w-auto min-w-[180px] max-w-[85vw] object-cover transition duration-500 group-hover:scale-105" />
+                            )}
+                            <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 pb-3 pt-10 text-left text-white">
+                                <span className="text-base font-bold leading-tight">{a.label}</span>
+                                <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold backdrop-blur">{a.items.length} {g.type === 'video' ? 'video' : 'foto'}</span>
                             </span>
-                        ) : (
-                            <span className="absolute inset-0 grid place-items-center opacity-0 transition group-hover:bg-black/25 group-hover:opacity-100">
-                                <ZoomIn className="h-7 w-7 text-white drop-shadow" />
+                            <span className="absolute inset-0 grid place-items-center opacity-0 transition group-hover:bg-black/20 group-hover:opacity-100">
+                                {g.type === 'video'
+                                    ? <span className="grid h-14 w-14 place-items-center rounded-full bg-white/90 text-brand-800 shadow-lg"><Play className="ml-1 h-6 w-6 fill-current" /></span>
+                                    : <ZoomIn className="h-7 w-7 text-white drop-shadow" />}
                             </span>
-                        )}
-                    </button>
-                ))}
+                        </button>
+                    );
+                })}
             </div>
             {!(edge.start && edge.end) && (
                 <>
@@ -351,13 +350,13 @@ function Heading({ title, subtitle, action }) {
     );
 }
 
-function LandingPackageCard({ p, best, onSelect }) {
+function LandingPackageCard({ p, badge, onSelect }) {
     const next = p.upcoming_departures?.[0];
     return (
         <div className="relative flex flex-col rounded-2xl border border-slate-100 bg-white p-3 shadow-soft transition hover:-translate-y-1 hover:shadow-lift">
-            {best && (
+            {badge && (
                 <span className="absolute -top-3 left-4 z-10 inline-flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-white shadow">
-                    <Star className="h-3 w-3 fill-current" /> Best Seller
+                    <Star className="h-3 w-3 fill-current" /> {badge}
                 </span>
             )}
             {/* Poster paket — tinggi mengikuti rasio poster */}
@@ -369,13 +368,13 @@ function LandingPackageCard({ p, best, onSelect }) {
             <div className="flex flex-1 flex-col px-1 pt-3">
             <p className="text-sm font-semibold text-slate-500">Paket Umrah</p>
             <h3 className="font-sans text-base font-bold leading-snug text-slate-900">{p.name}</h3>
-            <p className="mt-2 text-2xl font-extrabold text-brand-800">{rupiah(p.price_quad)}<span className="text-xs font-medium text-slate-500"> /Pax</span></p>
+            <p className="mt-1.5 text-xl font-extrabold text-brand-800">{rupiah(p.price_quad)}<span className="text-xs font-medium text-slate-500"> /Pax</span></p>
 
-            <p className="my-3 flex items-center justify-center gap-2 rounded-xl bg-slate-50 py-2 text-sm font-bold text-slate-700">
+            <p className="my-2.5 flex items-center justify-center gap-2 rounded-xl bg-slate-50 py-1.5 text-xs font-bold text-slate-700">
                 <Plane className="h-4 w-4 text-brand-600" /> {p.airline}
             </p>
 
-            <ul className="space-y-1.5 text-sm text-slate-700">
+            <ul className="space-y-1 text-xs text-slate-700">
                 <li className="flex items-center gap-2"><Clock className="h-4 w-4 text-brand-700" />{p.duration_days} Hari</li>
                 <li className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-brand-700" />{next ? date(next.departure_date, { day: '2-digit', month: 'long', year: 'numeric' }) : 'Jadwal segera hadir'}</li>
                 <li className="flex items-center gap-2"><Building2 className="h-4 w-4 shrink-0 text-brand-700" /><span className="truncate">{p.hotel_makkah}</span></li>

@@ -7,7 +7,7 @@ export default function ForgotPassword({ status }) {
 
     return (
         <GuestLayout title="Lupa Kata Sandi">
-            <div className="card card-pad">
+            <div>
                 <h1 className="text-2xl">Lupa kata sandi?</h1>
                 <p className="mt-1 text-sm text-slate-500">Masukkan email akun Anda, kami akan mengirim tautan untuk mengatur ulang kata sandi.</p>
                 {status && <div className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{status}</div>}

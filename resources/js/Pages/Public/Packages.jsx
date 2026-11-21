@@ -47,7 +47,7 @@ export default function Packages({ packages, filters, types }) {
                 {packages.data.length === 0 ? (
                     <div className="card"><Empty title="Paket tidak ditemukan" text="Coba ubah filter pencarian Anda." /></div>
                 ) : (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                         {packages.data.map((p) => <PackageCard key={p.id} p={p} />)}
                     </div>
                 )}

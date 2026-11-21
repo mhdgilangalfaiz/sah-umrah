@@ -25,7 +25,7 @@ class CrudController extends Controller
     {
         return [
             'visa' => [
-                'model' => VisaService::class, 'title' => 'Jenis Layanan Visa', 'roles' => ['operasional'],
+                'model' => VisaService::class, 'title' => 'Jenis Layanan Visa', 'roles' => ['admin'],
                 'columns' => ['name' => 'Nama', 'price_usd' => 'Harga (USD)', 'price' => 'Estimasi Rp (kurs kini)', 'processing_days' => 'Estimasi (hari)', 'is_active' => 'Aktif'],
                 'fields' => [
                     ['name' => 'name', 'label' => 'Nama layanan', 'type' => 'text', 'rules' => 'required|string|max:120'],
@@ -37,7 +37,7 @@ class CrudController extends Controller
                 ],
             ],
             'chatbot' => [
-                'model' => ChatbotIntent::class, 'title' => 'Basis Jawaban Chatbox', 'roles' => ['cs'],
+                'model' => ChatbotIntent::class, 'title' => 'Basis Jawaban Chatbox', 'roles' => ['admin'],
                 'description' => 'Kata kunci dipisah koma. Chatbox mencocokkan pertanyaan pelanggan dengan kata kunci ini; bila tidak ada yang cocok, pelanggan ditawari terhubung ke admin.',
                 'columns' => ['title' => 'Judul', 'category' => 'Kategori', 'keywords' => 'Kata kunci', 'hits' => 'Dipakai', 'is_active' => 'Aktif'],
                 'fields' => [
@@ -50,7 +50,7 @@ class CrudController extends Controller
                 ],
             ],
             'testimoni' => [
-                'model' => Testimonial::class, 'title' => 'Testimoni', 'roles' => ['super_admin'],
+                'model' => Testimonial::class, 'title' => 'Testimoni', 'roles' => ['admin'],
                 'columns' => ['name' => 'Nama', 'city' => 'Kota', 'rating' => 'Rating', 'is_active' => 'Tampil'],
                 'fields' => [
                     ['name' => 'name', 'label' => 'Nama', 'type' => 'text', 'rules' => 'required|string|max:100'],
@@ -62,7 +62,7 @@ class CrudController extends Controller
                 ],
             ],
             'faq' => [
-                'model' => Faq::class, 'title' => 'FAQ', 'roles' => ['super_admin', 'cs'],
+                'model' => Faq::class, 'title' => 'FAQ', 'roles' => ['admin'],
                 'columns' => ['question' => 'Pertanyaan', 'sort' => 'Urutan'],
                 'fields' => [
                     ['name' => 'question', 'label' => 'Pertanyaan', 'type' => 'text', 'rules' => 'required|string|max:250'],
@@ -71,7 +71,7 @@ class CrudController extends Controller
                 ],
             ],
             'blog' => [
-                'model' => Post::class, 'title' => 'Blog / Artikel', 'roles' => ['super_admin'],
+                'model' => Post::class, 'title' => 'Blog / Artikel', 'roles' => ['admin'],
                 'columns' => ['cover_image' => 'Sampul', 'title' => 'Judul', 'published_at' => 'Terbit'],
                 'fields' => [
                     ['name' => 'title', 'label' => 'Judul', 'type' => 'text', 'rules' => 'required|string|max:200'],

@@ -69,7 +69,7 @@ class RefundController extends Controller
             'proof_path' => FileStorage::storePrivate($request->file('proof'), 'refunds/'.$request->user()->id, 'bukti_refund'),
         ]);
         Audit::log('refund.diajukan', "Pengajuan refund {$refund->code} Rp".number_format($refund->requested_amount, 0, ',', '.')." untuk {$order->code}", $refund);
-        AdminNotifier::notify(['finance'], 'refund', 'Pengajuan refund '.$refund->code, $request->user()->name.' — '.$order->code, route('admin.refunds.index'), true);
+        AdminNotifier::notify('refund', 'Pengajuan refund '.$refund->code, $request->user()->name.' — '.$order->code, route('admin.refunds.index'), true);
 
         return back()->with('success', 'Pengajuan refund terkirim. Tim Finance akan meninjau sesuai kebijakan refund.');
     }

@@ -51,7 +51,7 @@ class ChatbotService
         // Jika sudah ditangani/menunggu admin → bot diam, admin yang membalas
         if (in_array($ticket->status, ['menunggu_admin', 'ditangani'], true)) {
             if ($ticket->status === 'menunggu_admin') {
-                AdminNotifier::notify(['cs'], 'bantuan', 'Pesan baru dari '.($ticket->user?->name ?? 'Tamu'),
+                AdminNotifier::notify('bantuan', 'Pesan baru dari '.($ticket->user?->name ?? 'Tamu'),
                     Str::limit($text, 80), route('admin.support.show', $ticket));
             }
 
@@ -125,7 +125,7 @@ class ChatbotService
 
         $ticket->update(['status' => 'menunggu_admin', 'escalated_at' => now()]);
         Audit::log('bantuan.eskalasi', "Tiket {$ticket->code} dihubungkan ke admin", $ticket);
-        AdminNotifier::notify(['cs'], 'bantuan', 'Permintaan bantuan — '.$ticket->user->name,
+        AdminNotifier::notify('bantuan', 'Permintaan bantuan — '.$ticket->user->name,
             'Pelanggan '.$ticket->user->customer_code.' meminta dihubungkan dengan admin (tiket '.$ticket->code.').',
             route('admin.support.show', $ticket), true, 'warning');
 

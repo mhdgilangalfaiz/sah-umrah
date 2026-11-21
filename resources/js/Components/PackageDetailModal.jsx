@@ -29,12 +29,12 @@ export default function PackageDetailModal({ p, onClose }) {
                     <X className="h-5 w-5" />
                 </button>
 
-                <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:overflow-hidden">
+                <div className="grid min-h-0 flex-1 overflow-y-auto md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:grid-rows-[minmax(0,1fr)] md:overflow-hidden">
                     {/* Poster */}
-                    <div className="bg-slate-100 p-4 md:overflow-y-auto">
+                    <div className="flex items-center justify-center bg-slate-100 p-4 md:min-h-0 md:overflow-hidden">
                         {p.cover_url ? (
-                            <a href={p.cover_url} target="_blank" rel="noopener noreferrer" title="Buka poster ukuran penuh" className="block">
-                                <img src={p.cover_url} alt={`Poster ${p.name}`} className="mx-auto block h-auto w-full rounded-2xl shadow-md" />
+                            <a href={p.cover_url} target="_blank" rel="noopener noreferrer" title="Buka poster ukuran penuh" className="flex h-full max-h-[60vh] w-full items-center justify-center md:max-h-none">
+                                <img src={p.cover_url} alt={`Poster ${p.name}`} className="block max-h-full max-w-full rounded-xl object-contain shadow-md" />
                             </a>
                         ) : (
                             <div className="grid aspect-[4/5] place-items-center rounded-2xl bg-brand-800"><img src="/images/logo-sah-footer.png" alt="" className="h-20" /></div>

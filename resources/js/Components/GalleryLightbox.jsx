@@ -31,7 +31,7 @@ export default function GalleryLightbox({ items, index, onIndex, onClose }) {
     const media = 'max-h-full max-w-full animate-pop rounded-2xl ring-1 ring-white/20 shadow-[0_30px_80px_-20px_rgba(0,0,0,.85)]';
 
     return (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-[#071022] text-white" role="dialog" aria-modal="true" aria-label={isVideo ? 'Video galeri' : 'Foto galeri'}
+        <div className="fixed inset-0 z-[60] flex animate-page-in flex-col bg-slate-900/40 text-white backdrop-blur-xl" role="dialog" aria-modal="true" aria-label={isVideo ? 'Video galeri' : 'Foto galeri'}
             onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
             onTouchEnd={(e) => {
                 if (touchX.current === null) return;
@@ -40,9 +40,8 @@ export default function GalleryLightbox({ items, index, onIndex, onClose }) {
                 touchX.current = null;
             }}>
             {/* cahaya lembut di tengah */}
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(37,64,120,.35),transparent_65%)]" />
 
-            {total > 1 && <span className="absolute left-5 top-6 z-10 text-sm font-medium tabular-nums text-white/50">{index + 1} / {total}</span>}
+            {total > 1 && <span className="absolute left-5 top-6 z-10 rounded-full bg-black/30 px-3 py-1 text-sm font-medium tabular-nums text-white">{index + 1} / {total}</span>}
             <button onClick={onClose} aria-label="Tutup"
                 className="absolute right-4 top-4 z-10 grid h-12 w-12 place-items-center rounded-full bg-white/10 ring-1 ring-white/15 transition hover:bg-white/20 sm:right-6 sm:top-5">
                 <X className="h-6 w-6" />
@@ -66,7 +65,7 @@ export default function GalleryLightbox({ items, index, onIndex, onClose }) {
                 {item.title && (
                     <>
                         <span className="h-px w-12 shrink-0 bg-gradient-to-r from-transparent to-gold-400 sm:w-36" />
-                        <p className="max-w-[70vw] truncate rounded-full border border-gold-400/80 bg-[#0b1730] px-7 py-2 text-lg font-bold capitalize tracking-wide text-white shadow-[0_0_28px_-8px_rgba(201,162,75,.55)] sm:px-12 sm:text-2xl">
+                        <p className="max-w-[70vw] truncate rounded-full border border-gold-400/80 bg-brand-900/80 px-7 py-2 text-lg font-bold capitalize tracking-wide text-white shadow-[0_0_28px_-8px_rgba(201,162,75,.55)] sm:px-12 sm:text-2xl">
                             {item.title}
                         </p>
                         <span className="h-px w-12 shrink-0 bg-gradient-to-l from-transparent to-gold-400 sm:w-36" />

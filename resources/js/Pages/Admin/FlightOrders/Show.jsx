@@ -8,7 +8,7 @@ import { dateTime, rupiah } from '@/lib/format';
 export default function Show({ order: o, passengers, payments, documents }) {
     const { auth } = usePage().props;
     const issue = useForm({ pnr: o.pnr ?? '', file: null });
-    const canIssue = ['super_admin', 'operasional'].includes(auth.user.role) && ['dibayar', 'tiket_terbit'].includes(o.status);
+    const canIssue = auth.user.role === 'admin' && ['dibayar', 'tiket_terbit'].includes(o.status);
 
     return (
         <AdminLayout title={o.code}>

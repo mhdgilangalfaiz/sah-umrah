@@ -7,10 +7,10 @@ use Illuminate\Http\Request;
 
 /**
  * Role-based access control panel admin.
- * Pemakaian: ->middleware('admin')                 semua peran admin
- *            ->middleware('admin:finance')         hanya Finance (+ Super Admin)
- *            ->middleware('admin:operasional,cs')  Operasional / CS (+ Super Admin)
- *            ->middleware('admin:primary')         hanya Admin Utama
+ * Pemakaian: ->middleware('admin')                    Admin & Super Admin
+ *            ->middleware('admin:admin')              hanya Admin (kelola website)
+ *            ->middleware('admin:admin,super_admin')  lihat pesanan & laporan
+ *            ->middleware('admin:super_admin')        hanya Super Admin (akun admin)
  */
 class EnsureAdmin
 {
@@ -19,9 +19,7 @@ class EnsureAdmin
         $user = $request->user();
         abort_unless($user && $user->isAdmin() && $user->is_active, 403, 'Akses khusus admin.');
 
-        if (in_array('primary', $roles, true)) {
-            abort_unless($user->is_primary_admin, 403, 'Hanya Admin Utama yang dapat mengakses menu ini.');
-        } elseif ($roles && ! $user->hasRole(...$roles)) {
+        if ($roles && ! $user->hasRole(...$roles)) {
             abort(403, 'Peran Anda ('.$user->roleLabel().') tidak memiliki akses ke menu ini.');
         }
 

@@ -7,7 +7,7 @@ export default function ConfirmPassword() {
 
     return (
         <GuestLayout title="Konfirmasi Kata Sandi">
-            <div className="card card-pad">
+            <div>
                 <h1 className="text-2xl">Konfirmasi kata sandi</h1>
                 <p className="mt-1 text-sm text-slate-500">Ini area aman. Mohon konfirmasi kata sandi Anda untuk melanjutkan.</p>
                 <form onSubmit={(e) => { e.preventDefault(); post(route('password.confirm'), { onFinish: () => reset('password') }); }} className="mt-6 space-y-4">

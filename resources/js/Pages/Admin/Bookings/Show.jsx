@@ -6,7 +6,7 @@ import { date, dateTime, rupiah } from '@/lib/format';
 
 export default function Show({ booking: b, customer, passengers, payments, outstanding, overdue, reminders, documents }) {
     const { auth } = usePage().props;
-    const canOps = ['super_admin', 'operasional'].includes(auth.user.role);
+    const canOps = auth.user.role === 'admin';
     const cancel = () => {
         const reason = prompt('Alasan pembatalan:');
         if (reason) router.post(route('admin.bookings.cancel', b.code), { reason });

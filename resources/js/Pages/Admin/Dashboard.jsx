@@ -1,5 +1,5 @@
-import { Link } from '@inertiajs/react';
-import { AlertTriangle, CalendarClock, ClipboardList, Clock, Landmark, ShieldAlert, Ticket, Users, Wallet, Stamp } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { AlertTriangle, BarChart3, CalendarClock, ClipboardList, Clock, Landmark, Receipt, ShieldAlert, Ticket, Users, Wallet, Stamp } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Card, Stat, cx } from '@/Components/ui';
@@ -8,9 +8,13 @@ import { date, rupiah, shortRupiah } from '@/lib/format';
 const urgency = (d) => (d <= 1 ? ['H-1', 'bg-red-600 text-white'] : d <= 7 ? ['H-7', 'bg-orange-500 text-white'] : d <= 30 ? ['H-30', 'bg-amber-300 text-amber-950'] : [`H-${d}`, 'bg-slate-100 text-slate-600']);
 
 export default function Dashboard({ stats, chart, departures, recentPayments, alerts }) {
+    const isAdmin = usePage().props.auth.user.role === 'admin'; // Super Admin: hanya lihat pembelian & laporan
+    const shortcuts = [['admin.bookings.index', Landmark, 'Pesanan Umrah'], ['admin.visa.index', Stamp, 'Pengajuan Visa'], ['admin.flight-orders.index', Ticket, 'Pesanan Tiket'],
+        isAdmin ? ['admin.departures.index', CalendarClock, 'Keberangkatan'] : ['admin.invoices.index', Receipt, 'Laporan Invoice']];
+    if (!isAdmin) shortcuts.push(['admin.reports.index', BarChart3, 'Rekap Penjualan'], ['admin.admins.index', Users, 'Akun Admin']);
     return (
         <AdminLayout title="Dashboard">
-            {alerts.length > 0 && (
+            {isAdmin && alerts.length > 0 && (
                 <Link href={route('admin.finance.bank.index')} className="mb-6 flex items-start gap-3 rounded-2xl bg-red-50 p-4 text-sm text-red-800 ring-1 ring-red-200">
                     <ShieldAlert className="h-5 w-5 shrink-0" />
                     <div><p className="font-semibold">{alerts.length} peringatan keamanan keuangan belum ditangani</p><p>{alerts[0].message}</p></div>
@@ -41,7 +45,7 @@ export default function Dashboard({ stats, chart, departures, recentPayments, al
                     </div>
                 </Card>
 
-                <Card title="Keberangkatan 45 hari ke depan" actions={<Link href={route('admin.departures.index')} className="text-sm text-brand-700">Semua</Link>}>
+                <Card title="Keberangkatan 45 hari ke depan" actions={isAdmin && <Link href={route('admin.departures.index')} className="text-sm text-brand-700">Semua</Link>}>
                     {departures.length === 0 ? <p className="text-sm text-slate-500">Tidak ada keberangkatan dekat.</p> : (
                         <ul className="space-y-3">
                             {departures.map((d) => {
@@ -71,7 +75,7 @@ export default function Dashboard({ stats, chart, departures, recentPayments, al
                 </Card>
                 <Card title="Akses cepat">
                     <div className="grid grid-cols-2 gap-3">
-                        {[['admin.bookings.index', Landmark, 'Pesanan Umrah'], ['admin.visa.index', Stamp, 'Pengajuan Visa'], ['admin.flight-orders.index', Ticket, 'Pesanan Tiket'], ['admin.departures.index', CalendarClock, 'Keberangkatan']].map(([r, Icon, l]) => (
+                        {shortcuts.map(([r, Icon, l]) => (
                             <Link key={r} href={route(r)} className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 p-4 text-center text-sm font-medium hover:border-brand-600 hover:text-brand-700"><Icon className="h-5 w-5 text-gold-500" />{l}</Link>
                         ))}
                     </div>

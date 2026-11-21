@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
-    ChevronDown, House, Image, Info, Layers, Landmark, Mail, MapPin, Menu, MessageSquareQuote, Phone, Plane, Stamp, X,
+    ChevronDown, Clock, House, Image, Info, Layers, Landmark, Mail, MapPin, Menu, MessageSquareQuote, Phone, Plane, Stamp, X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ChatWidget from '@/Components/ChatWidget';
@@ -107,9 +107,9 @@ export default function PublicLayout({ title, children }) {
             <Flash />
 
             <header className="sticky top-0 z-40 px-3 pt-3 sm:px-4">
-                <div className="container-app flex h-16 items-center justify-between gap-4 rounded-full border border-slate-100 bg-white/95 shadow-[0_8px_30px_-12px_rgba(4,99,42,.25)] backdrop-blur lg:h-[68px]">
+                <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 rounded-full border border-slate-100 bg-white/95 px-3 shadow-[0_8px_30px_-12px_rgba(4,99,42,.25)] backdrop-blur sm:px-4 lg:h-[60px]">
                     <Link href={route('home')} className="shrink-0 pl-1">
-                        <Logo className="h-9 lg:h-11" />
+                        <Logo className="h-8 lg:h-10" />
                     </Link>
 
                     <nav className="hidden items-center gap-1 lg:flex">
@@ -192,47 +192,51 @@ export default function PublicLayout({ title, children }) {
                 </div>
             )}
 
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 animate-page-in">{children}</main>
 
             <footer id="kontak" className="scroll-mt-24 bg-brand-900 text-brand-100">
-                <div className="container-app grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1.2fr_1fr] lg:divide-x lg:divide-white/15">
-                    <div>
-                        <img src="/images/logo-sah-footer.png" alt="SAH" className="h-14 w-auto" />
-                        <p className="mt-3 text-sm font-bold uppercase tracking-wide text-white">{company.name}</p>
-                        <p className="mt-1 max-w-xs text-sm leading-relaxed text-brand-200">Melayani perjalanan ibadah umrah dengan amanah, terpercaya, dan profesional.</p>
-                        <p className="mt-3 text-xs text-brand-300">{company.license}</p>
+                <div className="container-app grid gap-8 py-6 sm:grid-cols-2 lg:grid-cols-[1.15fr_0.75fr_1.5fr] lg:gap-0 lg:divide-x lg:divide-white/15">
+                    <div className="lg:pr-8">
+                        <div className="flex w-fit flex-col items-center">
+                            <img src="/images/logo-sah-footer.png" alt="SAH" className="h-10 w-auto" />
+                            <p className="mt-1.5 text-sm font-bold uppercase tracking-wide text-white">{company.name}</p>
+                        </div>
+                        <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-brand-200">Melayani perjalanan ibadah umrah dengan amanah, terpercaya, dan profesional.</p>
+                        <p className="mt-1.5 text-xs text-brand-300">{company.license}</p>
+                        <div className="mt-3 flex items-center gap-3">
+                            <span className="text-sm font-semibold text-white">Ikuti Kami</span>
+                            <div className="flex gap-2">
+                                {SOCIALS.map(({ label, href, path }) => (
+                                    <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
+                                        className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:bg-white hover:text-brand-900">
+                                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true"><path d={path} /></svg>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                    <div className="lg:pl-8">
-                        <p className="font-semibold text-white">Navigasi</p>
-                        <ul className="mt-3 space-y-2 text-sm">
-                            {SECTIONS.map(({ id, label, icon: Icon }) => (
+                    <div className="flex lg:justify-center lg:px-8">
+                        <div className="w-fit">
+                        <FooterHeading>Navigasi</FooterHeading>
+                        <ul className="space-y-1.5 text-sm">
+                            {SECTIONS.filter((x) => x.id !== 'beranda').map(({ id, label, icon: Icon }) => (
                                 <li key={id}>
-                                    <SectionLink id={id} onHome={onHome} className="inline-flex items-center gap-2 hover:text-white">
-                                        <Icon className="h-3.5 w-3.5" /> {label}
+                                    <SectionLink id={id} onHome={onHome} className="inline-flex items-center gap-2 transition hover:text-white">
+                                        <Icon className="h-4 w-4 shrink-0" /> {label}
                                     </SectionLink>
                                 </li>
                             ))}
                         </ul>
+                        </div>
                     </div>
                     <div className="lg:pl-8">
-                        <p className="font-semibold text-white">Alamat</p>
-                        <ul className="mt-3 space-y-3 text-sm">
+                        <FooterHeading>Alamat & Kontak</FooterHeading>
+                        <ul className="space-y-1.5 text-sm">
                             <li className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" />{company.address}</li>
                             <li className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0" />{company.phone}</li>
                             <li className="flex gap-2"><Mail className="mt-0.5 h-4 w-4 shrink-0" /><span className="break-all">{company.email}</span></li>
+                            {company.hours && <li className="flex gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0" />{company.hours}</li>}
                         </ul>
-                        <p className="mt-3 text-xs text-brand-300">{company.hours}</p>
-                    </div>
-                    <div className="lg:pl-8">
-                        <p className="font-semibold text-white">Ikuti Kami</p>
-                        <div className="mt-3 flex gap-3">
-                            {SOCIALS.map(({ label, href, path }) => (
-                                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
-                                    className="grid h-10 w-10 place-items-center rounded-full bg-white text-brand-900 transition hover:-translate-y-0.5 hover:bg-brand-100">
-                                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true"><path d={path} /></svg>
-                                </a>
-                            ))}
-                        </div>
                     </div>
                 </div>
                 <div className="border-t border-white/10 bg-white text-slate-600">
@@ -251,6 +255,15 @@ export default function PublicLayout({ title, children }) {
 
             {!user?.is_admin && <ChatWidget />}
         </div>
+    );
+}
+
+function FooterHeading({ children }) {
+    return (
+        <p className="mb-3 text-sm font-bold uppercase tracking-wider text-white">
+            {children}
+            <span className="mt-1.5 block h-0.5 w-8 rounded-full bg-gold-400" />
+        </p>
     );
 }
 

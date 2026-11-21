@@ -14,7 +14,7 @@ class NotificationBadgeTest extends TestCase
 
     public function test_unread_notifications_are_grouped_by_path_and_marked_read_when_page_is_opened(): void
     {
-        $admin = User::factory()->admin('super_admin', true)->create();
+        $admin = User::factory()->admin()->create();
         $admin->notifyNow(new SystemNotification('pesanan', 'Order tiket baru', 'x', url('/admin/pesanan-tiket/SAH-T-1'), null, false));
         $admin->notifyNow(new SystemNotification('pembayaran', 'Pembayaran masuk', 'x', url('/admin/pembayaran'), null, false));
 

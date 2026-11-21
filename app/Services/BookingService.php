@@ -75,7 +75,7 @@ class BookingService
             'Pesanan paket '.$booking->departure->package->name.' untuk '.$pax.' jamaah berhasil dibuat. Kursi Anda ditahan sampai '.
             $booking->hold_expires_at->translatedFormat('d M Y H:i').' WIB. Segera lakukan pembayaran '.($scheme === 'cicilan' ? 'deposit awal' : 'pelunasan').'.',
             $booking->customerUrl(), 'Bayar Sekarang'));
-        AdminNotifier::notify(['operasional', 'finance'], 'pesanan', 'Booking umrah baru '.$booking->code,
+        AdminNotifier::notify('pesanan', 'Booking umrah baru '.$booking->code,
             $user->name.' — '.$booking->departure->package->name.' ('.$pax.' pax)', route('admin.bookings.show', $booking));
 
         return $booking;

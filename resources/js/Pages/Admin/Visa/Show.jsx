@@ -7,7 +7,7 @@ import { dateTime, fileSize, rupiah } from '@/lib/format';
 
 export default function Show({ application: v, customer, applicants, statuses, payments, documents, usdRate }) {
     const { auth } = usePage().props;
-    const canOps = ['super_admin', 'operasional'].includes(auth.user.role);
+    const canOps = auth.user.role === 'admin';
     const editableInvoice = ['menunggu_invoice', 'menunggu_pembayaran'].includes(v.status) && v.paid_amount === 0;
 
     const inv = useForm({

@@ -31,9 +31,9 @@ class AuthTest extends TestCase
 
     public function test_admin_boleh_login_tanpa_gmail_dan_diarahkan_ke_panel(): void
     {
-        $admin = User::factory()->admin('finance')->create(['email' => 'finance@sah.co.id']);
+        $admin = User::factory()->admin()->create(['email' => 'staf@sah.co.id']);
 
-        $this->post('/login', ['email' => 'finance@sah.co.id', 'password' => 'password'])->assertRedirect('/admin');
+        $this->post('/login', ['email' => 'staf@sah.co.id', 'password' => 'password'])->assertRedirect('/admin');
         $this->assertAuthenticatedAs($admin);
         $this->assertTrue(AuditLog::where('action', 'auth.login')->where('user_id', $admin->id)->exists());
     }
@@ -53,24 +53,35 @@ class AuthTest extends TestCase
         $customer = User::factory()->create();
         $this->actingAs($customer)->get('/admin')->assertForbidden();
 
-        $cs = User::factory()->admin('cs')->create();
-        $this->actingAs($cs)->get('/admin')->assertOk();
-        $this->actingAs($cs)->get('/admin/pembayaran')->assertForbidden();      // khusus finance
-        $this->actingAs($cs)->get('/admin/akun-admin')->assertForbidden();      // khusus admin utama
-        $this->actingAs($cs)->get('/admin/bantuan')->assertOk();
+        // Admin: kelola seluruh website, tetapi tidak bisa membuat akun admin
+        $admin = User::factory()->admin()->create();
+        foreach (['/admin', '/admin/pembayaran', '/admin/laporan', '/admin/invoice', '/admin/bantuan', '/admin/paket', '/admin/pengaturan', '/admin/kelola/beranda', '/admin/kelola/galeri'] as $url) {
+            $this->actingAs($admin)->get($url)->assertOk();
+        }
+        $this->actingAs($admin)->get('/admin/akun-admin')->assertForbidden();
+
+        // Super Admin: hanya lihat pembelian, laporan & invoice, serta akun admin
+        $super = User::factory()->admin('super_admin', true)->create();
+        foreach (['/admin', '/admin/pesanan-umrah', '/admin/pesanan-tiket', '/admin/visa', '/admin/pembayaran', '/admin/laporan', '/admin/invoice', '/admin/akun-admin'] as $url) {
+            $this->actingAs($super)->get($url)->assertOk();
+        }
+        foreach (['/admin/paket', '/admin/pengaturan', '/admin/kelola/beranda', '/admin/kelola/galeri', '/admin/kelola/testimoni', '/admin/bantuan', '/admin/refund', '/admin/penerbangan'] as $url) {
+            $this->actingAs($super)->get($url)->assertForbidden();
+        }
     }
 
-    public function test_hanya_admin_utama_yang_dapat_menambah_admin(): void
+    public function test_hanya_super_admin_yang_dapat_menambah_admin(): void
     {
-        $primary = User::factory()->admin('super_admin', true)->create();
-        $other = User::factory()->admin('super_admin', false)->create();
-        $payload = ['name' => 'CS Baru', 'email' => 'cs2@sah.co.id', 'role' => 'cs', 'password' => 'RahasiaKuat123', 'password_confirmation' => 'RahasiaKuat123', 'my_password' => 'password'];
+        $super = User::factory()->admin('super_admin', true)->create();
+        $other = User::factory()->admin()->create();
+        // "role" dari request diabaikan: akun baru selalu Admin
+        $payload = ['name' => 'Admin Baru', 'email' => 'admin2@sah.co.id', 'role' => 'super_admin', 'password' => 'RahasiaKuat123', 'password_confirmation' => 'RahasiaKuat123', 'my_password' => 'password'];
 
         $this->actingAs($other)->post('/admin/akun-admin', $payload)->assertForbidden();
-        $this->actingAs($primary)->post('/admin/akun-admin', $payload)->assertSessionHasNoErrors();
+        $this->actingAs($super)->post('/admin/akun-admin', $payload)->assertSessionHasNoErrors();
 
-        $new = User::where('email', 'cs2@sah.co.id')->first();
-        $this->assertSame('cs', $new->role);
+        $new = User::where('email', 'admin2@sah.co.id')->first();
+        $this->assertSame('admin', $new->role);
         $this->assertFalse($new->is_primary_admin);
         // admin baru tidak dapat menambah admin lagi
         $this->actingAs($new)->post('/admin/akun-admin', array_merge($payload, ['email' => 'x@sah.co.id']))->assertForbidden();

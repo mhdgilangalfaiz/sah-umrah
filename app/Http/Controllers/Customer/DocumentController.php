@@ -47,7 +47,7 @@ class DocumentController extends Controller
         $owner = $u;
         $doc = FileStorage::storeDocument($request->file('file'), $owner, $data['type'], ['jamaah_id' => $data['jamaah_id'] ?? null]);
         Audit::log('dokumen.unggah', "Unggah dokumen {$doc->type_label} ({$doc->file_name})", $doc);
-        AdminNotifier::notify(['operasional'], 'dokumen', 'Dokumen baru menunggu verifikasi', $u->name.' — '.$doc->type_label, route('admin.documents.index'));
+        AdminNotifier::notify('dokumen', 'Dokumen baru menunggu verifikasi', $u->name.' — '.$doc->type_label, route('admin.documents.index'));
 
         return back()->with('success', 'Dokumen berhasil diunggah dan menunggu verifikasi admin.');
     }

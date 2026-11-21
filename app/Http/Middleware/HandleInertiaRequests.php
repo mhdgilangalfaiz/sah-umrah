@@ -36,7 +36,6 @@ class HandleInertiaRequests extends Middleware
                     'role' => $user->role,
                     'role_label' => $user->roleLabel(),
                     'is_admin' => $user->isAdmin(),
-                    'is_primary_admin' => $user->is_primary_admin,
                     'customer_code' => $user->customer_code,
                     'email_verified' => (bool) $user->email_verified_at,
                     'profile_completed' => (bool) $user->profile_completed_at,

@@ -1,11 +1,20 @@
 import '../css/app.css';
 import './bootstrap';
 
-import { createInertiaApp } from '@inertiajs/react';
+import { createInertiaApp, router } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 
 const appName = 'Sumatera Andalan Haramain';
+
+// Ingat halaman terakhir di luar halaman login/daftar, untuk tombol "Kembali" di halaman autentikasi
+const AUTH_PATH = /^\/(login|register|forgot-password|reset-password|verify-email|confirm-password|lengkapi-profil)(\/|$)/;
+router.on('navigate', (e) => {
+    const url = e.detail.page.url;
+    if (!AUTH_PATH.test(url.split('?')[0])) {
+        try { sessionStorage.setItem('sah.lastPage', url); } catch { /* penyimpanan tidak tersedia */ }
+    }
+});
 
 createInertiaApp({
     title: (title) => (title ? `${title} — ${appName}` : appName),

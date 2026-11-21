@@ -7,7 +7,7 @@ export default function VerifyEmail({ status }) {
 
     return (
         <GuestLayout title="Verifikasi Email">
-            <div className="card card-pad text-center">
+            <div className="text-center">
                 <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-700"><MailCheck className="h-7 w-7" /></div>
                 <h1 className="mt-4 text-2xl">Verifikasi email Anda</h1>
                 <p className="mt-2 text-sm text-slate-600">
