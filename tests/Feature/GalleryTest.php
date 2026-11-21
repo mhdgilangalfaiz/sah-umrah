@@ -123,7 +123,8 @@ class GalleryTest extends TestCase
             ->assertInertia(fn ($p) => $p->component('Admin/Gallery')->where('filter', 'video')->has('items.data', 1)->has('limits.file'));
 
         $this->get('/')->assertOk()
-            ->assertInertia(fn ($p) => $p->component('Public/Home')->has('galleries', 2)->where('galleries.0.type', 'video'));
+            // Landing hanya menampilkan foto
+            ->assertInertia(fn ($p) => $p->component('landing')->has('galleries', 1)->where('galleries.0.title', 'Mekah'));
     }
 
     public function test_super_admin_cannot_manage_gallery(): void

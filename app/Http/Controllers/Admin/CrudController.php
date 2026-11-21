@@ -51,12 +51,15 @@ class CrudController extends Controller
             ],
             'testimoni' => [
                 'model' => Testimonial::class, 'title' => 'Testimoni', 'roles' => ['admin'],
-                'columns' => ['name' => 'Nama', 'city' => 'Kota', 'rating' => 'Rating', 'is_active' => 'Tampil'],
+                'description' => 'Ulasan yang dikirim jamaah lewat tombol "Tulis Ulasan" di beranda masuk dalam keadaan tidak tampil. Periksa isinya, lalu centang Tampilkan.',
+                'columns' => ['name' => 'Nama', 'city' => 'Kota', 'package_name' => 'Paket', 'rating' => 'Rating', 'is_active' => 'Tampil'],
                 'fields' => [
                     ['name' => 'name', 'label' => 'Nama', 'type' => 'text', 'rules' => 'required|string|max:100'],
                     ['name' => 'city', 'label' => 'Kota', 'type' => 'text', 'rules' => 'nullable|string|max:60'],
                     ['name' => 'content', 'label' => 'Isi testimoni', 'type' => 'textarea', 'rules' => 'required|string|max:1500'],
                     ['name' => 'rating', 'label' => 'Rating (1-5)', 'type' => 'number', 'rules' => 'required|integer|min:1|max:5'],
+                    ['name' => 'departure_month', 'label' => 'Bulan berangkat', 'type' => 'month', 'rules' => 'nullable|date_format:Y-m'],
+                    ['name' => 'package_name', 'label' => 'Paket yang diikuti', 'type' => 'text', 'rules' => 'nullable|string|max:150'],
                     ['name' => 'photo', 'label' => 'Foto', 'type' => 'image', 'rules' => 'nullable|image|max:2048'],
                     ['name' => 'is_active', 'label' => 'Tampilkan', 'type' => 'checkbox', 'rules' => 'boolean'],
                 ],
@@ -150,10 +153,13 @@ class CrudController extends Controller
     {
         $cfg = $this->resolve($resource);
         $item = $cfg['model']::findOrFail($id);
+        $before = $this->imagePaths($cfg, $item);
         $item->fill($this->payload($request, $cfg, $item));
         $priceField = collect($cfg['fields'])->firstWhere('audit_price', true);
         $action = $priceField && $item->isDirty($priceField['name']) ? "konten.$resource.harga_ubah" : "konten.$resource.ubah";
         $item->save();
+        // gambar yang diganti: file lama dihapus setelah data baru tersimpan
+        FileStorage::deletePublic(array_diff($before, $this->imagePaths($cfg, $item)));
         Audit::changes($action, "Mengubah {$cfg['title']} #{$item->id}", $item);
 
         return back()->with('success', $cfg['title'].' diperbarui.');
@@ -167,8 +173,17 @@ class CrudController extends Controller
             abort(422, 'Layanan visa sudah memiliki pengajuan. Nonaktifkan saja.');
         }
         Audit::log("konten.$resource.hapus", "Menghapus {$cfg['title']} #{$item->id}", $item);
+        $images = $this->imagePaths($cfg, $item);
         $item->delete();
+        FileStorage::deletePublic($images);
 
         return back()->with('success', $cfg['title'].' dihapus.');
+    }
+
+    /** Path gambar milik item (field bertipe image). */
+    private function imagePaths(array $cfg, $item): array
+    {
+        return collect($cfg['fields'])->where('type', 'image')->map(fn ($f) => $item->getRawOriginal($f['name']) ?? $item->{$f['name']})
+            ->filter()->values()->all();
     }
 }

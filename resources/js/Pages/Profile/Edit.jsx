@@ -2,6 +2,7 @@ import { useForm, usePage } from '@inertiajs/react';
 import CustomerLayout from '@/Layouts/CustomerLayout';
 import AdminLayout from '@/Layouts/AdminLayout';
 import ProfileFields from '@/Components/ProfileFields';
+import ProfilePhotoCard from '@/Components/portal/ProfilePhotoCard';
 import { Card, Input, PageHeader } from '@/Components/ui';
 
 export default function Edit({ profile, hasPassword }) {
@@ -17,6 +18,7 @@ export default function Edit({ profile, hasPassword }) {
         <Layout title="Profil Saya">
             <PageHeader title="Profil Saya" subtitle={`Kode pelanggan ${auth.user.customer_code ?? '-'} · ${auth.user.role_label}`} />
             <div className="space-y-6">
+                <ProfilePhotoCard />
                 <Card title="Data Pribadi">
                     <form onSubmit={(e) => { e.preventDefault(); info.patch(route('profile.update'), { preserveScroll: true }); }} className="space-y-4">
                         {isAdmin ? (

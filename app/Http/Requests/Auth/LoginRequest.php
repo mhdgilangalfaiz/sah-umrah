@@ -64,6 +64,9 @@ class LoginRequest extends FormRequest
         $user = User::where('email', $email)->first();
         $password = (string) $this->string('password');
 
+        // "Ingat saya (30 hari)": cookie remember berlaku 30 hari (bawaan Laravel 5 tahun)
+        Auth::guard('web')->setRememberDuration(60 * 24 * 30);
+
         if (Auth::attempt(['email' => $email, 'password' => $password, 'is_active' => true], $this->boolean('remember'))) {
             // Pelanggan hanya boleh memakai @gmail.com — tetap dijawab dengan pesan yang sama
             if ($user && ! $user->isAdmin() && ! str_ends_with($email, '@gmail.com')) {

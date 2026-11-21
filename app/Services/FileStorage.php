@@ -106,4 +106,16 @@ class FileStorage
 
         return $file->storeAs($folder, $name, 'public');
     }
+
+    /**
+     * Hapus media publik hasil unggahan (path relatif di disk public).
+     * Gambar bawaan (/images/...) dan URL luar (mis. foto Google) tidak pernah disentuh.
+     */
+    public static function deletePublic(string|array|null $paths): void
+    {
+        $files = array_filter((array) $paths, fn ($p) => is_string($p) && $p !== '' && ! Str::startsWith($p, ['/', 'http://', 'https://']));
+        if ($files) {
+            Storage::disk('public')->delete(array_values($files));
+        }
+    }
 }

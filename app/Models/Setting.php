@@ -18,6 +18,12 @@ class Setting extends Model
         'company_address' => 'Jl. Eka Rasmi Springville Residence No.32, Gedung Johor, Kec. Medan Johor, Kota Medan, Sumatera Utara 20147',
         'company_phone' => '(061) 1234 5678',
         'company_email' => 'info@sumateraandalanharamain.co.id',
+        // Nomor WhatsApp format internasional tanpa "+" (dipakai tautan wa.me di landing page)
+        'company_whatsapp' => '6281234567890',
+        'social_instagram' => '',
+        'social_facebook' => '',
+        'social_youtube' => '',
+        'social_tiktok' => '',
         'license_ppiu' => 'No. PPIU: 91201032614170001',
         'office_hours' => 'Senin – Sabtu, 08.30 – 17.00 WIB',
         'map_embed' => 'https://www.google.com/maps?q=Medan&output=embed',
@@ -35,13 +41,14 @@ class Setting extends Model
 
     public static function allCached(): array
     {
-        return Cache::rememberForever('settings.all', function () {
+        // Default digabung di luar cache: key baru langsung tersedia walau cache lama masih ada
+        return array_merge(self::DEFAULTS, Cache::rememberForever('settings.all', function () {
             try {
-                return array_merge(self::DEFAULTS, static::pluck('value', 'key')->all());
+                return static::pluck('value', 'key')->all();
             } catch (\Throwable) {
-                return self::DEFAULTS;
+                return [];
             }
-        });
+        }));
     }
 
     protected static function booted(): void

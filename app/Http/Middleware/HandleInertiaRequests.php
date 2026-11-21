@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Models\SupportTicket;
 use App\Models\VisaApplication;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -32,7 +33,10 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'email' => $user->email,
                     'phone' => $user->phone,
-                    'avatar' => $user->avatar,
+                    // foto unggahan (path di disk public) atau URL foto Google
+                    'avatar' => $user->avatar
+                        ? (str_starts_with($user->avatar, 'http') ? $user->avatar : Storage::disk('public')->url($user->avatar))
+                        : null,
                     'role' => $user->role,
                     'role_label' => $user->roleLabel(),
                     'is_admin' => $user->isAdmin(),
@@ -66,6 +70,10 @@ class HandleInertiaRequests extends Middleware
                 'email' => $settings['company_email'],
                 'license' => $settings['license_ppiu'],
                 'hours' => $settings['office_hours'],
+                'whatsapp' => $settings['company_whatsapp'],
+                'socials' => collect(['instagram' => 'Instagram', 'facebook' => 'Facebook', 'youtube' => 'YouTube', 'tiktok' => 'TikTok'])
+                    ->map(fn ($label, $key) => ['key' => $key, 'label' => $label, 'url' => ($settings["social_{$key}"] ?? '') ?: null])
+                    ->values()->all(),
             ],
             'paymentMode' => config('payment.gateway'),
         ];

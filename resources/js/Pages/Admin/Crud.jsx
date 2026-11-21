@@ -17,7 +17,8 @@ export default function Crud({ resource, title, description, columns, fields, it
         setEdit(item ?? {});
         form.setData(item ? Object.fromEntries(fields.map((f) => [f.name,
             f.type === 'list' ? (item[f.name] ?? []).join('\n') : f.type === 'image' ? null : f.type === 'checkbox' ? !!item[f.name]
-                : f.type === 'datetime' ? (item[f.name] ? String(item[f.name]).slice(0, 16) : '') : item[f.name] ?? ''])) : blank);
+                : f.type === 'datetime' ? (item[f.name] ? String(item[f.name]).slice(0, 16) : '')
+                : f.type === 'month' ? (item[f.name] ? String(item[f.name]).slice(0, 7) : '') : item[f.name] ?? ''])) : blank);
     };
     const submit = (e) => {
         e.preventDefault();
@@ -73,7 +74,8 @@ export default function Crud({ resource, title, description, columns, fields, it
                             {f.type !== 'checkbox' && <label className="label">{f.label}</label>}
                             {f.type === 'text' && <input className="input" value={form.data[f.name]} onChange={(e) => form.setData(f.name, e.target.value)} />}
                             {f.type === 'number' && <input type="number" className="input" value={form.data[f.name]} onChange={(e) => form.setData(f.name, e.target.value)} />}
-                            {f.type === 'datetime' && <input type="datetime-local" className="input" value={form.data[f.name]} onChange={(e) => form.setData(f.name, e.target.value)} />}
+                            {f.type === 'month' && <input type="month" className="input" value={form.data[f.name]} onChange={(e) => form.setData(f.name, e.target.value)} />}
+                            {f.type === 'datetime' &&<input type="datetime-local" className="input" value={form.data[f.name]} onChange={(e) => form.setData(f.name, e.target.value)} />}
                             {(f.type === 'textarea' || f.type === 'list') && <textarea rows={f.type === 'list' ? 5 : 4} className="input" value={form.data[f.name]} onChange={(e) => form.setData(f.name, e.target.value)} />}
                             {f.type === 'richtext' && <textarea rows={12} className="input font-mono text-xs" value={form.data[f.name]} onChange={(e) => form.setData(f.name, e.target.value)} placeholder="<p>Paragraf…</p><h3>Subjudul</h3>" />}
                             {f.type === 'select' && <select className="input" value={form.data[f.name]} onChange={(e) => form.setData(f.name, e.target.value)}>{Object.entries(f.options).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}

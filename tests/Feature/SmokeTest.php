@@ -41,7 +41,7 @@ class SmokeTest extends TestCase
     {
         $pkg = Package::first();
         $post = Post::first();
-        $this->ok('/', 'Public/Home');
+        $this->ok('/', 'landing');
         $this->ok('/paket-umrah', 'Public/Packages');
         $this->ok('/paket-umrah?durasi=12&jenis=hemat&urut=termahal', 'Public/Packages');
         $this->ok('/paket-umrah/'.$pkg->slug, 'Public/PackageShow');
@@ -52,8 +52,8 @@ class SmokeTest extends TestCase
         $this->ok('/blog/'.$post->slug, 'Public/PostShow');
         $this->ok('/kontak', 'Public/Contact');
         foreach (['tentang-kami', 'syarat-ketentuan', 'kebijakan-privasi', 'kebijakan-refund'] as $s) $this->ok('/halaman/'.$s, 'Public/Page');
-        $this->ok('/login', 'Auth/Login');
-        $this->ok('/register', 'Auth/Register');
+        $this->ok('/login', 'Auth/AuthScreen');
+        $this->ok('/register', 'Auth/AuthScreen');
         $this->ok('/forgot-password', 'Auth/ForgotPassword');
         $this->getJson('/bantuan/chat')->assertOk();
         // checkout wajib login
@@ -73,7 +73,7 @@ class SmokeTest extends TestCase
         $b = Booking::first();
         $flight = Flight::where('depart_at', '>', now()->addDay())->first();
         $this->post('/pesan/tiket', ['flight_id' => $flight->id, 'contact_email' => $u->email, 'contact_phone' => '0812', 'agree' => true,
-            'passengers' => [['jamaah_id' => $u->jamaah()->first()->id, 'title' => 'Tn']]])->assertSessionHasNoErrors();
+            'passengers' => [['jamaah_id' => $u->jamaah()->first()->id, 'title' => 'Bapak']]])->assertSessionHasNoErrors();
         $this->post('/pesan/visa', ['visa_service_id' => VisaService::first()->id, 'pax_count' => 2, 'agree' => true, 'applicants' => [['full_name' => 'Jaya', 'passport_number' => 'C1234567']]])->assertSessionHasNoErrors();
         $this->post('/bayar', ['payable_type' => 'booking', 'code' => $b->code, 'method' => 'va_bsi', 'amount' => 6000000, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $pay = Payment::first();
@@ -122,7 +122,7 @@ class SmokeTest extends TestCase
         $this->actingAs($u)->postJson('/bantuan/chat', ['message' => 'Hubungkan saya dengan Admin']);
         $flight = Flight::where('depart_at', '>', now()->addDay())->first();
         $this->actingAs($u)->post('/pesan/tiket', ['flight_id' => $flight->id, 'contact_email' => $u->email, 'contact_phone' => '0812', 'agree' => true,
-            'passengers' => [['full_name' => 'Jaya', 'title' => 'Tn', 'gender' => 'L', 'birth_date' => '1990-01-01', 'passport_number' => 'C1234567', 'passport_expiry' => now()->addYears(3)->toDateString()]]]);
+            'passengers' => [['full_name' => 'Jaya', 'title' => 'Bapak', 'gender' => 'L', 'birth_date' => '1990-01-01', 'passport_number' => 'C1234567', 'passport_expiry' => now()->addYears(3)->toDateString()]]]);
 
         $admin = User::where('email', 'admin@sah.co.id')->first();
         $this->actingAs($admin);
@@ -140,12 +140,18 @@ class SmokeTest extends TestCase
             '/admin/refund' => 'Admin/Refunds', '/admin/laporan' => 'Admin/Reports', '/admin/keamanan-keuangan' => 'Admin/FinanceSecurity',
             '/admin/bantuan' => 'Admin/Support/Index', '/admin/bantuan/'.SupportTicket::first()->code => 'Admin/Support/Show',
             '/admin/pengguna' => 'Admin/Users', '/admin/audit-log' => 'Admin/AuditLogs', '/admin/halaman' => 'Admin/Pages',
-            '/admin/pengaturan' => 'Admin/Settings', '/admin/promo' => 'Admin/Promotions', '/admin/akun-admin' => 'Admin/Admins',
+            '/admin/pengaturan' => 'Admin/Settings', '/admin/promo' => 'Admin/Promotions',
             '/profile' => 'Profile/Edit',
         ];
         foreach (['visa', 'chatbot', 'testimoni', 'faq', 'blog'] as $r) $pages["/admin/kelola/$r"] = 'Admin/Crud';
         $pages['/admin/kelola/galeri'] = 'Admin/Gallery';
         foreach ($pages as $url => $component) $this->ok($url, $component);
+
+        // akun admin hanya untuk Super Admin
+        $this->get('/admin/akun-admin')->assertForbidden();
+        $this->actingAs(User::where('role', User::ROLE_SUPER_ADMIN)->first());
+        $this->ok('/admin/akun-admin', 'Admin/Admins');
+        $this->actingAs($admin);
 
         // ekspor
         $dep = $b->departure;

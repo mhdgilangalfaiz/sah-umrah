@@ -6,22 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Notifications\SystemNotification;
 use App\Support\Audit;
+use App\Support\AuthScreen;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules;
-use Inertia\Inertia;
 use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
     public function create(): Response
     {
-        return Inertia::render('Auth/Register', ['googleEnabled' => (bool) config('services.google.client_id')]);
+        return AuthScreen::render('register');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): Response|RedirectResponse
     {
         $request->merge(['email' => strtolower(trim((string) $request->email))]);
         $request->validate([
@@ -50,6 +50,6 @@ class RegisteredUserController extends Controller
             'Selamat datang di PT. Sumatera Andalan Haramain! Kode pelanggan Anda: '.$user->customer_code.'. Silakan verifikasi email Anda untuk mulai melakukan pemesanan.',
             route('dashboard'), 'Buka Dashboard', false, false, 'success'));
 
-        return redirect(route('dashboard', absolute: false));
+        return AuthScreen::success($request, 'register', route('dashboard', absolute: false));
     }
 }

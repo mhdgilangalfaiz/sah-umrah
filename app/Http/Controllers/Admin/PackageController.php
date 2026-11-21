@@ -97,9 +97,12 @@ class PackageController extends Controller
 
     public function update(Request $request, Package $package)
     {
+        $before = array_filter([$package->cover_image, ...($package->gallery ?? [])]);
         $package->fill($this->validated($request, $package));
         $priceChanged = $package->isDirty(['price_quad', 'price_triple', 'price_double', 'min_deposit']);
         $package->save();
+        // cover yang diganti & foto galeri yang dibuang: file lama dihapus
+        FileStorage::deletePublic(array_diff($before, array_filter([$package->cover_image, ...($package->gallery ?? [])])));
         Audit::changes($priceChanged ? 'paket.harga_ubah' : 'paket.ubah', ($priceChanged ? 'Mengubah HARGA paket ' : 'Mengubah paket ').$package->name, $package);
 
         return back()->with('success', 'Paket diperbarui.');

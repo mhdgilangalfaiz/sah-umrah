@@ -10,7 +10,9 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\PublicController;
+use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\WebhookController;
 use App\Security\Finance\BankDecisionController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +31,7 @@ Route::get('/blog', [PublicController::class, 'blog'])->name('blog.index');
 Route::get('/blog/{post:slug}', [PublicController::class, 'post'])->name('blog.show');
 Route::get('/kontak', [PublicController::class, 'contact'])->name('pages.contact');
 Route::get('/halaman/{slug}', [PublicController::class, 'page'])->name('pages.show');
+Route::post('/ulasan', [TestimonialController::class, 'store'])->middleware('throttle:3,10')->name('testimonials.store');
 
 // Pusat bantuan (chatbox) — tamu dapat bertanya ke asisten otomatis; hubungi admin wajib login
 Route::prefix('bantuan/chat')->middleware('throttle:40,1')->group(function () {
@@ -65,6 +68,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/foto', [ProfilePhotoController::class, 'store'])->middleware('throttle:10,1')->name('profile.photo.update');
+    Route::delete('/profile/foto', [ProfilePhotoController::class, 'destroy'])->name('profile.photo.destroy');
 
     Route::get('/berkas/{document}', DocumentDownloadController::class)->middleware('signed')->name('documents.download');
     Route::get('/invoice/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');

@@ -38,6 +38,20 @@ class AuthTest extends TestCase
         $this->assertTrue(AuditLog::where('action', 'auth.login')->where('user_id', $admin->id)->exists());
     }
 
+    public function test_login_dan_daftar_lewat_inertia_mengirim_redirect_to_untuk_animasi(): void
+    {
+        $inertia = ['X-Inertia' => 'true', 'X-Requested-With' => 'XMLHttpRequest'];
+        $admin = User::factory()->admin()->create(['email' => 'staf@sah.co.id']);
+
+        $this->withHeaders($inertia)->post('/login', ['email' => 'staf@sah.co.id', 'password' => 'password'])
+            ->assertOk()->assertJsonPath('component', 'Auth/AuthScreen')->assertJsonPath('props.redirectTo', url('/admin'));
+        $this->assertAuthenticatedAs($admin);
+
+        auth()->logout();
+        $this->withHeaders($inertia)->post('/register', ['name' => 'Jaya', 'email' => 'jaya@gmail.com', 'password' => 'Rahasia123', 'password_confirmation' => 'Rahasia123', 'consent' => true])
+            ->assertOk()->assertJsonPath('props.mode', 'register')->assertJsonPath('props.redirectTo', fn ($to) => str_ends_with($to, '/dashboard'));
+    }
+
     public function test_pelanggan_non_gmail_ditolak_dan_akun_nonaktif_tidak_bisa_masuk(): void
     {
         $this->post('/login', ['email' => 'orang@yahoo.com', 'password' => 'password'])->assertSessionHasErrors('email');

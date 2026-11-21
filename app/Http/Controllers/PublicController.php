@@ -2,17 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Faq;
 use App\Models\Flight;
-use App\Models\Gallery;
 use App\Models\Package;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\Setting;
-use App\Models\Testimonial;
 use App\Models\VisaService;
 use App\Services\Flights\FlightSearch;
-use App\Support\LandingContent;
+use App\Support\LandingPage;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -20,17 +17,8 @@ class PublicController extends Controller
 {
     public function home()
     {
-        $content = LandingContent::forDisplay();
-
         // Paket unggulan diutamakan, lalu dilengkapi paket aktif lain (jumlah kartu diatur admin).
-        return Inertia::render('Public/Home', [
-            'content' => $content,
-            'featured' => Package::active()->with('upcomingDepartures')->orderByDesc('is_featured')->orderBy('price_quad')->take($content['packages']['count'])->get(),
-            'galleries' => Gallery::latest('id')->take(60)->get(['id', 'title', 'type', 'image', 'category']),
-            'galleryCategories' => Gallery::CATEGORIES,
-            'testimonials' => Testimonial::where('is_active', true)->latest()->take(6)->get(),
-            'faqs' => Faq::orderBy('sort')->get(['id', 'question', 'answer']),
-        ]);
+        return Inertia::render('landing', LandingPage::props());
     }
 
     public function packages(Request $request)

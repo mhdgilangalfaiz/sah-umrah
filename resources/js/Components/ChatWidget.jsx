@@ -9,9 +9,15 @@ import { cx } from './ui';
  * Asisten otomatis menjawab dari basis data; bila tidak bisa menjawab, pelanggan dihubungkan ke admin.
  * Pesan admin diambil berkala (polling) sehingga percakapan terasa langsung.
  */
-export default function ChatWidget() {
+export default function ChatWidget({ open: openProp, onOpenChange, launcher = true }) {
     const { auth } = usePage().props;
-    const [open, setOpen] = useState(false);
+    // Bisa dikendalikan dari luar (landing page punya tombol "Chat Bot" sendiri) atau mandiri
+    const [openState, setOpenState] = useState(false);
+    const open = openProp ?? openState;
+    const setOpen = (v) => {
+        const next = typeof v === 'function' ? v(open) : v;
+        if (onOpenChange) onOpenChange(next); else setOpenState(next);
+    };
     const [data, setData] = useState({ messages: [], ticket: null });
     const [text, setText] = useState('');
     const [sending, setSending] = useState(false);
@@ -85,7 +91,7 @@ export default function ChatWidget() {
 
     return (
         <>
-            <button
+            {launcher && <button
                 onClick={() => setOpen((o) => !o)}
                 className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-brand-700 px-4 py-3 text-sm font-semibold text-white shadow-lift transition hover:bg-brand-800 sm:bottom-6 sm:right-6"
                 aria-label="Pusat Bantuan"
@@ -93,7 +99,7 @@ export default function ChatWidget() {
                 {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
                 <span className="hidden sm:inline">{open ? 'Tutup' : 'Butuh Bantuan?'}</span>
                 {unread && !open && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-gold-400 ring-2 ring-white" />}
-            </button>
+            </button>}
 
             {open && (
                 <div className="fixed inset-x-2 bottom-20 z-50 flex max-h-[78vh] animate-pop flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-[390px]">

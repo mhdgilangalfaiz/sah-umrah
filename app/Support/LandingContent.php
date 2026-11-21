@@ -36,7 +36,7 @@ class LandingContent
                 'primary_label' => 'Lihat Paket Umrah',
                 'secondary_label' => 'Pelayanan Profesional',
                 'points' => ['Terpercaya', 'Berpengalaman', 'Aman & Nyaman'],
-                'image' => '/images/landing/hero-kaabah.jpg',
+                'image' => '/images/landing/hero-kaabah.webp',
             ],
             'about' => [
                 'label' => 'Tentang Kami',
@@ -50,16 +50,16 @@ class LandingContent
                     'Memberikan pendampingan ibadah oleh tim berpengalaman.',
                     'Menjaga kepercayaan dan kepuasan seluruh jamaah.',
                 ],
-                'image' => '/images/landing/nabawi.jpg',
+                'image' => '/images/landing/nabawi.webp',
             ],
             'services_heading' => [
                 'title' => 'Layanan Utama Kami',
                 'subtitle' => 'Tiga layanan utama untuk memenuhi kebutuhan perjalanan ibadah umrah Anda.',
             ],
             'services' => [
-                ['title' => 'Paket Umrah', 'text' => 'Pilihan paket umrah terbaik dengan fasilitas lengkap.', 'image' => null],
-                ['title' => 'Tiket Pesawat Ibadah Umrah', 'text' => 'Pemesanan tiket pesawat untuk keberangkatan umrah dengan harga kompetitif.', 'image' => null],
-                ['title' => 'Layanan Visa', 'text' => 'Pengurusan visa umrah secara cepat, aman, dan sesuai ketentuan resmi.', 'image' => null],
+                ['title' => 'Paket Umrah', 'text' => 'Pilihan paket umrah terbaik dengan fasilitas lengkap.', 'image' => '/images/landing/layanan/kaabah.webp'],
+                ['title' => 'Tiket Pesawat Ibadah Umrah', 'text' => 'Pemesanan tiket pesawat untuk keberangkatan umrah dengan harga kompetitif.', 'image' => '/images/landing/layanan/pesawat.webp'],
+                ['title' => 'Layanan Visa', 'text' => 'Pengurusan visa umrah secara cepat, aman, dan sesuai ketentuan resmi.', 'image' => '/images/landing/layanan/paspor.webp'],
             ],
             'packages' => [
                 'title' => 'Pilihan Paket Umrah Terbaik',
@@ -72,7 +72,7 @@ class LandingContent
                 'subtitle' => 'Dokumentasi perjalanan ibadah umrah bersama jamaah kami.',
             ],
             'testimonials' => [
-                'title' => 'Testimoni Jamaah',
+                'title' => 'Apa Kata Jamaah Kami',
                 'subtitle' => 'Cerita dan pengalaman jamaah yang telah berangkat bersama kami.',
             ],
             'faq' => [

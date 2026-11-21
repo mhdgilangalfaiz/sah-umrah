@@ -47,19 +47,21 @@ Atau sekaligus: `composer run dev`.
 ### Akun demo (dari seeder)
 | Peran | Email | Kata sandi |
 |---|---|---|
-| **Admin Utama** (Super Admin, satu-satunya yang bisa menambah admin) | `admin@sah.co.id` | `Admin#SAH2026` |
-| Finance | `finance@sah.co.id` | `Admin#SAH2026` |
-| Operasional | `operasional@sah.co.id` | `Admin#SAH2026` |
-| Customer Service | `cs@sah.co.id` | `Admin#SAH2026` |
+| **Super Admin** (pemilik: lihat pembelian, laporan & invoice, satu-satunya yang bisa membuat akun admin) | `superadmin@sah.co.id` | `Admin#SAH2026` |
+| **Admin** (kelola seluruh isi website, pesanan, pembayaran, dokumen, refund, pusat bantuan) | `admin@sah.co.id` | `Admin#SAH2026` |
 | Pelanggan | `jaya.demo@gmail.com` | `Jamaah123` |
 
-> Ganti kata sandi segera di produksi (`SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` di `.env` sebelum seeding).
+> Ganti kata sandi segera di produksi (`SEED_SUPERADMIN_EMAIL` / `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` di `.env` sebelum seeding).
+>
+> Jadwal keberangkatan paket diambil dari tanggal brosur di `database/seeders/PackageSeeder.php`. Tanggal yang sudah lewat
+> otomatis digeser per tahun ke musim berikutnya, sehingga selalu ada jadwal yang bisa dipesan. Untuk memperbarui jadwal
+> tanpa menghapus data lain: `php artisan db:seed --class=PackageSeeder`.
 
 ### Menjalankan test
 ```bash
 php artisan test
 ```
-Test memakai SQLite in-memory (tidak menyentuh database MySQL). Cakupan: aturan login @gmail.com, RBAC & admin utama,
+Test memakai SQLite in-memory (tidak menyentuh database MySQL). Cakupan: aturan login @gmail.com, RBAC (Admin / Super Admin),
 alur cicilan kustom (deposit 3jt → cicil → lunas), signature & idempotensi webhook, pembayaran ganda → refund otomatis,
 auto-expire kursi, alur visa lengkap, chatbox → eskalasi admin, keamanan rekening (persetujuan, blokir, deteksi tamper),
 dokumen privat terenkripsi + signed URL, dan *smoke test* seluruh halaman.
@@ -86,13 +88,15 @@ Dibayar, Kedaluwarsa, Gagal, Refund. Verifikasi signature, idempotensi 3 lapis, 
 upload ZIP/RAR → verifikasi → diproses → terbit (unduh dari dashboard). Riwayat status lengkap.
 
 **Pusat bantuan (chatbox)** — asisten otomatis menjawab dari basis kata kunci (dikelola admin di *Jawaban Chatbox*).
-Tidak bisa menjawab → tawarkan "Hubungkan saya dengan Admin" → admin CS menerima notifikasi, membuka tiket, dan langsung
+Tidak bisa menjawab → tawarkan "Hubungkan saya dengan Admin" → admin menerima notifikasi, membuka tiket, dan langsung
 melihat seluruh riwayat percakapan + profil & pesanan pelanggan.
 
-**Panel admin** (RBAC: Super Admin, Finance, Operasional, CS) — dashboard omzet & grafik, paket + jadwal + kuota, pesanan &
+**Panel admin** (RBAC tiga peran: User/pelanggan, Admin, Super Admin) — dashboard omzet & grafik, paket + jadwal + kuota, pesanan &
 manifest (Excel/PDF), monitor keberangkatan berwarna (H-1 merah, ≤H-7 oranye, ≤H-30 kuning), jadwal penerbangan manual,
 penerbitan e-ticket, verifikasi dokumen, pembayaran & rekonsiliasi, refund, laporan per periode (Excel/PDF), pusat bantuan,
-konten (halaman, blog, testimoni, galeri, FAQ), promo broadcast, pelanggan, audit log, akun admin (hanya Admin Utama).
+konten (halaman, blog, testimoni, galeri, FAQ), promo broadcast, pelanggan, audit log.
+- **Admin** — mengelola seluruh menu di atas.
+- **Super Admin** — hanya *melihat* pembelian, pembayaran, laporan & invoice (tanpa mengubah), serta membuat/mengelola akun admin.
 
 **Keamanan** — lihat juga [`app/Security/Finance/README.md`](app/Security/Finance/README.md).
 - NIK, nomor paspor, nomor rekening dienkripsi (cast `encrypted`); file dokumen dienkripsi AES-256 sebelum disimpan, diunduh hanya via signed URL 10 menit + cek pemilik.

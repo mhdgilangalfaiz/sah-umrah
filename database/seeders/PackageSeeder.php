@@ -96,12 +96,26 @@ class PackageSeeder extends Seeder
             ]);
 
             foreach ($d['dates'] as $date) {
-                $dep = Carbon::parse($date);
+                $dep = self::upcoming($date);
                 $package->departures()->updateOrCreate(
                     ['departure_date' => $dep->toDateString()],
                     ['return_date' => $dep->copy()->addDays($d['days'] - 1)->toDateString(), 'quota' => $d['quota']],
                 );
             }
         }
+    }
+
+    /**
+     * Tanggal brosur yang sudah lewat digeser per tahun ke musim berikutnya,
+     * sehingga seeder selalu menghasilkan jadwal keberangkatan yang masih bisa dipesan.
+     */
+    private static function upcoming(string $date): Carbon
+    {
+        $dep = Carbon::parse($date);
+        while ($dep->lte(today())) {
+            $dep->addYear();
+        }
+
+        return $dep;
     }
 }

@@ -17,8 +17,10 @@ router.on('navigate', (e) => {
 });
 
 createInertiaApp({
-    title: (title) => (title ? `${title} — ${appName}` : appName),
-    resolve: (name) => resolvePageComponent(`./Pages/${name}.jsx`, import.meta.glob('./Pages/**/*.jsx')),
+    // Judul yang sudah memuat merek ("SAH - …") dipakai apa adanya
+    title: (title) => (!title ? appName : title.startsWith('SAH - ') ? title : `${title} — ${appName}`),
+    // Halaman lama .jsx, halaman baru boleh .tsx (mis. landing)
+    resolve: (name) => resolvePageComponent([`./Pages/${name}.tsx`, `./Pages/${name}.jsx`], import.meta.glob('./Pages/**/*.{jsx,tsx}')),
     setup({ el, App, props }) {
         createRoot(el).render(<App {...props} />);
     },
