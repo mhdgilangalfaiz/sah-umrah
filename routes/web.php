@@ -214,6 +214,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
         // Halaman statis, pengaturan, promo, pelanggan, audit
         Route::get('/pengguna', [Admin\UserController::class, 'index'])->name('users.index');
+        Route::post('/pengguna', [Admin\UserController::class, 'store'])->name('users.store');
+        Route::put('/pengguna/{user}', [Admin\UserController::class, 'update'])->name('users.update');
+        Route::delete('/pengguna/{user}', [Admin\UserController::class, 'destroy'])->name('users.destroy');
+        Route::get('/jamaah', [Admin\JamaahController::class, 'index'])->name('jamaah.index');
+        Route::get('/jamaah/{user:customer_code}', [Admin\JamaahController::class, 'show'])->name('jamaah.show');
         Route::post('/pengguna/{user}/status', [Admin\UserController::class, 'toggle'])->name('users.toggle');
         Route::get('/audit-log', [Admin\AuditLogController::class, 'index'])->name('audit.index');
         Route::get('/halaman', [Admin\ContentController::class, 'pages'])->name('pages.index');

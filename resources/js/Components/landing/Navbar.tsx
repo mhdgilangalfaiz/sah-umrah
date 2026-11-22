@@ -109,10 +109,13 @@ export default function Navbar({ scroll, account, onHome }: NavbarProps) {
                                         {servicesOpen && (
                                             <motion.ul className="ml-7 overflow-hidden border-l-2 border-primary-100 pl-3"
                                                 initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}>
-                                                {SERVICE_LINKS.map(({ label: l, route: r, icon: SIcon }) => (
+                                                {SERVICE_LINKS.map(({ label: l, route: r, image }) => (
                                                     <li key={r}>
-                                                        <Link href={route(r)} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-neutral-900 hover:bg-primary-50">
-                                                            <SIcon className="h-4 w-4 text-primary-500" aria-hidden="true" /> {l}
+                                                        <Link href={route(r)} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold text-neutral-900 hover:bg-primary-50">
+                                                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gold-100">
+                                                                <img src={image} alt="" className={`h-auto object-contain ${r === 'flights.index' ? 'w-[125%] max-w-none' : 'w-[78%]'}`} />
+                                                            </span>
+                                                            {l}
                                                         </Link>
                                                     </li>
                                                 ))}

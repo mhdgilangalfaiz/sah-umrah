@@ -5,10 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 import { cn } from './lib';
 
 /** Isi dropdown "Layanan Kami": masing-masing ke halaman layanannya. */
-export const SERVICE_LINKS: Array<{ label: string; route: string; icon: LucideIcon; text: string }> = [
-    { label: 'Paket Umrah', route: 'packages.index', icon: Landmark, text: 'Pilihan paket lengkap & terjadwal' },
-    { label: 'Tiket Pesawat', route: 'flights.index', icon: Plane, text: 'Tiket keberangkatan umrah' },
-    { label: 'Layanan Visa', route: 'visa.index', icon: Stamp, text: 'Pengurusan visa cepat & resmi' },
+export const SERVICE_LINKS: Array<{ label: string; route: string; icon: LucideIcon; image: string; text: string }> = [
+    { label: 'Paket Umrah', route: 'packages.index', icon: Landmark, image: '/images/landing/layanan/kaabah.webp', text: 'Pilihan paket lengkap & terjadwal' },
+    { label: 'Tiket Pesawat', route: 'flights.index', icon: Plane, image: '/images/landing/layanan/pesawat.webp', text: 'Tiket keberangkatan umrah' },
+    { label: 'Layanan Visa', route: 'visa.index', icon: Stamp, image: '/images/landing/layanan/paspor.webp', text: 'Pengurusan visa cepat & resmi' },
 ];
 
 interface NavServicesProps {
@@ -46,11 +46,13 @@ export default function NavServices({ active, onHome, onSection }: NavServicesPr
                     <motion.div className="absolute left-1/2 top-full z-50 w-72 -translate-x-1/2 pt-3"
                         initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
                         <ul className="rounded-2xl border border-primary-100 bg-white p-2 shadow-[0_18px_40px_-14px_rgba(11,77,42,0.3)]">
-                            {SERVICE_LINKS.map(({ label, route: r, icon: Icon, text }) => (
+                            {SERVICE_LINKS.map(({ label, route: r, image, text }) => (
                                 <li key={r}>
                                     <Link href={route(r)} onClick={() => setOpen(false)}
-                                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-primary-50 focus-visible:bg-primary-50 focus-visible:outline-none">
-                                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold-100 text-primary-700"><Icon className="h-4 w-4" aria-hidden="true" /></span>
+                                        className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-primary-50 focus-visible:bg-primary-50 focus-visible:outline-none">
+                                        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-gold-100">
+                                            <img src={image} alt="" className={`h-auto object-contain transition-transform duration-300 group-hover:scale-110 ${r === 'flights.index' ? 'w-[125%] max-w-none' : 'w-[78%]'}`} />
+                                        </span>
                                         <span>
                                             <span className="block text-sm font-bold text-neutral-900">{label}</span>
                                             <span className="block text-xs text-neutral-600">{text}</span>

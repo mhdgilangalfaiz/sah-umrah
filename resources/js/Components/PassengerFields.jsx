@@ -4,9 +4,9 @@ import { cx } from './ui';
 /** Sapaan penumpang (harus sama dengan validasi di CheckoutController) */
 export const PASSENGER_TITLES = ['Bapak', 'Ibu', 'Abang', 'Kakak'];
 
-export const emptyPassenger = () => ({ jamaah_id: '', title: '', full_name: '', gender: '', birth_date: '', nik: '', passport_number: '', passport_expiry: '', mahram_name: '', mahram_relation: '', save: true, relation: 'lainnya' });
+export const emptyPassenger = () => ({ jamaah_id: '', title: '', full_name: '', gender: '', birth_date: '', nik: '', passport_number: '', passport_expiry: '', mahram_name: '', mahram_relation: '', relation: 'lainnya' });
 
-/** Form data jamaah/penumpang: pilih dari data tersimpan atau isi manual (opsional simpan) */
+/** Form data jamaah/penumpang: pilih dari data tersimpan atau isi manual (otomatis tersimpan ke Data Jamaah) */
 export default function PassengerFields({ index, value, onChange, saved, errors, passportRequired, showMahram = true, showTitle = false }) {
     const err = (k) => errors?.[`passengers.${index}.${k}`];
     const set = (k, v) => onChange({ ...value, [k]: v });
@@ -62,9 +62,9 @@ export default function PassengerFields({ index, value, onChange, saved, errors,
                             <F label="Hubungan mahram"><input className="input" placeholder="suami / ayah / saudara" value={value.mahram_relation} onChange={(e) => set('mahram_relation', e.target.value)} /></F>
                         </>
                     )}
-                    <label className={cx('flex items-center gap-2 text-xs text-slate-600 sm:col-span-2')}>
-                        <input type="checkbox" checked={!!value.save} onChange={(e) => set('save', e.target.checked)} /><UserPlus className="h-3.5 w-3.5" />Simpan ke Data Jamaah saya untuk pemesanan berikutnya
-                    </label>
+                    <p className={cx('flex items-center gap-2 text-xs text-slate-500 sm:col-span-2')}>
+                        <UserPlus className="h-3.5 w-3.5 shrink-0" />Data ini otomatis tersimpan di menu Data Jamaah Anda, jadi pemesanan berikutnya tinggal pilih.
+                    </p>
                 </div>
             )}
         </div>

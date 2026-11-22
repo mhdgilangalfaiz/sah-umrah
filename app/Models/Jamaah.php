@@ -36,6 +36,8 @@ class Jamaah extends Model
     public function user() { return $this->belongsTo(User::class); }
     public function mahram() { return $this->belongsTo(Jamaah::class, 'mahram_id'); }
     public function documents() { return $this->hasMany(Document::class); }
+    /** Keikutsertaan jamaah di pesanan (umrah / tiket). */
+    public function trips() { return $this->hasMany(BookingPassenger::class); }
 
     /** Nomor paspor ditampilkan tersamar, mis. A1*****67 */
     public function getMaskedPassportAttribute(): ?string

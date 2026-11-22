@@ -65,14 +65,21 @@ class CheckoutController extends Controller
                 'mahram_relation' => $p['mahram_relation'] ?? $j?->mahram_relation,
             ];
 
-            // simpan sebagai jamaah baru jika diminta
-            if (! $j && ! empty($p['save'])) {
-                $new = $request->user()->jamaah()->create([
-                    'full_name' => $row['full_name'], 'gender' => $row['gender'], 'birth_date' => $row['birth_date'],
-                    'nik' => $row['nik'], 'passport_number' => $row['passport_number'], 'passport_expiry' => $row['passport_expiry'],
-                    'relation' => $p['relation'] ?? 'lainnya', 'mahram_relation' => $row['mahram_relation'],
-                ]);
-                $row['jamaah_id'] = $new->id;
+            // Setiap orang yang dipesankan selalu tercatat di Data Jamaah pemilik akun (dipantau admin).
+            // Orang yang sama (nama + tanggal lahir) dipakai ulang agar tidak dobel; paspor yang baru diisi ikut dilengkapi.
+            if (! $j) {
+                $j = $request->user()->jamaah()->whereRaw('LOWER(full_name) = ?', [mb_strtolower(trim($row['full_name']))])
+                    ->whereDate('birth_date', $row['birth_date'])->first();
+                if ($j) {
+                    $j->fill(array_filter(['passport_number' => $row['passport_number'], 'passport_expiry' => $row['passport_expiry'], 'nik' => $row['nik']]))->save();
+                } else {
+                    $j = $request->user()->jamaah()->create([
+                        'full_name' => trim($row['full_name']), 'gender' => $row['gender'], 'birth_date' => $row['birth_date'],
+                        'nik' => $row['nik'], 'passport_number' => $row['passport_number'], 'passport_expiry' => $row['passport_expiry'],
+                        'relation' => $p['relation'] ?? 'lainnya', 'mahram_relation' => $row['mahram_relation'],
+                    ]);
+                }
+                $row['jamaah_id'] = $j->id;
             }
             $out[] = $row;
         }
