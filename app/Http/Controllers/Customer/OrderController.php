@@ -37,7 +37,8 @@ class OrderController extends Controller
     {
         return $model->documents()->latest()->get()->map(fn ($d) => [
             'id' => $d->id, 'type' => $d->type, 'type_label' => $d->type_label, 'file_name' => $d->file_name, 'status' => $d->status,
-            'rejection_note' => $d->rejection_note, 'created_at' => $d->created_at->format('d/m/Y H:i'), 'url' => $d->signedUrl(),
+            'rejection_note' => $d->rejection_note, 'review' => $d->review, 'size' => $d->size,
+            'created_at' => $d->created_at->format('d/m/Y H:i'), 'url' => $d->signedUrl(),
         ]);
     }
 
@@ -61,6 +62,17 @@ class OrderController extends Controller
             'payments' => $booking->payments()->get(),
             'payBox' => self::payBox($booking, 'booking'),
             'canCancel' => $booking->status === 'menunggu_pembayaran' && (int) $booking->paid_amount === 0,
+            // pesanan yang sudah dibayar: pelanggan mengajukan pembatalan / pengurangan jamaah, diputuskan admin
+            'canRequest' => (int) $booking->paid_amount > 0 && ! in_array($booking->status, ['dibatalkan', 'refund', 'selesai', 'kedaluwarsa'], true)
+                && $booking->refunds->whereIn('status', ['diajukan'])->isEmpty(),
+            'requests' => $booking->refunds->sortByDesc('id')->values()->map(fn ($r) => [
+                'code' => $r->code, 'type_label' => \App\Models\Refund::TYPES[$r->type] ?? $r->type, 'status' => $r->status,
+                'requested_amount' => $r->requested_amount, 'approved_amount' => $r->approved_amount, 'admin_note' => $r->admin_note,
+                'created_at' => $r->created_at->format('d/m/Y H:i'),
+            ]),
+            'changes' => $booking->changes()->get(['id', 'type', 'description', 'old_total', 'new_total', 'refund_amount', 'created_at'])
+                ->map(fn ($c) => $c->only('id', 'description', 'old_total', 'new_total', 'refund_amount') + ['type_label' => \App\Models\BookingChange::TYPES[$c->type] ?? $c->type, 'at' => $c->created_at->format('d/m/Y H:i')]),
+            'categories' => \App\Models\BookingPassenger::CATEGORIES,
         ]);
     }
 

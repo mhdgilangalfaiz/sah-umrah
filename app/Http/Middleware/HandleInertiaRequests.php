@@ -56,9 +56,15 @@ class HandleInertiaRequests extends Middleware
                     ->map(fn ($n) => MarkNotificationsSeen::pathOf($n->data['url'] ?? null))
                     ->filter()->countBy()->all()
                 : null,
+            // Admin: item yang punya notifikasi belum dibaca → baris di daftar diberi penanda "Baru"
+            'unreadTargets' => fn () => $user?->isAdmin()
+                ? $user->unreadNotifications()->get(['data'])
+                    ->map(fn ($n) => MarkNotificationsSeen::target($n->data['url'] ?? null))
+                    ->filter()->unique()->values()->all()
+                : [],
             'adminBadges' => fn () => $user?->isAdmin() ? [
                 'support' => SupportTicket::where('status', 'menunggu_admin')->count(),
-                'documents' => Document::where('status', 'menunggu')->count(),
+                'documents' => Document::where('status', 'menunggu')->whereIn('type', Document::JAMAAH_TYPES)->count(),
                 'refunds' => Refund::where('status', 'diajukan')->count(),
                 'visa' => VisaApplication::whereIn('status', ['menunggu_invoice', 'menunggu_dokumen'])->count(),
             ] : null,

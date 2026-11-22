@@ -1,11 +1,13 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { Clock, RefreshCw, Scale, Wallet } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { NewDot, useUnread } from '@/lib/unread';
 import FilterBar from '@/Components/FilterBar';
 import { Card, Empty, PageHeader, Pagination, Stat, StatusBadge } from '@/Components/ui';
 import { rupiah, shortRupiah } from '@/lib/format';
 
 export default function Index({ payments, filters, methods, summary }) {
+    const isNew = useUnread();
     const canCheck = usePage().props.auth.user.role === 'admin'; // Super Admin hanya melihat
     return (
         <AdminLayout title="Pembayaran">
@@ -28,7 +30,7 @@ export default function Index({ payments, filters, methods, summary }) {
                         <tbody className="divide-y divide-slate-100">
                             {payments.data.map((p) => (
                                 <tr key={p.code}>
-                                    <td className="font-medium">{p.code}<p className="text-[11px] uppercase text-slate-400">{p.gateway}</p></td>
+                                    <td className="font-medium"><Link href={route('admin.payments.index', { q: p.code })} className="hover:underline">{p.code}</Link><NewDot show={isNew(route('admin.payments.index'), p.code)} /><p className="text-[11px] uppercase text-slate-400">{p.gateway}</p></td>
                                     <td>{p.user}<p className="text-xs text-slate-500">{p.customer_code}</p></td>
                                     <td>{p.order}</td>
                                     <td>{p.method_label}{p.va_number && <p className="font-mono text-xs text-slate-500">{p.va_number}</p>}</td>

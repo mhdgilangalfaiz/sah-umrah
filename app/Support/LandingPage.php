@@ -90,13 +90,21 @@ class LandingPage
         return null;
     }
 
+    /** Album foto: sampul + judul + subjudul + seluruh foto (digeser di lightbox). */
     private static function galleries(): array
     {
-        $photos = Gallery::where('type', 'foto')->latest('id')->take(24)->get(['id', 'title', 'image'])
-            ->map(fn (Gallery $g) => ['id' => $g->id, 'title' => $g->title, 'image_url' => $g->image_url])->all();
+        $albums = Gallery::where('type', 'foto')->latest('id')->take(24)->get()
+            ->map(fn (Gallery $g) => [
+                'id' => $g->id,
+                'title' => $g->title,
+                'subtitle' => $g->subtitle,
+                'image_url' => $g->image_url,
+                'photos' => array_column($g->photo_items, 'url'),
+            ])->filter(fn ($a) => $a['photos'])->values()->all();
 
-        return $photos ?: collect(self::DEFAULT_GALLERY)
-            ->map(fn ($title, $i) => ['id' => 'd'.($i + 1), 'title' => $title, 'image_url' => '/images/landing/galeri-'.($i + 1).'.webp'])
+        return $albums ?: collect(self::DEFAULT_GALLERY)
+            ->map(fn ($title, $i) => ['id' => 'd'.($i + 1), 'title' => $title, 'subtitle' => null,
+                'image_url' => '/images/landing/galeri-'.($i + 1).'.webp', 'photos' => ['/images/landing/galeri-'.($i + 1).'.webp']])
             ->all();
     }
 

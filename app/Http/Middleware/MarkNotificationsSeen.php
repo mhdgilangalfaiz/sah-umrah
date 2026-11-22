@@ -7,9 +7,11 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Saat pengguna membuka halaman yang dituju sebuah notifikasi (mis. detail pesanan tiket),
- * notifikasi itu otomatis dianggap sudah dibaca — baik dibuka lewat lonceng maupun lewat menu.
- * Dengan begitu penanda angka di lonceng & menu admin berkurang setelah item benar-benar dilihat.
+ * Notifikasi dianggap dibaca hanya saat item yang dituju benar-benar dibuka:
+ *  - detail pesanan/visa/tiket → path detail, mis. /admin/pesanan-tiket/SAH-T-1
+ *  - item tanpa halaman detail (pembayaran, refund, dokumen) → halaman daftar yang difilter ke item itu,
+ *    mis. /admin/pembayaran?q=PAY-123. Membuka menu daftarnya saja (tanpa ?q=) TIDAK menghapus notifikasi.
+ * Lonceng & badge menu sidebar memakai sumber yang sama, sehingga keduanya selalu berkurang bersamaan.
  */
 class MarkNotificationsSeen
 {
@@ -18,9 +20,9 @@ class MarkNotificationsSeen
         $user = $request->user();
 
         if ($user && $request->isMethod('GET') && ! $request->wantsJson()) {
-            $path = '/'.ltrim($request->path(), '/');
+            $here = self::target('/'.ltrim($request->path(), '/').(($q = $request->query('q')) && is_string($q) ? '?q='.$q : ''));
             $ids = $user->unreadNotifications()->get(['id', 'data'])
-                ->filter(fn ($n) => self::pathOf($n->data['url'] ?? null) === $path)
+                ->filter(fn ($n) => ($t = self::target($n->data['url'] ?? null)) !== null && $t === $here)
                 ->pluck('id');
 
             if ($ids->isNotEmpty()) {
@@ -38,5 +40,16 @@ class MarkNotificationsSeen
         $path = parse_url($url, PHP_URL_PATH);
 
         return $path === null || $path === false ? null : '/'.trim($path, '/');
+    }
+
+    /** Identitas item tujuan: path + parameter q (bila ada), mis. "/admin/pembayaran?q=PAY-1" */
+    public static function target(?string $url): ?string
+    {
+        $path = self::pathOf($url);
+        if ($path === null) return null;
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        $q = isset($query['q']) && is_string($query['q']) && $query['q'] !== '' ? strtolower($query['q']) : null;
+
+        return $q ? "$path?q=$q" : $path;
     }
 }

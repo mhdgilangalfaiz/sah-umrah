@@ -1,11 +1,11 @@
 import { Link, router } from '@inertiajs/react';
-import { AlertTriangle, Clock, Download, FileText } from 'lucide-react';
+import { AlertTriangle, Ban, Clock, Download, FileText, History, UserMinus } from 'lucide-react';
 import CustomerLayout from '@/Layouts/CustomerLayout';
 import PayBox from '@/Components/PayBox';
 import { Card, DefList, PageHeader, Progress, StatusBadge, Stepper } from '@/Components/ui';
 import { date, dateTime, rupiah } from '@/lib/format';
 
-export default function BookingShow({ booking: b, outstanding, overdue, deposit, payments, payBox, canCancel }) {
+export default function BookingShow({ booking: b, outstanding, overdue, deposit, payments, payBox, canCancel, canRequest, requests = [], changes = [], categories = {} }) {
     const pkg = b.departure.package;
     const stepIdx = { menunggu_pembayaran: 1, cicilan_berjalan: 2, lunas: 3, selesai: 4 }[b.status] ?? 1;
 
@@ -13,7 +13,18 @@ export default function BookingShow({ booking: b, outstanding, overdue, deposit,
         <CustomerLayout title={b.code}>
             <PageHeader back={route('customer.bookings.index')} title={pkg.name} subtitle={`${b.code} · dipesan ${dateTime(b.created_at)}`} actions={<StatusBadge status={b.status} />} />
 
-            {!['dibatalkan', 'kedaluwarsa'].includes(b.status) && (
+            {['dibatalkan', 'refund'].includes(b.status) && (
+                <div className={`mb-6 rounded-2xl p-4 text-sm ring-1 ${b.status === 'refund' ? 'bg-violet-50 text-violet-900 ring-violet-200' : 'bg-red-50 text-red-800 ring-red-200'}`}>
+                    <b>{b.status === 'refund' ? 'Pesanan dibatalkan — dana dikembalikan (Refund).' : 'Pesanan dibatalkan.'}</b> {b.cancel_reason}
+                </div>
+            )}
+            {requests.some((r) => r.status === 'diajukan') && (
+                <div className="mb-6 flex gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
+                    <Clock className="h-5 w-5 shrink-0" />Pengajuan {requests.find((r) => r.status === 'diajukan').type_label.toLowerCase()} Anda sedang ditinjau admin.
+                </div>
+            )}
+
+            {!['dibatalkan', 'kedaluwarsa', 'refund'].includes(b.status) && (
                 <div className="card mb-6 p-4"><Stepper steps={['Pesanan dibuat', 'Deposit', 'Cicilan berjalan', 'Lunas', 'Berangkat']} current={stepIdx} /></div>
             )}
 
@@ -80,7 +91,12 @@ export default function BookingShow({ booking: b, outstanding, overdue, deposit,
                         ]} />
                         <p className="mb-2 mt-6 text-sm font-semibold">Jamaah ({b.pax_count})</p>
                         <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100">
-                            {b.passengers.map((p) => <li key={p.id} className="flex justify-between gap-3 p-3 text-sm"><span className="font-medium">{p.full_name}</span><span className="text-slate-500">{p.gender === 'P' ? 'Perempuan' : 'Laki-laki'}{p.mahram_name && ` · mahram ${p.mahram_name}`}</span></li>)}
+                            {b.passengers.map((p) => (
+                                <li key={p.id} className="flex flex-wrap justify-between gap-3 p-3 text-sm">
+                                    <span className="font-medium">{p.full_name} <span className="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-600">{categories[p.category] ?? p.category ?? 'Dewasa'}</span></span>
+                                    <span className="text-slate-500">{p.gender === 'P' ? 'Perempuan' : 'Laki-laki'}{p.mahram_name && ` · mahram ${p.mahram_name}`} · {rupiah(p.price ?? b.unit_price)}</span>
+                                </li>
+                            ))}
                         </ul>
                         <Link href={route('customer.documents.index')} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-700"><FileText className="h-4 w-4" />Kelola dokumen jamaah</Link>
                     </Card>
@@ -101,8 +117,43 @@ export default function BookingShow({ booking: b, outstanding, overdue, deposit,
                     {canCancel && (
                         <button onClick={() => confirm('Batalkan pesanan ini? Kursi akan dilepas.') && router.post(route('customer.bookings.cancel', b.code))} className="btn-ghost w-full text-red-600">Batalkan pesanan</button>
                     )}
-                    {b.paid_amount > 0 && !['dibatalkan', 'selesai'].includes(b.status) && (
-                        <Link href={route('customer.refunds.index')} className="btn-ghost w-full text-slate-500">Ajukan pembatalan / refund</Link>
+                    {canRequest && (
+                        <Card title="Pembatalan / perubahan">
+                            <p className="mb-3 text-xs text-slate-500">Diproses admin sesuai kebijakan refund. Dana yang sudah dibayar dikembalikan sesuai keputusan admin.</p>
+                            <div className="space-y-2">
+                                {b.pax_count > 1 && (
+                                    <Link href={route('customer.refunds.index', { pesanan: `booking:${b.code}`, jenis: 'pengurangan' })} className="btn-outline w-full justify-start">
+                                        <UserMinus className="h-4 w-4" />Kurangi jamaah (mis. {b.pax_count} → {b.pax_count - 1} orang)
+                                    </Link>
+                                )}
+                                <Link href={route('customer.refunds.index', { pesanan: `booking:${b.code}`, jenis: 'pembatalan' })} className="btn-outline w-full justify-start text-red-600">
+                                    <Ban className="h-4 w-4" />Batalkan keberangkatan (seluruh pesanan)
+                                </Link>
+                                <Link href={route('customer.refunds.index', { pesanan: `booking:${b.code}`, jenis: 'refund' })} className="btn-ghost w-full justify-start text-slate-500">Pengembalian dana saja</Link>
+                            </div>
+                        </Card>
+                    )}
+                    {(requests.length > 0 || changes.length > 0) && (
+                        <Card title="Riwayat pengajuan & perubahan">
+                            <ul className="space-y-3 text-sm">
+                                {requests.map((r) => (
+                                    <li key={r.code} className="flex items-start justify-between gap-2">
+                                        <span><b>{r.type_label}</b> <span className="text-xs text-slate-400">{r.code} · {r.created_at}</span>
+                                            <span className="block text-xs text-slate-500">Diajukan {rupiah(r.requested_amount)}{r.approved_amount != null && ` · disetujui ${rupiah(r.approved_amount)}`}</span>
+                                            {r.admin_note && <span className="block text-xs text-slate-500">Catatan admin: {r.admin_note}</span>}</span>
+                                        <StatusBadge status={r.status} />
+                                    </li>
+                                ))}
+                                {changes.map((c) => (
+                                    <li key={c.id} className="flex gap-2 border-t border-slate-100 pt-3">
+                                        <History className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                                        <span><b>{c.type_label}</b> <span className="text-xs text-slate-400">{c.at}</span>
+                                            <span className="block text-xs text-slate-600">{c.description}</span>
+                                            <span className="block text-xs text-slate-500">Total {rupiah(c.old_total)} → <b>{rupiah(c.new_total)}</b>{c.refund_amount > 0 && ` · dana dikembalikan ${rupiah(c.refund_amount)}`}</span></span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
                     )}
                 </div>
             </div>

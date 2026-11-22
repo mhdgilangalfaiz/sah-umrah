@@ -136,7 +136,7 @@ class SmokeTest extends TestCase
             '/admin/penerbangan' => 'Admin/Flights/Index', '/admin/penerbangan/create' => 'Admin/Flights/Form', "/admin/penerbangan/{$flight->id}/edit" => 'Admin/Flights/Form',
             '/admin/pesanan-tiket' => 'Admin/FlightOrders/Index', '/admin/pesanan-tiket/'.\App\Models\FlightOrder::first()->code => 'Admin/FlightOrders/Show',
             '/admin/visa' => 'Admin/Visa/Index', '/admin/visa/'.VisaApplication::first()->code => 'Admin/Visa/Show',
-            '/admin/dokumen' => 'Admin/Documents', '/admin/pembayaran' => 'Admin/Payments/Index', '/admin/pembayaran/rekonsiliasi' => 'Admin/Payments/Reconcile',
+            '/admin/jamaah?dokumen=menunggu' => 'Admin/Jamaah', '/admin/pembayaran' => 'Admin/Payments/Index', '/admin/pembayaran/rekonsiliasi' => 'Admin/Payments/Reconcile',
             '/admin/refund' => 'Admin/Refunds', '/admin/laporan' => 'Admin/Reports', '/admin/keamanan-keuangan' => 'Admin/FinanceSecurity',
             '/admin/bantuan' => 'Admin/Support/Index', '/admin/bantuan/'.SupportTicket::first()->code => 'Admin/Support/Show',
             '/admin/pengguna' => 'Admin/Users', '/admin/audit-log' => 'Admin/AuditLogs', '/admin/halaman' => 'Admin/Pages',
@@ -146,6 +146,9 @@ class SmokeTest extends TestCase
         foreach (['visa', 'chatbot', 'testimoni', 'faq', 'blog'] as $r) $pages["/admin/kelola/$r"] = 'Admin/Crud';
         $pages['/admin/kelola/galeri'] = 'Admin/Gallery';
         foreach ($pages as $url => $component) $this->ok($url, $component);
+        // menu Verifikasi Dokumen digabung ke Data Jamaah
+        $this->get('/admin/dokumen')->assertRedirect(route('admin.jamaah.index', ['dokumen' => 'menunggu']));
+        $this->ok('/admin/jamaah/'.$u->customer_code, 'Admin/JamaahShow');
 
         // akun admin hanya untuk Super Admin
         $this->get('/admin/akun-admin')->assertForbidden();

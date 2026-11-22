@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { NewDot, useUnread } from '@/lib/unread';
 import FilterBar from '@/Components/FilterBar';
 import { Card, Empty, PageHeader, Pagination, Progress, StatusBadge } from '@/Components/ui';
 import { date, rupiah } from '@/lib/format';
@@ -8,6 +9,7 @@ import { date, rupiah } from '@/lib/format';
 const STATUSES = { menunggu_pembayaran: 'Menunggu Pembayaran', cicilan_berjalan: 'Cicilan Berjalan', lunas: 'Lunas', dibatalkan: 'Dibatalkan', kedaluwarsa: 'Kedaluwarsa', selesai: 'Selesai' };
 
 export default function Index({ bookings, filters }) {
+    const isNew = useUnread();
     return (
         <AdminLayout title="Pesanan Umrah">
             <PageHeader title="Pesanan Umrah" actions={<a href={route('admin.bookings.export', filters)} className="btn-outline"><FileSpreadsheet className="h-4 w-4" />Ekspor Excel</a>} />
@@ -24,7 +26,7 @@ export default function Index({ bookings, filters }) {
                         <tbody className="divide-y divide-slate-100">
                             {bookings.data.map((b) => (
                                 <tr key={b.code} className={b.overdue ? 'bg-red-50/40' : ''}>
-                                    <td><Link href={route('admin.bookings.show', b.code)} className="font-semibold text-brand-700 hover:underline">{b.code}</Link></td>
+                                    <td><Link href={route('admin.bookings.show', b.code)} className="font-semibold text-brand-700 hover:underline">{b.code}</Link><NewDot show={isNew(route('admin.bookings.show', b.code))} /></td>
                                     <td>{b.user}<p className="text-xs text-slate-500">{b.customer_code}</p></td>
                                     <td>{b.package}<p className="text-xs text-slate-500">berangkat {date(b.departure_date)}</p></td>
                                     <td>{b.pax}</td>

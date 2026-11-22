@@ -179,9 +179,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
         // Tindakan atas pesanan
         Route::post('/pesanan-umrah/{booking}/batal', [Admin\BookingController::class, 'cancel'])->name('bookings.cancel');
+        Route::post('/pesanan-umrah/{booking}/kurangi', [Admin\BookingController::class, 'reduce'])->name('bookings.reduce');
+        Route::post('/pesanan-umrah/{booking}/ubah-jamaah', [Admin\BookingController::class, 'change'])->name('bookings.change');
         Route::post('/pesanan-tiket/{flightOrder}/terbitkan', [Admin\FlightOrderController::class, 'issue'])->name('flight-orders.issue');
         Route::post('/visa/{visaApplication}/invoice', [Admin\VisaController::class, 'invoice'])->name('visa.invoice');
         Route::post('/visa/{visaApplication}/status', [Admin\VisaController::class, 'status'])->name('visa.status');
+        Route::get('/visa/{visaApplication}/berkas/{document}/file', [Admin\VisaController::class, 'berkasFile'])->name('visa.berkas.file');
+        Route::post('/visa/{visaApplication}/berkas/{document}/periksa', [Admin\VisaController::class, 'reviewBerkas'])->name('visa.berkas.review');
 
         // Keuangan: cek pembayaran, refund, keamanan rekening
         Route::post('/pembayaran/{payment}/cek', [Admin\PaymentController::class, 'check'])->name('payments.check');

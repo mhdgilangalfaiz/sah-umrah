@@ -29,6 +29,25 @@ class NotificationBadgeTest extends TestCase
             ->where('unreadNotifications', 1));
     }
 
+    public function test_opening_menu_list_does_not_clear_item_notifications(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->notifyNow(new SystemNotification('pesanan', 'Order tiket baru', 'x', url('/admin/pesanan-tiket/SAH-T-1'), null, false));
+        $admin->notifyNow(new SystemNotification('pembayaran', 'Pembayaran masuk', 'x', url('/admin/pembayaran?q=PAY-1'), null, false));
+
+        // membuka menu (daftar) saja → lonceng & badge menu tetap
+        $this->actingAs($admin)->get('/admin/pesanan-tiket');
+        $this->get('/admin/pembayaran')->assertInertia(fn ($p) => $p
+            ->where('unreadNotifications', 2)
+            ->where('unreadByPath./admin/pembayaran', 1)
+            ->where('unreadTargets', ['/admin/pesanan-tiket/SAH-T-1', '/admin/pembayaran?q=pay-1']));
+
+        // membuka item yang dimaksud → keduanya berkurang bersamaan
+        $this->get('/admin/pembayaran?q=PAY-1')->assertInertia(fn ($p) => $p
+            ->where('unreadNotifications', 1)
+            ->missing('unreadByPath./admin/pembayaran'));
+    }
+
     public function test_package_checkout_receives_preselected_room_and_pax(): void
     {
         $this->seed(DatabaseSeeder::class);

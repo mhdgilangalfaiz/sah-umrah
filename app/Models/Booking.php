@@ -37,6 +37,7 @@ class Booking extends Model implements Payable
 
     public function departure() { return $this->belongsTo(PackageDeparture::class, 'package_departure_id'); }
     public function installments() { return $this->hasMany(PaymentInstallment::class)->orderBy('sequence'); }
+    public function changes() { return $this->hasMany(BookingChange::class)->latest('id'); }
 
     public function requiredDeposit(): int
     {

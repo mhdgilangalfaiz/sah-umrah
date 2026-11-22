@@ -15,7 +15,7 @@ use Inertia\Inertia;
 /** Dokumen jamaah: paspor, foto, KTP, KK, buku nikah, dll — status verifikasi oleh admin */
 class DocumentController extends Controller
 {
-    private const USER_TYPES = ['paspor', 'foto', 'ktp', 'kk', 'buku_nikah', 'vaksin', 'lainnya'];
+    private const USER_TYPES = Document::JAMAAH_TYPES;
 
     public function index(Request $request)
     {
@@ -47,7 +47,7 @@ class DocumentController extends Controller
         $owner = $u;
         $doc = FileStorage::storeDocument($request->file('file'), $owner, $data['type'], ['jamaah_id' => $data['jamaah_id'] ?? null]);
         Audit::log('dokumen.unggah', "Unggah dokumen {$doc->type_label} ({$doc->file_name})", $doc);
-        AdminNotifier::notify('dokumen', 'Dokumen baru menunggu verifikasi', $u->name.' — '.$doc->type_label, route('admin.documents.index'));
+        AdminNotifier::notify('dokumen', 'Dokumen baru menunggu verifikasi', $u->name.' — '.$doc->type_label, route('admin.jamaah.show', $u->customer_code));
 
         return back()->with('success', 'Dokumen berhasil diunggah dan menunggu verifikasi admin.');
     }

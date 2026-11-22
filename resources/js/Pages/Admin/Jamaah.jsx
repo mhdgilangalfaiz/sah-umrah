@@ -33,7 +33,11 @@ export default function Jamaah({ accounts, summary, filters }) {
                 { name: 'q', type: 'search', label: 'Nama / email / kode akun, atau nama jamaah' },
                 { name: 'gender', type: 'select', label: 'Semua jenis kelamin', options: { L: 'Laki-laki', P: 'Perempuan' } },
                 { name: 'paspor', type: 'select', label: 'Semua status paspor', options: { aman: 'Berlaku', segera: 'Kurang dari 6 bulan', habis: 'Kedaluwarsa', kosong: 'Belum diisi' } },
+                { name: 'dokumen', type: 'select', label: 'Semua dokumen', options: { menunggu: `Dokumen menunggu verifikasi (${summary.dokumen ?? 0})` } },
             ]} />
+            {filters.dokumen === 'menunggu' && (
+                <p className="-mt-2 mb-4 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200">Menampilkan akun yang punya dokumen jamaah menunggu verifikasi. Buka <b>Detail</b> untuk memeriksa dan memverifikasi dokumennya.</p>
+            )}
 
             {accounts.data.length === 0 ? (
                 <div className="card"><Empty icon={BookUser} title="Belum ada data jamaah" text="Jamaah otomatis tercatat saat pelanggan memesan, atau saat mereka menambahkannya di menu Data Jamaah portal." /></div>
@@ -59,6 +63,7 @@ export default function Jamaah({ accounts, summary, filters }) {
                                     <span className="flex flex-wrap items-center gap-2">
                                         <span className="rounded-full bg-primary-100 px-3 py-1 text-xs font-bold text-primary-900">{a.jamaah_count} jamaah</span>
                                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{a.bookings} pesanan</span>
+                                        {a.pending_docs > 0 && <span className="flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700" title="Dokumen menunggu verifikasi"><FileX2 className="h-3.5 w-3.5" />{a.pending_docs} dokumen baru</span>}
                                         {a.warnings > 0 && <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800" title="Paspor perlu dicek"><AlertTriangle className="h-3.5 w-3.5" />{a.warnings} paspor</span>}
                                         <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-primary-700 to-primary-900 px-4 py-2 text-xs font-bold text-white shadow-md shadow-primary-700/25 sm:ml-2">
                                             Detail <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />

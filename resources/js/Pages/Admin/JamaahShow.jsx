@@ -1,5 +1,6 @@
-import { Link } from '@inertiajs/react';
-import { ArrowLeft, BookUser, CalendarDays, Crown, FileCheck2, FileText, Mail, MapPin, Phone, Plane, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import { ArrowLeft, BookUser, CalendarDays, CheckCircle2, Crown, ExternalLink, FileCheck2, FileText, XCircle, Mail, MapPin, Phone, Plane, ShieldCheck, UserCog, Users } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import UserAvatar from '@/Components/portal/UserAvatar';
 import { Badge, StatusBadge, cx } from '@/Components/ui';
@@ -14,7 +15,7 @@ const PASSPORT = {
 const panel = 'rounded-3xl border border-white bg-white/90 shadow-[0_10px_30px_-16px_rgba(11,77,42,0.3),inset_0_1px_0_#fff]';
 
 /** Detail akun perwakilan: profil, semua jamaah yang ia daftarkan, dan riwayat pesanannya. */
-export default function JamaahShow({ account, jamaah, bookings, flightOrders }) {
+export default function JamaahShow({ account, jamaah, bookings, flightOrders, accountDocuments = [] }) {
     const orders = [...bookings, ...flightOrders];
 
     return (
@@ -50,6 +51,13 @@ export default function JamaahShow({ account, jamaah, bookings, flightOrders }) 
                     <Link href={route('admin.users.index', { q: account.code })} className="btn-outline btn-sm"><UserCog className="h-4 w-4" />Kelola akun</Link>
                 </div>
             </section>
+
+            {accountDocuments.length > 0 && (
+                <section className={cx(panel, 'mt-6 p-5')}>
+                    <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"><FileText className="h-4 w-4" />Dokumen akun (belum dikaitkan ke jamaah)</p>
+                    <DocList docs={accountDocuments} />
+                </section>
+            )}
 
             {/* Jamaah */}
             <h3 className="mb-3 mt-6 flex items-center gap-2 font-jakarta text-lg font-extrabold"><Users className="h-5 w-5 text-primary-700" />Jamaah yang didaftarkan ({jamaah.length})</h3>
@@ -123,16 +131,7 @@ function JamaahCard({ j }) {
 
             <div className="mt-3">
                 <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"><FileText className="h-4 w-4" />Dokumen {j.documents.length > 0 && `(${verified}/${j.documents.length} terverifikasi)`}</p>
-                {j.documents.length === 0 ? <p className="mt-1 text-xs text-slate-400">Belum ada dokumen.</p> : (
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                        {j.documents.map((d, i) => (
-                            <span key={i} className={cx('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1',
-                                d.status === 'diverifikasi' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : d.status === 'ditolak' ? 'bg-red-50 text-red-700 ring-red-600/20' : 'bg-amber-50 text-amber-800 ring-amber-600/20')}>
-                                {d.status === 'diverifikasi' && <FileCheck2 className="h-3 w-3" />}{d.type}
-                            </span>
-                        ))}
-                    </div>
-                )}
+                {j.documents.length === 0 ? <p className="mt-1 text-xs text-slate-400">Belum ada dokumen.</p> : <DocList docs={j.documents} />}
             </div>
 
             <div className="mt-3 border-t border-slate-100 pt-3">
@@ -158,5 +157,43 @@ function Item({ label, value, wide }) {
             <dt className="text-[11px] text-slate-500">{label}</dt>
             <dd className="font-medium text-slate-900">{value}</dd>
         </div>
+    );
+}
+
+/** Dokumen jamaah: buka file, lalu Verifikasi / Tolak (alasan dikirim ke pelanggan) — semua di satu tempat */
+function DocList({ docs }) {
+    return <ul className="mt-1.5 space-y-1.5">{docs.map((d) => <DocRow key={d.id} d={d} />)}</ul>;
+}
+
+function DocRow({ d }) {
+    const [rejecting, setRejecting] = useState(false);
+    const form = useForm({ status: '', rejection_note: '' });
+    const send = (status) => form.transform((x) => ({ ...x, status })).put(route('admin.documents.update', d.id), { preserveScroll: true, onSuccess: () => setRejecting(false) });
+    const tone = d.status === 'diverifikasi' ? 'border-emerald-200 bg-emerald-50/60' : d.status === 'ditolak' ? 'border-red-200 bg-red-50/60' : 'border-amber-200 bg-amber-50/70';
+
+    return (
+        <li className={cx('rounded-xl border px-2.5 py-2 text-xs', tone)}>
+            <div className="flex flex-wrap items-center gap-2">
+                {d.status === 'diverifikasi' ? <FileCheck2 className="h-4 w-4 text-emerald-600" /> : d.status === 'ditolak' ? <XCircle className="h-4 w-4 text-red-600" /> : <FileText className="h-4 w-4 text-amber-700" />}
+                <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-slate-800">{d.type}</span>
+                    <a href={d.url} target="_blank" rel="noopener" className="inline-flex max-w-full items-center gap-1 truncate text-primary-700 hover:underline" title={d.file_name}>{d.file_name}<ExternalLink className="h-3 w-3 shrink-0" /></a>
+                </span>
+                {d.status === 'menunggu' ? (
+                    <span className="flex gap-1">
+                        <button type="button" disabled={form.processing} onClick={() => send('diverifikasi')} className="btn-primary btn-sm px-2 py-1 text-xs"><CheckCircle2 className="h-3.5 w-3.5" />Verifikasi</button>
+                        <button type="button" onClick={() => setRejecting((r) => !r)} className="btn-outline btn-sm px-2 py-1 text-xs text-red-600"><XCircle className="h-3.5 w-3.5" />Tolak</button>
+                    </span>
+                ) : <StatusBadge status={d.status} />}
+            </div>
+            {d.status === 'ditolak' && d.rejection_note && <p className="mt-1 text-red-700">Alasan: {d.rejection_note}</p>}
+            {rejecting && (
+                <form onSubmit={(e) => { e.preventDefault(); send('ditolak'); }} className="mt-2 flex gap-1.5">
+                    <input autoFocus className="input py-1.5 text-xs" value={form.data.rejection_note} onChange={(e) => form.setData('rejection_note', e.target.value)} placeholder="Alasan penolakan (dikirim ke pelanggan)" maxLength={500} />
+                    <button disabled={form.processing} className="btn btn-sm rounded-lg bg-red-600 px-2.5 text-xs text-white">Kirim</button>
+                </form>
+            )}
+            {form.errors.rejection_note && <p className="error">{form.errors.rejection_note}</p>}
+        </li>
     );
 }

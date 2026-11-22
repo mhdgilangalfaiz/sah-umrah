@@ -79,7 +79,7 @@ class GalleryMedia
     }
 
     /** Judul berubah → ganti nama file agar tetap "{tanggal masuk}-{judul baru}". Mengembalikan path baru. */
-    public static function renameForTitle(string $path, string $type, string $title, CarbonInterface $date): string
+    public static function renameForTitle(string $path, string $type, string $title, CarbonInterface $date, bool $numbered = false): string
     {
         $base = self::baseName($title, $date);
         $folder = self::folder($type);
@@ -90,7 +90,7 @@ class GalleryMedia
         if (! $disk->exists($path)) {
             return $path;
         }
-        $new = $folder.'/'.self::nextName($folder, $base, strtolower(pathinfo($path, PATHINFO_EXTENSION)));
+        $new = $folder.'/'.self::nextName($folder, $base, strtolower(pathinfo($path, PATHINFO_EXTENSION)), $numbered);
         $disk->move($path, $new);
 
         return $new;

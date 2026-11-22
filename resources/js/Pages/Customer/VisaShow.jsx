@@ -4,9 +4,9 @@ import CustomerLayout from '@/Layouts/CustomerLayout';
 import PayBox from '@/Components/PayBox';
 import { Card, DefList, PageHeader, StatusBadge, Stepper } from '@/Components/ui';
 import { dateTime, fileSize, rupiah, usd } from '@/lib/format';
+import BerkasResult from '@/Components/BerkasResult';
+import { VISA_STEPS, visaStep } from '@/lib/visa';
 
-export const VISA_STEPS = ['Pengajuan', 'Invoice', 'Pembayaran', 'Menunggu Dokumen', 'Diverifikasi', 'Diproses', 'Terbit'];
-export const visaStep = (s) => ({ menunggu_invoice: 1, menunggu_pembayaran: 2, menunggu_dokumen: 3, diverifikasi: 4, diproses: 5, terbit: 6, ditolak: 5 }[s] ?? 0);
 
 export default function VisaShow({ application: v, statuses, payments, documents, payBox, canUpload }) {
     const upload = useForm({ file: null });
@@ -42,14 +42,12 @@ export default function VisaShow({ application: v, statuses, payments, documents
                                     <button disabled={!upload.data.file || upload.processing} className="btn-primary mt-3"><Upload className="h-4 w-4" />Unggah Berkas</button>
                                 </form>
                             )}
-                            <ul className="space-y-2">
-                                {berkas.map((d) => (
-                                    <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 p-3 text-sm">
-                                        <div><a href={d.url} className="font-medium text-brand-700 hover:underline">{d.file_name}</a><p className="text-xs text-slate-500">{d.created_at}</p>{d.rejection_note && <p className="text-xs text-red-600">Catatan: {d.rejection_note}</p>}</div>
-                                        <StatusBadge status={d.status} />
-                                    </li>
-                                ))}
-                            </ul>
+                            {berkas[0]?.status === 'ditolak' && canUpload && (
+                                <p className="mb-3 rounded-xl bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">Beberapa dokumen perlu diperbaiki (tanda ✗ di bawah). Perbaiki dokumen tersebut, lalu unggah ulang <b>berkas lengkap</b>.</p>
+                            )}
+                            <div className="space-y-2">
+                                {berkas.map((d) => <BerkasResult key={d.id} doc={d} />)}
+                            </div>
                         </Card>
                     )}
 

@@ -6,8 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Refund extends Model
 {
+    /** Jenis pengajuan: batalkan seluruh pesanan, kurangi sebagian jamaah, atau pengembalian dana saja */
+    public const TYPES = ['pembatalan' => 'Pembatalan pesanan', 'pengurangan' => 'Pengurangan jamaah', 'perubahan' => 'Perubahan jamaah', 'refund' => 'Pengembalian dana'];
+
     protected $fillable = [
-        'code', 'user_id', 'refundable_type', 'refundable_id', 'requested_amount', 'approved_amount', 'reason',
+        'code', 'type', 'passenger_ids', 'user_id', 'refundable_type', 'refundable_id', 'requested_amount', 'approved_amount', 'reason',
         'bank_name', 'account_number', 'account_holder', 'proof_path', 'status', 'admin_note', 'transfer_proof_path',
         'reviewed_by', 'reviewed_at',
     ];
@@ -20,7 +23,7 @@ class Refund extends Model
     {
         return [
             'account_number' => 'encrypted', 'reviewed_at' => 'datetime',
-            'requested_amount' => 'integer', 'approved_amount' => 'integer',
+            'requested_amount' => 'integer', 'approved_amount' => 'integer', 'passenger_ids' => 'array',
         ];
     }
 

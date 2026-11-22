@@ -3,6 +3,9 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\BookingChange;
+use App\Models\BookingPassenger;
+use App\Models\Refund;
 use App\Models\PackageDeparture;
 use App\Models\User;
 use App\Notifications\SystemNotification;
@@ -10,6 +13,7 @@ use App\Support\AdminNotifier;
 use App\Support\Audit;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class BookingService
@@ -58,7 +62,7 @@ class BookingService
             ]);
 
             foreach ($passengers as $p) {
-                $booking->passengers()->create($p);
+                $booking->passengers()->create($p + ['category' => 'dewasa', 'price' => $unit]);
             }
 
             $dep->increment('held', $pax);
@@ -134,9 +138,204 @@ class BookingService
         return $count;
     }
 
-    public function cancel(Booking $booking, string $reason, ?User $by = null): void
+    /**
+     * Pengurangan jamaah: jamaah terpilih dikeluarkan dari pesanan, kursinya dilepas, total & jadwal cicilan dihitung ulang.
+     * $refund = dana yang dikembalikan ke pelanggan (mengurangi total dibayar). Sisa dana tetap terhitung untuk jamaah lain.
+     */
+    public function reducePassengers(Booking $booking, array $passengerIds, int $refund, string $reason, ?User $by = null, ?Refund $refundRecord = null): BookingChange
     {
-        DB::transaction(function () use ($booking, $reason) {
+        return DB::transaction(function () use ($booking, $passengerIds, $refund, $reason, $by, $refundRecord) {
+            $booking = Booking::lockForUpdate()->findOrFail($booking->id);
+            $removed = $booking->passengers()->whereIn('id', $passengerIds)->get();
+            if ($removed->isEmpty() || $removed->count() >= $booking->pax_count) {
+                throw ValidationException::withMessages(['passenger_ids' => 'Pilih jamaah yang dikurangi (minimal 1 jamaah tetap tersisa — untuk membatalkan semua, gunakan Batalkan pesanan).']);
+            }
+            $oldTotal = (int) $booking->total_amount;
+            $newTotal = $oldTotal - (int) $removed->sum(fn ($p) => $p->price ?? $booking->unit_price);
+            $this->guardRefund($booking, $newTotal, $refund);
+
+            $dep = PackageDeparture::lockForUpdate()->find($booking->package_departure_id);
+            if ($booking->seats_confirmed) {
+                $dep->booked = max(0, $dep->booked - $removed->count());
+            } else {
+                $dep->held = max(0, $dep->held - $removed->count());
+            }
+            $dep->save();
+
+            $names = $removed->pluck('full_name')->implode(', ');
+            BookingPassenger::whereIn('id', $removed->pluck('id'))->delete();
+
+            return $this->applyChange($booking, 'pengurangan', "Mengurangi {$removed->count()} jamaah ({$names}). Alasan: {$reason}", $oldTotal, $refund, $by, $refundRecord);
+        });
+    }
+
+    /**
+     * Perubahan jamaah: kategori (dewasa/anak/bayi) & harga per jamaah, mis. 2 dewasa → 1 dewasa + 1 anak.
+     * $changes = [passenger_id => ['category' => 'anak', 'price' => 20000000]]
+     */
+    public function changePassengers(Booking $booking, array $changes, int $refund, string $reason, ?User $by = null): BookingChange
+    {
+        return DB::transaction(function () use ($booking, $changes, $refund, $reason, $by) {
+            $booking = Booking::lockForUpdate()->findOrFail($booking->id);
+            $passengers = $booking->passengers()->get()->keyBy('id');
+            $oldTotal = (int) $booking->total_amount;
+            $lines = [];
+            foreach ($changes as $id => $c) {
+                $p = $passengers->get((int) $id);
+                if (! $p) continue;
+                $old = [$p->category ?: 'dewasa', (int) ($p->price ?? $booking->unit_price)];
+                $new = [$c['category'], (int) $c['price']];
+                if ($old === $new) continue;
+                $p->update(['category' => $new[0], 'price' => $new[1]]);
+                $lines[] = $p->full_name.': '.BookingPassenger::CATEGORIES[$old[0]].' Rp'.number_format($old[1], 0, ',', '.')
+                    .' → '.BookingPassenger::CATEGORIES[$new[0]].' Rp'.number_format($new[1], 0, ',', '.');
+            }
+            if (! $lines) {
+                throw ValidationException::withMessages(['changes' => 'Tidak ada perubahan kategori atau harga jamaah.']);
+            }
+            $newTotal = (int) $booking->passengers()->get()->sum(fn ($p) => $p->price ?? $booking->unit_price);
+            $this->guardRefund($booking, $newTotal, $refund);
+
+            return $this->applyChange($booking, 'perubahan', implode('; ', $lines).'. Alasan: '.$reason, $oldTotal, $refund, $by);
+        });
+    }
+
+    /** Dana dikembalikan tidak boleh melebihi yang sudah dibayar, dan kelebihan bayar wajib dikembalikan */
+    private function guardRefund(Booking $booking, int $newTotal, int $refund): void
+    {
+        $paid = (int) $booking->paid_amount;
+        if ($refund < 0 || $refund > $paid) {
+            throw ValidationException::withMessages(['refund_amount' => 'Dana dikembalikan maksimal Rp'.number_format($paid, 0, ',', '.').' (total yang sudah dibayar).']);
+        }
+        if ($paid - $refund > $newTotal) {
+            throw ValidationException::withMessages(['refund_amount' => 'Total dibayar melebihi total baru. Kembalikan minimal Rp'.number_format($paid - $newTotal, 0, ',', '.').'.']);
+        }
+    }
+
+    /** Hitung ulang total, dibayar, status, jadwal cicilan & invoice; catat riwayat + refund (bila ada dana dikembalikan). */
+    private function applyChange(Booking $booking, string $type, string $description, int $oldTotal, int $refund, ?User $by, ?Refund $refundRecord = null): BookingChange
+    {
+        $passengers = $booking->passengers()->get();
+        $booking->pax_count = $passengers->count();
+        $booking->total_amount = (int) $passengers->sum(fn ($p) => $p->price ?? $booking->unit_price);
+        $booking->paid_amount = (int) $booking->paid_amount - $refund;
+        $booking->status = $this->statusAfterChange($booking);
+        $booking->save();
+
+        $this->rebalanceInstallments($booking);
+        $this->invoices->refreshInvoice($booking->load('departure.package'));
+
+        if ($refund > 0 && ! $refundRecord) {
+            // Dana dikembalikan atas keputusan admin → tercatat di menu Refund (status disetujui), admin tinggal unggah bukti transfer
+            $last = Refund::where('user_id', $booking->user_id)->whereNotNull('bank_name')->latest()->first();
+            $refundRecord = Refund::create([
+                'code' => 'RF-'.now()->format('ymd').'-'.strtoupper(Str::random(4)),
+                'type' => $type, 'user_id' => $booking->user_id,
+                'refundable_type' => $booking->getMorphClass(), 'refundable_id' => $booking->id,
+                'requested_amount' => $refund, 'approved_amount' => $refund, 'reason' => $description,
+                'bank_name' => $last?->bank_name, 'account_number' => $last?->account_number, 'account_holder' => $last?->account_holder,
+                'status' => 'disetujui', 'reviewed_by' => $by?->id, 'reviewed_at' => now(),
+            ]);
+        }
+
+        $change = $booking->changes()->create([
+            'type' => $type, 'description' => $description, 'old_total' => $oldTotal, 'new_total' => $booking->total_amount,
+            'refund_amount' => $refund, 'refund_id' => $refundRecord?->id, 'changed_by' => $by?->id,
+        ]);
+        Audit::log('pesanan.'.$type, "Booking {$booking->code}: {$description}", $booking, ['total_amount' => $oldTotal], ['total_amount' => $booking->total_amount], $by);
+
+        $booking->user->notify(new SystemNotification('pesanan', BookingChange::TYPES[$type].' — '.$booking->code,
+            $description.' Total baru Rp'.number_format($booking->total_amount, 0, ',', '.').'.'
+            .($refund > 0 ? ' Dana Rp'.number_format($refund, 0, ',', '.').' akan dikembalikan ke rekening Anda.' : '')
+            .($booking->outstandingAmount() > 0 ? ' Sisa tagihan Rp'.number_format($booking->outstandingAmount(), 0, ',', '.').'.' : ' Tagihan Anda LUNAS.'),
+            $booking->customerUrl(), 'Lihat Pesanan'));
+
+        return $change;
+    }
+
+    private function statusAfterChange(Booking $booking): string
+    {
+        if ($booking->outstandingAmount() <= 0) return 'lunas';
+        if ((int) $booking->paid_amount > 0 || $booking->seats_confirmed) return 'cicilan_berjalan';
+
+        return 'menunggu_pembayaran';
+    }
+
+    /**
+     * Sesuaikan jadwal cicilan dengan total baru: pembayaran dialokasikan ulang dari termin pertama,
+     * termin yang belum lunas diskalakan agar jumlah semua termin = total pesanan.
+     */
+    public function rebalanceInstallments(Booking $booking): void
+    {
+        $total = (int) $booking->total_amount;
+        $paid = (int) $booking->paid_amount;
+        $list = $booking->installments()->get()->values();
+
+        // termin yang tertutup penuh oleh pembayaran tetap; sisanya diskalakan
+        $fixed = 0;
+        $k = 0;
+        foreach ($list as $i => $inst) {
+            if ($fixed + $inst->amount > $paid || $fixed + $inst->amount > $total) break;
+            $fixed += $inst->amount;
+            $k = $i + 1;
+        }
+        $rest = $list->slice($k)->values();
+        $target = $total - $fixed;   // jumlah yang harus ditanggung termin sisa
+        $partial = $paid - $fixed;   // pembayaran yang jatuh ke termin sisa pertama
+        $oldSum = (int) $rest->sum('amount');
+
+        if ($target <= 0) {
+            $rest->each->delete();
+        } elseif ($rest->isEmpty() || $oldSum <= 0) {
+            $rest->each->delete();
+            $booking->installments()->create(['sequence' => ($list->max('sequence') ?? 0) + 1, 'label' => 'Sisa tagihan', 'amount' => $target,
+                'due_date' => ($booking->payment_deadline ?? today())->toDateString()]);
+        } else {
+            $amounts = [];
+            $left = $target;
+            foreach ($rest as $j => $inst) {
+                $amt = $j === $rest->count() - 1 ? $left : (int) (floor($inst->amount * $target / $oldSum / 1000) * 1000);
+                $amounts[$j] = $amt;
+                $left -= $amt;
+            }
+            // termin pertama tidak boleh lebih kecil dari pembayaran yang sudah masuk ke situ
+            if ($amounts[0] < $partial) {
+                $shift = $partial - $amounts[0];
+                $amounts[0] = $partial;
+                for ($j = count($amounts) - 1; $j > 0 && $shift > 0; $j--) {
+                    $take = min($shift, $amounts[$j]);
+                    $amounts[$j] -= $take;
+                    $shift -= $take;
+                }
+            }
+            foreach ($rest as $j => $inst) {
+                if ($amounts[$j] <= 0) {
+                    $inst->delete();
+
+                    continue;
+                }
+                $inst->amount = $amounts[$j];
+                $inst->save();
+            }
+        }
+
+        // alokasi ulang pembayaran ke termin berurutan
+        $remaining = $paid;
+        foreach ($booking->installments()->get() as $inst) {
+            $alloc = min((int) $inst->amount, max(0, $remaining));
+            $inst->paid_amount = $alloc;
+            $inst->status = $alloc >= $inst->amount ? 'lunas' : ($alloc > 0 ? 'sebagian' : 'belum_dibayar');
+            $inst->save();
+            $remaining -= $alloc;
+        }
+    }
+
+    /**
+     * Batalkan seluruh pesanan. $status: 'dibatalkan' (tanpa pengembalian dana) atau 'refund' (dana dikembalikan).
+     */
+    public function cancel(Booking $booking, string $reason, ?User $by = null, string $status = 'dibatalkan'): void
+    {
+        DB::transaction(function () use ($booking, $reason, $status) {
             $dep = PackageDeparture::lockForUpdate()->find($booking->package_departure_id);
             if ($booking->seats_confirmed) {
                 $dep->booked = max(0, $dep->booked - $booking->pax_count);
@@ -144,7 +343,8 @@ class BookingService
                 $dep->held = max(0, $dep->held - $booking->pax_count);
             }
             $dep->save();
-            $booking->update(['status' => 'dibatalkan', 'cancelled_at' => now(), 'cancel_reason' => $reason, 'hold_expires_at' => null]);
+            $booking->update(['status' => $status, 'cancelled_at' => now(), 'cancel_reason' => $reason, 'hold_expires_at' => null]);
+            $booking->invoices()->where('type', 'invoice')->where('status', 'belum_lunas')->update(['status' => 'batal']);
             foreach ($booking->payments()->where('status', 'menunggu_pembayaran')->get() as $p) {
                 app(\App\Services\Payment\PaymentService::class)->cancel($p, 'Pesanan dibatalkan');
             }

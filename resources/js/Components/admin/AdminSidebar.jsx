@@ -1,10 +1,10 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    BarChart3, BookOpen, BookUser, Bot, CalendarClock, ChevronsLeft, ClipboardList, CreditCard, FileCheck2, FileText, Globe, Headset, HelpCircle, Image, LayoutDashboard,
+    BarChart3, BookOpen, BookUser, Bot, CalendarClock, ChevronsLeft, ClipboardList, CreditCard, FileText, Globe, Headset, HelpCircle, Image, LayoutDashboard,
     LayoutTemplate, LogOut, Megaphone, MessageSquareQuote, Package, Plane, Receipt, RotateCcw, ScrollText, Settings, ShieldAlert, Stamp, Ticket, UserCog, Users,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { cn } from '@/Components/landing/lib';
 
 // [label, routeName, params, Icon, roles(null = semua admin), badgeKey, activePattern]
@@ -26,14 +26,13 @@ export const GROUPS = [
     ]],
     ['Jamaah & Pengguna', [
         ['Kelola Pengguna', 'admin.users.index', null, Users, A],
-        ['Data Jamaah', 'admin.jamaah.index', null, BookUser, A, null, 'admin.jamaah.*'],
+        ['Data Jamaah', 'admin.jamaah.index', null, BookUser, A, 'documents', 'admin.jamaah.*'],
     ]],
     ['Produk & Layanan', [
         ['Paket Umrah', 'admin.packages.index', null, Package, A, null, 'admin.packages.*'],
         ['Keberangkatan', 'admin.departures.index', null, CalendarClock, A],
         ['Jadwal Penerbangan', 'admin.flights.index', null, Plane, A, null, 'admin.flights.*'],
         ['Layanan Visa', 'admin.crud.index', 'visa', Globe, A],
-        ['Verifikasi Dokumen', 'admin.documents.index', null, FileCheck2, A, 'documents'],
     ]],
     ['Keuangan', [
         ['Refund', 'admin.refunds.index', null, RotateCcw, A, 'refunds'],
@@ -60,6 +59,8 @@ export const GROUPS = [
 ];
 
 /** Pathname dari URL route Ziggy: "http://x.test/admin/pesanan-tiket" → "/admin/pesanan-tiket" */
+const SCROLL_KEY = 'sah.admin.nav-scroll';
+
 const pathOf = (url) => { try { return new URL(url, window.location.origin).pathname.replace(/\/+$/, '') || '/'; } catch { return url; } };
 
 /** Isi sidebar admin: logo + tombol lipat, menu berkelompok dengan pill aktif, badge tugas & notifikasi. */
@@ -80,12 +81,24 @@ export default function AdminSidebar({ collapsed = false, pillId, onToggle, onNa
         return out;
     }, [unreadByPath]);
 
-    // menu aktif selalu terlihat tanpa perlu menggulir
-    useEffect(() => {
-        document.querySelectorAll('[data-admin-nav]').forEach((nav) => {
-            const active = nav.querySelector('[data-active="true"]');
-            if (active) nav.scrollTop = active.offsetTop - nav.clientHeight / 2 + active.offsetHeight / 2;
-        });
+    // Posisi gulir menu dipertahankan antar halaman (sidebar dirender ulang tiap pindah halaman).
+    // Hanya bila menu aktif tidak terlihat (mis. dibuka dari notifikasi), menu digulir secukupnya agar tampak.
+    const navRef = useRef(null);
+    useLayoutEffect(() => {
+        const nav = navRef.current;
+        if (!nav) return undefined;
+        try { nav.scrollTop = Number(sessionStorage.getItem(SCROLL_KEY) ?? 0); } catch { /* penyimpanan tidak tersedia */ }
+        const active = nav.querySelector('[data-active="true"]');
+        if (active) {
+            const a = active.getBoundingClientRect();
+            const n = nav.getBoundingClientRect();
+            if (a.top < n.top) nav.scrollTop -= n.top - a.top + 8;
+            else if (a.bottom > n.bottom) nav.scrollTop += a.bottom - n.bottom + 8;
+        }
+        const save = () => { try { sessionStorage.setItem(SCROLL_KEY, String(nav.scrollTop)); } catch { /* abaikan */ } };
+        save();
+        nav.addEventListener('scroll', save, { passive: true });
+        return () => nav.removeEventListener('scroll', save);
     }, []);
 
     const isActive = (name, param, pattern) => (param
@@ -106,7 +119,7 @@ export default function AdminSidebar({ collapsed = false, pillId, onToggle, onNa
                 )}
             </div>
 
-            <nav data-admin-nav aria-label="Menu admin" className="-mx-1 mt-2 flex-1 space-y-3 overflow-y-auto px-1 pb-2 scrollbar-none">
+            <nav ref={navRef} data-admin-nav aria-label="Menu admin" className="-mx-1 mt-2 flex-1 space-y-3 overflow-y-auto px-1 pb-2 scrollbar-none">
                 {GROUPS.map(([group, items]) => {
                     const visible = items.filter((i) => !i[4] || i[4].includes(role));
                     if (!visible.length) return null;

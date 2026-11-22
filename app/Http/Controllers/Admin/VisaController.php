@@ -7,7 +7,10 @@ use App\Models\VisaApplication;
 use App\Notifications\SystemNotification;
 use App\Services\FileStorage;
 use App\Services\InvoiceService;
+use App\Models\Document;
 use App\Support\Audit;
+use App\Support\BerkasArchive;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -40,7 +43,12 @@ class VisaController extends Controller
             'documents' => $v->documents()->latest()->get()->map(fn ($d) => [
                 'id' => $d->id, 'type' => $d->type, 'type_label' => $d->type_label, 'file_name' => $d->file_name, 'status' => $d->status,
                 'size' => $d->size, 'rejection_note' => $d->rejection_note, 'created_at' => $d->created_at->format('d/m/Y H:i'), 'url' => $d->signedUrl(),
+                'review' => $d->review,
+                // isi ZIP dibaca hanya untuk berkas yang masih menunggu pemeriksaan
+                'entries' => $d->type === 'berkas_visa' && $d->status === 'menunggu' ? BerkasArchive::entries($d) : null,
+                'is_zip' => $d->isZip(),
             ]),
+            'requirements' => $v->service?->requirements ?? [],
         ]);
     }
 
@@ -95,6 +103,82 @@ class VisaController extends Controller
         return back()->with('success', 'Invoice visa '.($first ? 'diterbitkan' : 'diperbarui').'.');
     }
 
+    /** Buka satu file di dalam berkas ZIP (inline) agar admin bisa memeriksanya tanpa mengekstrak sendiri */
+    public function berkasFile(Request $request, VisaApplication $visaApplication, Document $document)
+    {
+        $this->ensureBerkas($visaApplication, $document);
+        $name = (string) $request->query('nama');
+        $file = BerkasArchive::read($document, $name);
+        abort_unless($file, 404, 'File tidak ditemukan di dalam berkas.');
+        Audit::log('dokumen.lihat', "Melihat {$name} di berkas {$document->file_name}", $document);
+
+        return response($file[0], 200, [
+            'Content-Type' => $file[1],
+            'Content-Disposition' => ($file[1] === 'application/octet-stream' ? 'attachment' : 'inline').'; filename="'.addslashes(basename($name)).'"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    /**
+     * Hasil pemeriksaan berkas per dokumen.
+     *  - Semua sesuai   -> berkas diverifikasi, status visa naik ke "Diverifikasi".
+     *  - Ada yang salah -> berkas ditolak, pelanggan diberi tahu dokumen mana saja yang salah & alasannya,
+     *                      status tetap "Menunggu Dokumen" agar pelanggan mengunggah ulang.
+     */
+    public function reviewBerkas(Request $request, VisaApplication $visaApplication, Document $document)
+    {
+        $this->ensureBerkas($visaApplication, $document);
+        abort_unless($visaApplication->status === 'menunggu_dokumen' && $document->status === 'menunggu', 422, 'Berkas ini sudah diperiksa.');
+
+        $data = $request->validate([
+            'items' => 'required|array|min:1|max:200',
+            'items.*.name' => 'required|string|max:255',
+            'items.*.ok' => 'required|boolean',
+            'items.*.note' => 'nullable|string|max:300',
+        ], ['items.required' => 'Periksa minimal satu dokumen.', 'items.*.name.required' => 'Nama dokumen wajib diisi.']);
+
+        $items = collect($data['items'])->map(fn ($i) => [
+            'name' => $i['name'], 'ok' => (bool) $i['ok'], 'note' => $i['ok'] ? null : trim((string) ($i['note'] ?? '')),
+        ]);
+        $bad = $items->where('ok', false)->values();
+        $noReason = $bad->where('note', '')->pluck('name');
+        if ($noReason->isNotEmpty()) {
+            throw ValidationException::withMessages(['items' => 'Tuliskan alasan untuk dokumen yang tidak sesuai: '.$noReason->map(fn ($n) => basename($n))->implode(', ').'.']);
+        }
+
+        $summary = $bad->map(fn ($i) => basename($i['name']).': '.$i['note'])->implode('; ');
+        $document->update([
+            'review' => $items->all(),
+            'status' => $bad->isEmpty() ? 'diverifikasi' : 'ditolak',
+            'rejection_note' => $bad->isEmpty() ? null : $summary,
+            'verified_by' => $request->user()->id, 'verified_at' => now(),
+        ]);
+
+        if ($bad->isEmpty()) {
+            $visaApplication->transitionTo('diverifikasi', 'Semua '.$items->count().' dokumen dalam berkas '.$document->file_name.' sesuai.', $request->user()->id);
+            $msg = 'Berkas visa Anda telah diverifikasi ('.$items->count().' dokumen sesuai). Pengajuan segera diproses.';
+        } else {
+            $visaApplication->statusLogs()->create([
+                'from_status' => 'menunggu_dokumen', 'to_status' => 'menunggu_dokumen', 'changed_by' => $request->user()->id,
+                'note' => $bad->count().' dari '.$items->count().' dokumen perlu diperbaiki: '.$summary,
+            ]);
+            $msg = 'Ada '.$bad->count().' dokumen yang perlu diperbaiki: '.$summary.'. Silakan unggah ulang berkas lengkap (zip/rar).';
+        }
+        Audit::log('visa.berkas_periksa', "Memeriksa berkas {$document->file_name} ({$visaApplication->code}): ".($bad->isEmpty() ? 'semua sesuai' : $bad->count().' tidak sesuai'), $visaApplication);
+
+        $visaApplication->user->notify(new SystemNotification('visa', ($bad->isEmpty() ? 'Berkas Visa Diverifikasi' : 'Berkas Visa Perlu Diperbaiki').' — '.$visaApplication->code,
+            $msg, $visaApplication->customerUrl(), 'Lihat Detail', true, false, $bad->isEmpty() ? 'success' : 'warning'));
+
+        return back()->with('success', $bad->isEmpty() ? 'Berkas diverifikasi — status visa kini Diverifikasi.' : 'Hasil pemeriksaan dikirim ke pelanggan ('.$bad->count().' dokumen perlu diperbaiki).');
+    }
+
+    private function ensureBerkas(VisaApplication $visaApplication, Document $document): void
+    {
+        abort_unless($document->documentable_type === $visaApplication->getMorphClass()
+            && (int) $document->documentable_id === $visaApplication->id && $document->type === 'berkas_visa', 404);
+    }
+
     /** Ubah status visa (verifikasi berkas, proses, terbit + upload visa, tolak) */
     public function status(Request $request, VisaApplication $visaApplication)
     {
@@ -107,6 +191,15 @@ class VisaController extends Controller
         $data['note'] ??= null;
 
         abort_if(in_array($visaApplication->status, ['menunggu_invoice', 'menunggu_pembayaran'], true) && $data['status'] !== 'dibatalkan', 422, 'Visa belum dibayar.');
+        // Alur berurutan: berkas diverifikasi lewat pemeriksaan per dokumen (reviewBerkas), lalu diproses -> terbit.
+        $allowed = [
+            'menunggu_dokumen' => ['ditolak', 'dibatalkan'],
+            'diverifikasi' => ['diproses', 'menunggu_dokumen', 'ditolak', 'dibatalkan'],
+            'diproses' => ['terbit', 'ditolak', 'dibatalkan'],
+        ][$visaApplication->status] ?? ['dibatalkan'];
+        if (! in_array($data['status'], $allowed, true) && ! ($data['document_id'] ?? null)) {
+            throw ValidationException::withMessages(['status' => 'Status "'.VisaApplication::STATUSES[$data['status']].'" tidak bisa dipilih dari tahap "'.VisaApplication::STATUSES[$visaApplication->status].'".']);
+        }
 
         // Verifikasi / tolak berkas yang diunggah pelanggan
         if ($data['document_id'] ?? null) {

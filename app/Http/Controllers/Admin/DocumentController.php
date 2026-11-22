@@ -12,7 +12,14 @@ use Inertia\Inertia;
 /** Verifikasi dokumen jamaah (paspor, foto, KK, buku nikah, dll) */
 class DocumentController extends Controller
 {
+    /** Menu terpisah dihapus: dokumen jamaah kini diverifikasi di Data Jamaah (per akun), berkas visa di detail visa. */
     public function index(Request $request)
+    {
+        return redirect()->route('admin.jamaah.index', ['dokumen' => 'menunggu']);
+    }
+
+    /** @deprecated tampilan lama, tidak dipakai */
+    private function legacyIndex(Request $request)
     {
         $status = $request->string('status', 'menunggu')->toString();
 

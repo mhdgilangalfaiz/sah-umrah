@@ -18,10 +18,7 @@ class InvoiceService
     public function items(Model $payable): array
     {
         return match (true) {
-            $payable instanceof Booking => array_values(array_filter([[
-                'description' => 'Paket Umrah '.$payable->departure->package->name.' — berangkat '.$payable->departure->departure_date->translatedFormat('d M Y').' (kamar '.ucfirst($payable->room_type).')',
-                'qty' => $payable->pax_count, 'price' => $payable->unit_price, 'total' => $payable->unit_price * $payable->pax_count,
-            ]])),
+            $payable instanceof Booking => $this->bookingItems($payable),
             $payable instanceof FlightOrder => [[
                 'description' => 'Tiket '.$payable->flight->airline.' '.$payable->flight->flight_number.' '.$payable->flight->route_label.' ('.$payable->flight->depart_at->translatedFormat('d M Y H:i').($payable->flight->return_depart_at ? ' – kembali '.$payable->flight->return_depart_at->translatedFormat('d M Y H:i') : '').')',
                 'qty' => $payable->pax_count, 'price' => $payable->unit_price, 'total' => $payable->total_amount,
@@ -33,6 +30,40 @@ class InvoiceService
             ])),
             default => [],
         };
+    }
+
+    /** Baris invoice umrah dikelompokkan per kategori & harga jamaah (mis. 1 Dewasa + 1 Anak) */
+    private function bookingItems(Booking $b): array
+    {
+        $label = 'Paket Umrah '.$b->departure->package->name.' — berangkat '.$b->departure->departure_date->translatedFormat('d M Y').' (kamar '.ucfirst($b->room_type).')';
+        $groups = $b->passengers()->get(['category', 'price'])->groupBy(fn ($p) => ($p->category ?: 'dewasa').'|'.($p->price ?? $b->unit_price));
+        if ($groups->isEmpty()) {
+            return [['description' => $label, 'qty' => $b->pax_count, 'price' => $b->unit_price, 'total' => $b->unit_price * $b->pax_count]];
+        }
+        $single = $groups->count() === 1;
+
+        return $groups->map(function ($rows, $key) use ($label, $single) {
+            [$cat, $price] = explode('|', $key);
+
+            return ['description' => $label.($single && $cat === 'dewasa' ? '' : ' — '.(\App\Models\BookingPassenger::CATEGORIES[$cat] ?? ucfirst($cat))),
+                'qty' => $rows->count(), 'price' => (int) $price, 'total' => (int) $price * $rows->count()];
+        })->values()->all();
+    }
+
+    /** Pesanan berubah (jamaah dikurangi/diubah) → invoice tagihan ikut diperbarui meski sudah ada pembayaran */
+    public function refreshInvoice(Model&Payable $payable): void
+    {
+        $invoice = $payable->invoices()->where('type', 'invoice')->where('status', '!=', 'batal')->first();
+        if (! $invoice) {
+            $this->issueInvoice($payable);
+
+            return;
+        }
+        $invoice->update([
+            'amount' => $payable->total_amount,
+            'items' => $this->items($payable),
+            'status' => (int) $payable->paid_amount >= (int) $payable->total_amount ? 'lunas' : 'belum_lunas',
+        ]);
     }
 
     /** Terbitkan (atau perbarui jika belum dibayar sama sekali) invoice tagihan */

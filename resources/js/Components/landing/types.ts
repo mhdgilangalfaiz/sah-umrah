@@ -61,10 +61,13 @@ export interface LandingPackage {
     facilities: string[];
 }
 
+/** Satu album galeri: sampul + judul + subjudul + seluruh fotonya. */
 export interface GalleryPhoto {
     id: number | string;
     title: string | null;
+    subtitle: string | null;
     image_url: string;
+    photos: string[];
 }
 
 export interface Testimonial {

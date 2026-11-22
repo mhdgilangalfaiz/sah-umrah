@@ -34,13 +34,15 @@ class JamaahController extends Controller
                 });
         };
         $filtered = $request->filled('gender') || $request->filled('paspor');
+        $pendingDocs = fn ($q) => $q->where('status', 'menunggu')->whereIn('type', \App\Models\Document::JAMAAH_TYPES);
 
         $accounts = User::customers()
             ->whereHas('jamaah', $jamaahFilter)
+            ->when($request->dokumen === 'menunggu', fn ($q) => $q->whereHas('documents', $pendingDocs))
             ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('name', 'like', "%$s%")->orWhere('email', 'like', "%$s%")
                 ->orWhere('customer_code', 'like', "%$s%")->orWhere('phone', 'like', "%$s%")
                 ->orWhereHas('jamaah', fn ($j) => $j->where('full_name', 'like', "%$s%"))))
-            ->withCount(['jamaah', 'bookings'])
+            ->withCount(['jamaah', 'bookings', 'documents as pending_docs' => $pendingDocs])
             ->with(['jamaah' => fn ($q) => $q->select('id', 'user_id', 'full_name', 'relation', 'passport_expiry')->when($filtered, $jamaahFilter)->orderByRaw("relation = 'diri_sendiri' desc")->orderBy('full_name')])
             ->latest()->paginate(15)->withQueryString()
             ->through(fn (User $u) => [
@@ -51,6 +53,7 @@ class JamaahController extends Controller
                 'code' => $u->customer_code,
                 'jamaah_count' => $u->jamaah_count,
                 'bookings' => $u->bookings_count,
+                'pending_docs' => $u->pending_docs,
                 'warnings' => $u->jamaah->filter(fn ($j) => in_array($this->passportStatus($j, $soon), ['habis', 'segera', 'kosong'], true))->count(),
                 // pratinjau nama (yang cocok dengan filter, bila ada); detail lengkap di halaman akun
                 'names' => $u->jamaah->pluck('full_name')->take(4)->values(),
@@ -65,8 +68,9 @@ class JamaahController extends Controller
                 'habis' => Jamaah::where('passport_expiry', '<', today())->count(),
                 'segera' => Jamaah::whereBetween('passport_expiry', [today(), $soon])->count(),
                 'kosong' => Jamaah::whereNull('passport_expiry')->count(),
+                'dokumen' => \App\Models\Document::where('status', 'menunggu')->whereIn('type', \App\Models\Document::JAMAAH_TYPES)->count(),
             ],
-            'filters' => $request->only('q', 'gender', 'paspor'),
+            'filters' => $request->only('q', 'gender', 'paspor', 'dokumen'),
         ]);
     }
 
@@ -76,7 +80,7 @@ class JamaahController extends Controller
         abort_if($user->isAdmin(), 404);
         $soon = today()->addMonths(self::PASSPORT_MIN_MONTHS);
         $user->load([
-            'jamaah' => fn ($q) => $q->with(['mahram:id,full_name', 'documents:id,jamaah_id,type,status', 'trips.orderable'])->orderByRaw("relation = 'diri_sendiri' desc")->orderBy('full_name'),
+            'jamaah' => fn ($q) => $q->with(['mahram:id,full_name', 'documents' => fn ($d) => $d->whereIn('type', \App\Models\Document::JAMAAH_TYPES)->latest(), 'trips.orderable'])->orderByRaw("relation = 'diri_sendiri' desc")->orderBy('full_name'),
             'bookings' => fn ($q) => $q->with('departure.package:id,name')->latest(),
             'flightOrders' => fn ($q) => $q->with('flight')->latest(),
         ]);
@@ -87,7 +91,14 @@ class JamaahController extends Controller
             default => null,
         };
 
+        $docRow = fn (\App\Models\Document $d) => [
+            'id' => $d->id, 'type' => $d->type_label, 'file_name' => $d->file_name, 'status' => $d->status,
+            'rejection_note' => $d->rejection_note, 'size' => $d->size, 'created_at' => $d->created_at->format('d/m/Y H:i'), 'url' => $d->signedUrl(30),
+        ];
+
         return Inertia::render('Admin/JamaahShow', [
+            // dokumen akun yang tidak dikaitkan ke jamaah tertentu
+            'accountDocuments' => $user->documents()->whereNull('jamaah_id')->whereIn('type', \App\Models\Document::JAMAAH_TYPES)->latest()->get()->map($docRow)->values(),
             'account' => [
                 'id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'phone' => $user->phone, 'code' => $user->customer_code,
                 'city' => $user->city, 'avatar' => $user->avatar ? (str_starts_with($user->avatar, 'http') ? $user->avatar : \Storage::disk('public')->url($user->avatar)) : null,
@@ -109,7 +120,7 @@ class JamaahController extends Controller
                 'passport_expiry' => $j->passport_expiry?->format('d/m/Y'),
                 'passport_status' => $this->passportStatus($j, $soon),
                 'mahram' => $j->mahram?->full_name ? $j->mahram->full_name.($j->mahram_relation ? " ({$j->mahram_relation})" : '') : ($j->mahram_relation ?: null),
-                'documents' => $j->documents->map(fn ($d) => ['type' => \App\Models\Document::TYPES[$d->type] ?? $d->type, 'status' => $d->status])->values(),
+                'documents' => $j->documents->map($docRow)->values(),
                 'trips' => $j->trips->map(fn ($t) => $t->orderable ? $tripLabel($t->orderable) : null)->filter()->values(),
             ])->values(),
             'bookings' => $user->bookings->map(fn ($b) => $tripLabel($b) + ['pax' => $b->pax_count, 'total' => (int) $b->total_amount, 'paid' => (int) $b->paid_amount])->values(),

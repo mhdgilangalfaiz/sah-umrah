@@ -1,10 +1,12 @@
 import { Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { NewDot, useUnread } from '@/lib/unread';
 import FilterBar from '@/Components/FilterBar';
 import { Card, Empty, PageHeader, Pagination, StatusBadge } from '@/Components/ui';
 import { dateTime, rupiah } from '@/lib/format';
 
 export default function Index({ orders, filters }) {
+    const isNew = useUnread();
     return (
         <AdminLayout title="Pesanan Tiket">
             <PageHeader title="Pesanan Tiket Pesawat" subtitle="Terbitkan e-ticket setelah pembayaran lunas." />
@@ -19,7 +21,7 @@ export default function Index({ orders, filters }) {
                         <tbody className="divide-y divide-slate-100">
                             {orders.data.map((o) => (
                                 <tr key={o.id} className={o.status === 'dibayar' ? 'bg-sky-50/50' : ''}>
-                                    <td><Link href={route('admin.flight-orders.show', o.code)} className="font-semibold text-brand-700 hover:underline">{o.code}</Link></td>
+                                    <td><Link href={route('admin.flight-orders.show', o.code)} className="font-semibold text-brand-700 hover:underline">{o.code}</Link><NewDot show={isNew(route('admin.flight-orders.show', o.code))} /></td>
                                     <td>{o.user.name}<p className="text-xs text-slate-500">{o.user.customer_code}</p></td>
                                     <td>{o.flight.airline} {o.flight.flight_number}<p className="text-xs text-slate-500">{o.flight.route_label} · {dateTime(o.flight.depart_at)}</p></td>
                                     <td>{o.pax_count}</td><td className="text-right">{rupiah(o.total_amount)}</td><td><StatusBadge status={o.status} /></td><td>{dateTime(o.created_at)}</td>

@@ -227,7 +227,7 @@ class PaymentService
         ));
 
         \App\Support\AdminNotifier::notify('pembayaran', 'Pembayaran masuk '.$payable->code,
-            'Rp'.number_format($payment->amount, 0, ',', '.').' via '.$payment->method_label, route('admin.payments.index'));
+            'Rp'.number_format($payment->amount, 0, ',', '.').' via '.$payment->method_label, route('admin.payments.index', ['q' => $payment->code]));
     }
 
     /** Cron: tandai transaksi yang lewat batas waktu sebagai kedaluwarsa */

@@ -1,11 +1,13 @@
 import { useForm, usePage } from '@inertiajs/react';
-import { CheckCircle2, Download, Plus, Receipt, Trash2, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle2, Download, ExternalLink, FileArchive, Plus, Receipt, Trash2, XCircle } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Card, DefList, Input, PageHeader, Select, StatusBadge, Stepper, Textarea } from '@/Components/ui';
-import { VISA_STEPS, visaStep } from '@/Pages/Customer/VisaShow';
+import { VISA_STEPS, visaStep } from '@/lib/visa';
+import BerkasResult from '@/Components/BerkasResult';
 import { dateTime, fileSize, rupiah } from '@/lib/format';
 
-export default function Show({ application: v, customer, applicants, statuses, payments, documents, usdRate }) {
+export default function Show({ application: v, customer, applicants, statuses, payments, documents, usdRate, requirements = [] }) {
     const { auth } = usePage().props;
     const canOps = auth.user.role === 'admin';
     const editableInvoice = ['menunggu_invoice', 'menunggu_pembayaran'].includes(v.status) && v.paid_amount === 0;
@@ -69,35 +71,27 @@ export default function Show({ application: v, customer, applicants, statuses, p
 
                     <Card title="Berkas pemohon (ZIP/RAR)">
                         {berkas.length === 0 ? <p className="text-sm text-slate-500">{v.status === 'menunggu_dokumen' ? 'Menunggu pelanggan mengunggah berkas.' : 'Belum ada berkas.'}</p> : (
-                            <ul className="space-y-2">
-                                {berkas.map((d) => (
-                                    <li key={d.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-100 p-3">
-                                        <div className="min-w-0 flex-1"><a href={d.url} className="flex items-center gap-1.5 font-medium text-brand-700 hover:underline"><Download className="h-4 w-4" />{d.file_name}</a><p className="text-xs text-slate-500">{fileSize(d.size)} · {d.created_at}</p>{d.rejection_note && <p className="text-xs text-red-600">{d.rejection_note}</p>}</div>
-                                        <StatusBadge status={d.status} />
-                                        {canOps && d.status === 'menunggu' && v.status === 'menunggu_dokumen' && (
-                                            <div className="flex gap-1">
-                                                <button onClick={() => act('diverifikasi', d.id)} className="btn-primary btn-sm"><CheckCircle2 className="h-3.5 w-3.5" />Verifikasi</button>
-                                                <button onClick={() => act('menunggu_dokumen', d.id)} className="btn-outline btn-sm text-red-600"><XCircle className="h-3.5 w-3.5" />Minta perbaikan</button>
-                                            </div>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="space-y-4">
+                                {berkas.map((d) => (canOps && d.status === 'menunggu' && v.status === 'menunggu_dokumen'
+                                    ? <BerkasReview key={d.id} visa={v} doc={d} requirements={requirements} applicants={applicants} />
+                                    : <BerkasResult key={d.id} doc={d} />))}
+                            </div>
                         )}
                         {documents.filter((d) => d.type === 'visa_terbit').map((d) => <a key={d.id} href={d.url} className="btn-outline btn-sm mt-3">Visa terbit: {d.file_name}</a>)}
                     </Card>
 
-                    {canOps && !['menunggu_invoice', 'menunggu_pembayaran', 'terbit', 'dibatalkan'].includes(v.status) && (
+                    {canOps && NEXT[v.status] && (
                         <Card title="Perbarui status">
                             <div className="mb-3 flex flex-wrap gap-2">
-                                {[['diverifikasi', 'Diverifikasi'], ['diproses', 'Diproses'], ['terbit', 'Terbit'], ['ditolak', 'Ditolak']].map(([k, l]) => (
-                                    <button key={k} type="button" onClick={() => act(k)} className={st.data.status === k && !st.data.document_id ? 'btn-primary btn-sm' : 'btn-outline btn-sm'}>{l}</button>
+                                {NEXT[v.status].map(([k, l]) => (
+                                    <button key={k} type="button" onClick={() => act(k)} className={st.data.status === k ? 'btn-primary btn-sm' : 'btn-outline btn-sm'}>{l}</button>
                                 ))}
                             </div>
+                            {v.status === 'menunggu_dokumen' && !st.data.status && <p className="text-xs text-slate-500">Status naik ke <b>Diverifikasi</b> otomatis setelah semua dokumen di berkas diperiksa dan sesuai.</p>}
                             {st.data.status && (
                                 <form onSubmit={submitStatus} className="space-y-3 rounded-xl bg-sand-50 p-4">
-                                    <p className="text-sm">Ubah status menjadi <StatusBadge status={st.data.status} label={statuses[st.data.status]} />{st.data.document_id && ' (berkas akan ' + (st.data.status === 'menunggu_dokumen' ? 'ditolak' : 'diverifikasi') + ')'}</p>
-                                    <Textarea rows={2} label={st.data.status === 'ditolak' || st.data.status === 'menunggu_dokumen' ? 'Alasan / catatan (dikirim ke pelanggan)' : 'Catatan (opsional)'} value={st.data.note} onChange={(e) => st.setData('note', e.target.value)} error={st.errors.note} />
+                                    <p className="text-sm">Ubah status menjadi <StatusBadge status={st.data.status} label={statuses[st.data.status]} /></p>
+                                    <Textarea rows={2} label={st.data.status === 'ditolak' || st.data.status === 'menunggu_dokumen' ? 'Alasan / catatan (dikirim ke pelanggan)' : 'Catatan (opsional)'} value={st.data.note} onChange={(e) => st.setData('note', e.target.value)} error={st.errors.note ?? st.errors.status} />
                                     {st.data.status === 'terbit' && <div><label className="label">File visa (PDF/JPG/ZIP)</label><input type="file" onChange={(e) => st.setData('visa_file', e.target.files[0])} className="text-sm" />{st.errors.visa_file && <p className="error">{st.errors.visa_file}</p>}</div>}
                                     <div className="flex gap-2"><button disabled={st.processing} className="btn-primary btn-sm">Simpan</button><button type="button" onClick={() => st.reset()} className="btn-ghost btn-sm">Batal</button></div>
                                 </form>
@@ -127,5 +121,91 @@ export default function Show({ application: v, customer, applicants, statuses, p
                 </div>
             </div>
         </AdminLayout>
+    );
+}
+
+/** Tombol status yang tersedia di tiap tahap (urut sesuai alur) */
+const NEXT = {
+    menunggu_dokumen: [['ditolak', 'Tolak pengajuan']],
+    diverifikasi: [['diproses', 'Diproses'], ['menunggu_dokumen', 'Minta berkas ulang'], ['ditolak', 'Ditolak']],
+    diproses: [['terbit', 'Terbit'], ['ditolak', 'Ditolak']],
+};
+
+/**
+ * Pemeriksaan berkas per dokumen. ZIP: setiap file di dalamnya bisa dibuka lalu ditandai Sesuai / Tidak sesuai.
+ * RAR (tidak bisa dibaca server): admin mengunduh berkas lalu mengisi daftar dokumen secara manual.
+ */
+function BerkasReview({ visa, doc, requirements, applicants }) {
+    const fromZip = Array.isArray(doc.entries) && doc.entries.length > 0;
+    const initial = fromZip
+        ? doc.entries.map((e) => ({ name: e.name, size: e.size, previewable: e.previewable, ok: null, note: '' }))
+        : (requirements.length ? requirements : ['Paspor', 'Pas foto', 'KTP', 'Kartu Keluarga']).flatMap((r) => (applicants.length > 1 ? applicants.map((a) => `${r} — ${a.full_name}`) : [r]))
+            .map((name) => ({ name, ok: null, note: '' }));
+    const form = useForm({ items: initial });
+    const [manual] = useState(!fromZip);
+    const items = form.data.items;
+    const set = (i, patch) => form.setData('items', items.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+    const done = items.filter((x) => x.ok !== null).length;
+    const bad = items.filter((x) => x.ok === false).length;
+    const ready = items.length > 0 && done === items.length && items.every((x) => x.ok !== false || x.note.trim());
+
+    const submit = (e) => {
+        e.preventDefault();
+        form.transform((d) => ({ items: d.items.map(({ name, ok, note }) => ({ name, ok, note })) }));
+        form.post(route('admin.visa.berkas.review', [visa.code, doc.id]), { preserveScroll: true });
+    };
+
+    return (
+        <form onSubmit={submit} className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4">
+            <div className="flex flex-wrap items-center gap-3">
+                <FileArchive className="h-5 w-5 text-amber-700" />
+                <div className="min-w-0 flex-1">
+                    <a href={doc.url} className="font-semibold text-brand-700 hover:underline">{doc.file_name}</a>
+                    <p className="text-xs text-slate-500">{fileSize(doc.size)} · diunggah {doc.created_at}</p>
+                </div>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">{done}/{items.length} diperiksa{bad > 0 && <span className="text-red-600"> · {bad} tidak sesuai</span>}</span>
+            </div>
+            <p className="mt-2 text-xs text-slate-600">
+                {manual
+                    ? (doc.is_zip ? 'Isi ZIP tidak dapat dibaca. ' : 'Berkas RAR tidak dapat dibuka langsung di sini. ') + 'Unduh berkasnya, lalu tandai setiap dokumen di bawah (daftar bisa ditambah/diubah).'
+                    : 'Klik "Buka" untuk melihat tiap file, lalu tandai Sesuai atau Tidak sesuai. Dokumen yang tidak sesuai wajib diberi alasan — pelanggan akan melihat persis dokumen mana yang harus diperbaiki.'}
+            </p>
+
+            <ul className="mt-3 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                {items.map((it, i) => (
+                    <li key={i} className={it.ok === false ? 'bg-red-50/60 p-3' : it.ok ? 'bg-emerald-50/50 p-3' : 'p-3'}>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="w-6 text-xs tabular-nums text-slate-400">{i + 1}.</span>
+                            {manual
+                                ? <input className="input min-w-[160px] flex-1 py-1.5 text-sm" value={it.name} onChange={(e) => set(i, { name: e.target.value })} placeholder="Nama dokumen" />
+                                : <span className="min-w-0 flex-1 truncate font-mono text-sm" title={it.name}>{it.name}<span className="ml-2 font-sans text-xs text-slate-400">{fileSize(it.size)}</span></span>}
+                            {!manual && (
+                                <a href={route('admin.visa.berkas.file', [visa.code, doc.id]) + '?nama=' + encodeURIComponent(it.name)} target="_blank" rel="noopener" className="btn-outline btn-sm">
+                                    {it.previewable ? <ExternalLink className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}{it.previewable ? 'Buka' : 'Unduh'}
+                                </a>
+                            )}
+                            <button type="button" onClick={() => set(i, { ok: true, note: '' })} className={it.ok === true ? 'btn-sm btn rounded-lg bg-emerald-600 text-white' : 'btn-outline btn-sm'}><CheckCircle2 className="h-3.5 w-3.5" />Sesuai</button>
+                            <button type="button" onClick={() => set(i, { ok: false })} className={it.ok === false ? 'btn-sm btn rounded-lg bg-red-600 text-white' : 'btn-outline btn-sm text-red-600'}><XCircle className="h-3.5 w-3.5" />Tidak sesuai</button>
+                            {manual && <button type="button" onClick={() => form.setData('items', items.filter((_, j) => j !== i))} className="btn-ghost btn-sm" aria-label="Hapus baris"><Trash2 className="h-4 w-4 text-red-500" /></button>}
+                        </div>
+                        {it.ok === false && (
+                            <input className="input mt-2 py-1.5 text-sm" autoFocus value={it.note} onChange={(e) => set(i, { note: e.target.value })} maxLength={300}
+                                placeholder="Alasan, mis. foto paspor buram / masa berlaku kurang dari 7 bulan" />
+                        )}
+                    </li>
+                ))}
+            </ul>
+            {manual && <button type="button" onClick={() => form.setData('items', [...items, { name: '', ok: null, note: '' }])} className="btn-ghost btn-sm mt-2"><Plus className="h-3.5 w-3.5" />Tambah dokumen</button>}
+            {form.errors.items && <p className="error mt-2">{form.errors.items}</p>}
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-slate-600">
+                    {!ready ? 'Tandai semua dokumen terlebih dulu.' : bad > 0 ? `${bad} dokumen tidak sesuai → pelanggan diminta mengunggah ulang.` : 'Semua sesuai → status visa naik ke Diverifikasi.'}
+                </p>
+                <button disabled={!ready || form.processing} className={bad > 0 ? 'btn btn-sm rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-50' : 'btn-primary btn-sm'}>
+                    {bad > 0 ? 'Kirim hasil & minta perbaikan' : 'Verifikasi berkas'}
+                </button>
+            </div>
+        </form>
     );
 }

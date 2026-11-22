@@ -6,8 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class BookingPassenger extends Model
 {
+    /** Kategori jamaah pada pesanan umrah — harga per kategori diatur admin per pesanan */
+    public const CATEGORIES = ['dewasa' => 'Dewasa', 'anak' => 'Anak', 'bayi' => 'Bayi'];
+
     protected $fillable = [
-        'jamaah_id', 'title', 'full_name', 'gender', 'birth_date', 'nik', 'passport_number', 'passport_expiry',
+        'jamaah_id', 'title', 'category', 'price', 'full_name', 'gender', 'birth_date', 'nik', 'passport_number', 'passport_expiry',
         'nationality', 'mahram_name', 'mahram_relation',
     ];
 
@@ -17,7 +20,7 @@ class BookingPassenger extends Model
     {
         return [
             'nik' => 'encrypted', 'passport_number' => 'encrypted',
-            'birth_date' => 'date:Y-m-d', 'passport_expiry' => 'date:Y-m-d',
+            'birth_date' => 'date:Y-m-d', 'passport_expiry' => 'date:Y-m-d', 'price' => 'integer',
         ];
     }
 
