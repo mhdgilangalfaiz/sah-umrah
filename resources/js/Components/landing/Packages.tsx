@@ -26,7 +26,7 @@ export default function Packages({ heading, packages, whatsapp }: PackagesProps)
                     <Stagger gap={0.1} className="grid gap-x-5 gap-y-8 pt-3 sm:grid-cols-2 lg:grid-cols-4">
                         {packages.map((p) => (
                             <StaggerItem key={p.id} className="h-full">
-                                <PackageCard p={p} badge={heading.badge} whatsapp={whatsapp} />
+                                <PackageCard p={p} badge={heading.badge} />
                             </StaggerItem>
                         ))}
                     </Stagger>

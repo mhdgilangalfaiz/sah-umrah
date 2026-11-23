@@ -68,7 +68,7 @@ export default function Form({ package: p, types, airlines = [] }) {
     return (
         <AdminLayout title={editing ? 'Ubah Paket' : 'Paket Baru'}>
             <PageHeader back={route('admin.packages.index')} title={editing ? p.name : 'Paket Umrah Baru'} subtitle="Perubahan harga tercatat otomatis di audit log." />
-            <form onSubmit={submit} className="grid gap-6 xl:grid-cols-[1fr_360px]">
+            <form onSubmit={submit} className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="min-w-0 space-y-6">
                     <Card title="Informasi paket">
                         <div className="grid gap-4 sm:grid-cols-2">
@@ -108,7 +108,7 @@ export default function Form({ package: p, types, airlines = [] }) {
                     {editing && <Departures pkg={p} />}
                 </div>
 
-                <div className="space-y-6">
+                <div className="grid content-start items-start gap-6 md:grid-cols-2 2xl:grid-cols-1">
                     <Card title="Harga per jamaah">
                         <div className="space-y-3">
                             <Input label="Quad (ber-4)" type="number" {...f('price_quad')} required />

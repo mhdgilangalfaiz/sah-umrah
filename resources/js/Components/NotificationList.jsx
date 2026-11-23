@@ -9,7 +9,7 @@ export default function NotificationList({ notifications, filter, indexRoute }) 
     return (
         <>
             <PageHeader title="Notifikasi" actions={<button onClick={() => router.post(route('notifications.read-all'))} className="btn-outline btn-sm"><CheckCheck className="h-4 w-4" />Tandai semua dibaca</button>} />
-            <div className="mb-4 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="mb-4 flex flex-wrap gap-2">
                 {Object.entries(CATEGORIES).map(([k, l]) => (
                     <button key={k} onClick={() => router.get(route(indexRoute), k ? { kategori: k } : {}, { preserveState: true })} className={cx('shrink-0 rounded-full px-3 py-1.5 text-xs font-medium', (filter ?? '') === k ? 'bg-brand-700 text-white' : 'bg-white text-slate-600 shadow-soft')}>{l}</button>
                 ))}

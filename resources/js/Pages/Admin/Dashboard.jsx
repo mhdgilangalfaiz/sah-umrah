@@ -126,10 +126,16 @@ export default function Dashboard({ stats, chart, departures, recentPayments, al
 
                 <Reveal delay={0.25} className={panel}>
                     <PanelHead icon={LayoutGrid} title="Menu Utama" />
-                    <div className="grid gap-3 p-4 sm:grid-cols-2">
+                    {/* Ubin seragam: ikon di atas, label di bawah — tinggi sama walau label 2 baris */}
+                    <div className="grid auto-rows-fr grid-cols-2 gap-3 p-4">
                         {shortcuts.map(([label, r, Icon]) => (
-                            <Link key={r} href={route(r)} className="group flex items-center gap-3 rounded-2xl border border-primary-100 bg-white px-4 py-3.5 text-sm font-bold shadow-sm transition hover:-translate-y-0.5 hover:border-primary-500/40 hover:shadow-md">
-                                <Icon className="h-6 w-6 shrink-0 text-primary-700" aria-hidden="true" /><span className="flex-1">{label}</span><ChevronRight className="h-4 w-4 text-neutral-600 transition group-hover:translate-x-0.5" />
+                            <Link key={r} href={route(r)}
+                                className="group relative flex min-w-0 flex-col items-start gap-3 rounded-2xl border border-primary-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary-500/40 hover:shadow-md">
+                                <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary-50 text-primary-700 transition group-hover:bg-primary-700 group-hover:text-white">
+                                    <Icon className="h-5 w-5" aria-hidden="true" />
+                                </span>
+                                <span className="min-w-0 pr-4 text-sm font-bold leading-snug text-neutral-900">{label}</span>
+                                <ChevronRight className="absolute right-3 top-4 h-4 w-4 text-neutral-600/60 transition group-hover:translate-x-0.5 group-hover:text-primary-700" aria-hidden="true" />
                             </Link>
                         ))}
                     </div>

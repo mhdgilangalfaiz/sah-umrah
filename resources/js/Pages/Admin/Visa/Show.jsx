@@ -29,7 +29,7 @@ export default function Show({ application: v, customer, applicants, statuses, p
             <PageHeader back={route('admin.visa.index')} title={`${v.code} — ${v.service.name}`} subtitle={`${customer.name} (${customer.customer_code}) · ${v.pax_count} pemohon`} actions={<StatusBadge status={v.status} label={statuses[v.status]} />} />
             <div className="card mb-6 p-4"><Stepper steps={VISA_STEPS} current={visaStep(v.status)} failed={v.status === 'ditolak'} /></div>
 
-            <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+            <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_380px]">
                 <div className="min-w-0 space-y-6">
                     {canOps && editableInvoice && (
                         <Card title={v.status === 'menunggu_invoice' ? 'Terbitkan invoice' : 'Ubah invoice (belum dibayar)'}>
@@ -111,7 +111,7 @@ export default function Show({ application: v, customer, applicants, statuses, p
                     </Card>
                 </div>
 
-                <div className="space-y-6">
+                <div className="grid content-start items-start gap-6 md:grid-cols-2 2xl:grid-cols-1">
                     <Card title="Pemohon"><DefList items={[['Nama', customer.name], ['Kode', customer.customer_code], ['Email', customer.email], ['HP', customer.phone]]} /></Card>
                     <Card title="Ringkasan">
                         <DefList items={[['Rencana berangkat', v.planned_departure], ['Total', rupiah(v.total_amount)], ['Dibayar', rupiah(v.paid_amount)], ['Catatan', v.notes]]} />

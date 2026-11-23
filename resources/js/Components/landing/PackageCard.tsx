@@ -1,17 +1,16 @@
+import { Link } from '@inertiajs/react';
 import { ArrowRight, CalendarDays, Check, Clock, Hotel, Star, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
-import { formatDate, formatRupiah, waLink } from './lib';
+import { formatDate, formatRupiah } from './lib';
 import { arrowShift, card } from './shared';
 import type { LandingPackage } from './types';
 
 interface PackageCardProps {
     p: LandingPackage;
     badge: string;
-    whatsapp: string;
 }
 
-export default function PackageCard({ p, badge, whatsapp }: PackageCardProps) {
-    const message = `Assalamu'alaikum, saya tertarik dengan paket "${p.name}" (${formatRupiah(p.price)}/pax). Mohon info jadwal dan ketersediaan kursinya.`;
+export default function PackageCard({ p, badge }: PackageCardProps) {
     const info: Array<[LucideIcon, string]> = [
         [Clock, `${p.duration_days} Hari`],
         [CalendarDays, p.departure_date ? formatDate(p.departure_date) : 'Jadwal segera hadir'],
@@ -28,7 +27,19 @@ export default function PackageCard({ p, badge, whatsapp }: PackageCardProps) {
                 </span>
             )}
 
-            <h3 className="mt-1 font-jakarta text-lg font-extrabold leading-snug tracking-tight text-neutral-900">{p.name}</h3>
+            {/* Poster paket — menempel di tepi atas kartu */}
+            <Link href={p.url} tabIndex={-1} aria-hidden="true" className="group/poster -mx-5 -mt-5 mb-4 block overflow-hidden rounded-t-2xl bg-primary-100">
+                {p.cover_url ? (
+                    <img src={p.cover_url} alt="" loading="lazy"
+                        className="aspect-[4/5] w-full object-cover object-top transition duration-500 group-hover/poster:scale-105" />
+                ) : (
+                    <div className="grid aspect-[4/5] place-items-center bg-gradient-to-br from-primary-700 to-primary-900">
+                        <img src="/images/logo-sah-footer.png" alt="" className="h-16 w-auto opacity-90" />
+                    </div>
+                )}
+            </Link>
+
+            <h3 className="font-jakarta text-lg font-extrabold leading-snug tracking-tight text-neutral-900">{p.name}</h3>
             <p className="mt-2 font-jakarta text-2xl font-extrabold tracking-tight text-primary-700">
                 {formatRupiah(p.price)}<span className="text-sm font-semibold text-neutral-600"> /Pax</span>
             </p>
@@ -56,10 +67,11 @@ export default function PackageCard({ p, badge, whatsapp }: PackageCardProps) {
 
             {/* pengisi ruang: tombol rata bawah antar kartu */}
             <div className="min-h-5 flex-1" />
-            <a href={waLink(whatsapp, message)} target="_blank" rel="noopener noreferrer" aria-label={`Pilih paket ${p.name} via WhatsApp`}
+            {/* Menuju halaman detail paket yang dipilih */}
+            <Link href={p.url} aria-label={`Lihat detail paket ${p.name}`}
                 className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-700 to-primary-900 py-3 text-sm font-bold text-white shadow-md shadow-primary-700/25 transition hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2">
                 Pilih Paket <ArrowRight className={arrowShift} aria-hidden="true" />
-            </a>
+            </Link>
         </article>
     );
 }

@@ -49,6 +49,8 @@ export interface LandingPackage {
     id: number;
     name: string;
     url: string;
+    /** Poster paket (sama dengan yang tampil di halaman Paket Umrah) */
+    cover_url: string | null;
     price: number;
     is_best_seller: boolean;
     airline: string | null;

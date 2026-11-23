@@ -64,6 +64,7 @@ class LandingPage
                     'id' => $p->id,
                     'name' => $p->name,
                     'url' => route('packages.show', $p->slug),
+                    'cover_url' => $p->cover_url,
                     'price' => $p->price_quad,
                     'is_best_seller' => $p->is_featured,
                     'airline' => $p->airline,

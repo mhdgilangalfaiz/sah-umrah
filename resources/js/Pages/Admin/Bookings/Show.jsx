@@ -33,7 +33,7 @@ export default function Show({ booking: b, customer, passengers, payments, outst
             )}
             {overdue && <div className="mb-6 rounded-2xl bg-red-50 p-4 text-sm text-red-800 ring-1 ring-red-200">Pesanan melewati batas pelunasan ({date(b.payment_deadline)}). Pengingat email & WhatsApp dikirim otomatis setiap hari.</div>}
 
-            <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+            <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="min-w-0 space-y-6">
                     <Card title="Pembayaran">
                         <div className="grid grid-cols-3 gap-3 text-center text-sm">
@@ -42,10 +42,10 @@ export default function Show({ booking: b, customer, passengers, payments, outst
                             <div className="rounded-xl bg-amber-50 p-3"><p className="text-slate-500">Sisa</p><p className="font-bold text-amber-700">{rupiah(outstanding)}</p></div>
                         </div>
                         <Progress className="mt-3" value={(b.paid_amount / b.total_amount) * 100} />
-                        <table className="table-app mt-4">
+                        <div className="mt-4 overflow-x-auto"><table className="table-app">
                             <thead><tr><th>Termin</th><th>Jatuh tempo</th><th className="!text-right">Nominal</th><th className="!text-right">Dibayar</th><th>Status</th><th>Pengingat</th></tr></thead>
                             <tbody className="divide-y divide-slate-100">{b.installments.map((i) => <tr key={i.id}><td>{i.label}</td><td>{date(i.due_date)}</td><td className="text-right">{rupiah(i.amount)}</td><td className="text-right">{rupiah(i.paid_amount)}</td><td><StatusBadge status={i.status} /></td><td>{i.reminder_count}×</td></tr>)}</tbody>
-                        </table>
+                        </table></div>
                     </Card>
                     <Card title="Transaksi" pad={false}>
                         <div className="overflow-x-auto"><table className="table-app">
@@ -55,8 +55,18 @@ export default function Show({ booking: b, customer, passengers, payments, outst
                     </Card>
                     <Card title={`Jamaah (${passengers.length})`} pad={false}>
                         <div className="overflow-x-auto"><table className="table-app">
-                            <thead><tr><th>Nama</th><th>Kategori</th><th className="!text-right">Harga</th><th>L/P</th><th>Tgl lahir</th><th>Paspor</th><th>Exp</th><th>NIK</th><th>Mahram</th></tr></thead>
-                            <tbody className="divide-y divide-slate-100">{passengers.map((p) => <tr key={p.id}><td className="font-medium">{p.full_name}</td><td>{categories[p.category] ?? p.category}</td><td className="text-right">{rupiah(p.price)}</td><td>{p.gender}</td><td>{p.birth_date}</td><td className="font-mono">{p.passport_number ?? '-'}</td><td>{p.passport_expiry ?? '-'}</td><td className="font-mono text-xs">{p.nik ?? '-'}</td><td>{p.mahram_name ? `${p.mahram_name} (${p.mahram_relation})` : '-'}</td></tr>)}</tbody>
+                            {/* Info yang berkaitan digabung per kolom agar tabel muat di dalam card */}
+                            <thead><tr><th>Jamaah</th><th>L/P · Tgl lahir</th><th>Paspor</th><th>NIK</th><th>Mahram</th><th className="!text-right">Harga</th></tr></thead>
+                            <tbody className="divide-y divide-slate-100">{passengers.map((p) => (
+                                <tr key={p.id}>
+                                    <td><p className="font-medium text-slate-900">{p.full_name}</p><p className="text-xs text-slate-500">{categories[p.category] ?? p.category}</p></td>
+                                    <td><p>{p.gender ?? '-'}</p><p className="text-xs text-slate-500">{p.birth_date ?? '-'}</p></td>
+                                    <td><p className="font-mono">{p.passport_number ?? '-'}</p>{p.passport_expiry && <p className="text-xs text-slate-500">Exp {p.passport_expiry}</p>}</td>
+                                    <td className="font-mono text-xs">{p.nik ?? '-'}</td>
+                                    <td>{p.mahram_name ? <><p>{p.mahram_name}</p><p className="text-xs text-slate-500">{p.mahram_relation}</p></> : '-'}</td>
+                                    <td className="text-right">{rupiah(p.price)}</td>
+                                </tr>
+                            ))}</tbody>
                         </table></div>
                     </Card>
                     {editable && <AdjustCard b={b} passengers={passengers} categories={categories} pending={pending} />}
@@ -80,7 +90,7 @@ export default function Show({ booking: b, customer, passengers, payments, outst
                         </Card>
                     )}
                 </div>
-                <div className="space-y-6">
+                <div className="grid content-start items-start gap-6 md:grid-cols-2 2xl:grid-cols-1">
                     <Card title="Pemesan">
                         <DefList items={[['Nama', customer.name], ['Kode', customer.customer_code], ['Email', customer.email], ['HP', customer.phone], ['Kota', customer.city]]} />
                     </Card>

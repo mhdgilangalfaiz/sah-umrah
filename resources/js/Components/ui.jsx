@@ -84,11 +84,11 @@ export function Card({ title, actions, children, className = '', pad = true }) {
         <section className={cx('card', className)}>
             {(title || actions) && (
                 <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
-                    <h2 className="font-sans text-base font-semibold text-slate-900">{title}</h2>
+                    <h2 className="min-w-0 font-sans text-base font-semibold text-slate-900">{title}</h2>
                     {actions}
                 </div>
             )}
-            <div className={pad ? 'card-pad' : ''}>{children}</div>
+            <div className={cx('min-w-0', pad && 'card-pad')}>{children}</div>
         </section>
     );
 }
@@ -238,11 +238,12 @@ export function ConfirmButton({ href, method = 'post', data = {}, confirm = 'Yak
 
 export function DefList({ items }) {
     return (
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        // auto-fit: card sempit (kolom samping) → 1 kolom; card lebar → 2+ kolom. Teks panjang (email) tidak keluar card.
+        <dl className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-x-6 gap-y-3 text-sm">
             {items.filter(Boolean).map(([k, v]) => (
                 <div key={k} className="min-w-0">
                     <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">{k}</dt>
-                    <dd className="mt-0.5 break-words font-medium text-slate-800">{v ?? '-'}</dd>
+                    <dd className="mt-0.5 font-medium text-slate-800 [overflow-wrap:anywhere]">{v ?? '-'}</dd>
                 </div>
             ))}
         </dl>

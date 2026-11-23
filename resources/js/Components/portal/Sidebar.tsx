@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    ChevronsLeft, FileText, Headset, House, Landmark, Plane, Receipt, RotateCcw, Stamp, User, Users, type LucideIcon,
+    ChevronsLeft, FileText, Headset, House, Landmark, Plane, Receipt, RotateCcw, Stamp, Users, type LucideIcon,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn, waLink } from '@/Components/landing/lib';
@@ -19,7 +19,7 @@ export const PORTAL_MENU: MenuItem[] = [
     { label: 'Data Jamaah', route: 'customer.jamaah.index', icon: Users },
     { label: 'Refund', route: 'customer.refunds.index', icon: RotateCcw },
     { label: 'Riwayat Bantuan', route: 'customer.support.index', icon: Headset },
-    { label: 'Profil', route: 'profile.edit', icon: User },
+    // Profil sengaja tidak ada di sidebar: dibuka lewat menu akun (ikon profil) di Topbar.
 ];
 
 interface SidebarNavProps {

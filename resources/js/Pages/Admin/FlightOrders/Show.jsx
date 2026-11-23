@@ -13,7 +13,7 @@ export default function Show({ order: o, passengers, payments, documents }) {
     return (
         <AdminLayout title={o.code}>
             <PageHeader back={route('admin.flight-orders.index')} title={o.code} subtitle={`${o.user.name} · ${o.user.customer_code}`} actions={<StatusBadge status={o.status} />} />
-            <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+            <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="min-w-0 space-y-6">
                     <FlightCard f={o.flight} pax={o.pax_count} />
                     <Card title="Penumpang (sesuai paspor)" pad={false}>
@@ -23,10 +23,10 @@ export default function Show({ order: o, passengers, payments, documents }) {
                         </table></div>
                     </Card>
                     <Card title="Transaksi" pad={false}>
-                        <table className="table-app"><tbody className="divide-y divide-slate-100">{payments.map((p) => <tr key={p.id}><td>{p.code}</td><td>{p.method_label}</td><td>{rupiah(p.amount)}</td><td><StatusBadge status={p.status} /></td><td>{dateTime(p.paid_at ?? p.created_at)}</td></tr>)}</tbody></table>
+                        <div className="overflow-x-auto"><table className="table-app"><tbody className="divide-y divide-slate-100">{payments.map((p) => <tr key={p.id}><td>{p.code}</td><td>{p.method_label}</td><td>{rupiah(p.amount)}</td><td><StatusBadge status={p.status} /></td><td>{dateTime(p.paid_at ?? p.created_at)}</td></tr>)}</tbody></table></div>
                     </Card>
                 </div>
-                <div className="space-y-6">
+                <div className="grid content-start items-start gap-6 md:grid-cols-2 2xl:grid-cols-1">
                     <Card title="Kontak"><DefList items={[['Email', o.contact_email], ['HP', o.contact_phone], ['Total', rupiah(o.total_amount)], ['Batas bayar', dateTime(o.expires_at)]]} /></Card>
                     {canIssue && (
                         <Card title={o.status === 'tiket_terbit' ? 'Terbitkan ulang e-ticket' : 'Terbitkan e-ticket'}>

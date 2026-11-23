@@ -11,11 +11,13 @@
     h1, h2, h3, .font-heading { @apply font-serif tracking-tight text-slate-900; }
     ::selection { @apply bg-gold-200 text-brand-900; }
     [type='checkbox'] { @apply rounded text-brand-700 focus:ring-brand-600; }
+    /* Input unggah file: tidak melebihi lebar card + tombol "Pilih file" yang rapi */
+    [type='file'] { @apply block w-full max-w-full text-sm text-slate-600 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-700 hover:file:bg-brand-100; }
 }
 
 @layer components {
     .container-app { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
-    .card { @apply rounded-2xl border border-slate-200/70 bg-white shadow-soft; }
+    .card { @apply min-w-0 rounded-2xl border border-slate-200/70 bg-white shadow-soft; }
     .card-pad { @apply p-5 sm:p-6; }
 
     .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50; }
@@ -31,6 +33,7 @@
     .hint { @apply mt-1 text-xs text-slate-500; }
     .error { @apply mt-1 text-xs font-medium text-red-600; }
 
+    /* Tabel: teks satu baris; tabel lebar digulir menyamping di dalam pembungkus overflow-x-auto (tidak meluber keluar card). */
     .table-app { @apply min-w-full divide-y divide-slate-200 text-sm; }
     .table-app th { @apply whitespace-nowrap bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
     .table-app td { @apply whitespace-nowrap px-4 py-3 text-slate-700; }
