@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, TouchEvent } from 'react';
+import AmbientAudio from './AmbientAudio';
 import type { GalleryPhoto } from './types';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from './ui/dialog';
 
@@ -8,6 +9,7 @@ interface GalleryLightboxProps {
     albums: GalleryPhoto[];
     album: number | null; // album yang dibuka
     onClose: () => void;
+    audio?: { url: string; title: string | null } | null;
 }
 
 const navBtn = 'absolute top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-primary-900 shadow-lg transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500';
@@ -16,7 +18,7 @@ const navBtn = 'absolute top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-item
  * Lightbox album: foto, judul, subjudul, posisi foto dalam album.
  * Geser (swipe) / tombol ‹ › / panah keyboard. Setelah foto terakhir lanjut ke album berikutnya.
  */
-export default function GalleryLightbox({ albums, album, onClose }: GalleryLightboxProps) {
+export default function GalleryLightbox({ albums, album, onClose, audio }: GalleryLightboxProps) {
     // Semua foto dari semua album diratakan → navigasi bisa terus lanjut antar album
     const slides = useMemo(() => albums.flatMap((a, ai) => a.photos.map((url, pi) => ({ url, ai, pi }))), [albums]);
     const [pos, setPos] = useState(0);
@@ -46,6 +48,11 @@ export default function GalleryLightbox({ albums, album, onClose }: GalleryLight
     return (
         <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
             <DialogContent onKeyDown={onKey} overlayClassName="bg-neutral-900/85" className="max-w-5xl">
+                {audio && (
+                    <div className="absolute left-3 top-3 z-20">
+                        <AmbientAudio src={audio.url} title={audio.title} active={open} />
+                    </div>
+                )}
                 {slide && current && (
                     <figure>
                         <div className="relative select-none" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>

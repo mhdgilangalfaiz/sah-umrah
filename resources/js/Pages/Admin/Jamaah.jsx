@@ -1,7 +1,8 @@
 import { Link } from '@inertiajs/react';
-import { AlertTriangle, BookUser, ChevronRight, Crown, FileX2, Users } from 'lucide-react';
+import { AlertTriangle, BookUser, ChevronRight, Crown, FileX2 } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import FilterBar from '@/Components/FilterBar';
+import IllustratedStat from '@/Components/admin/IllustratedStat';
 import UserAvatar from '@/Components/portal/UserAvatar';
 import { Empty, PageHeader, Pagination } from '@/Components/ui';
 
@@ -9,23 +10,20 @@ import { Empty, PageHeader, Pagination } from '@/Components/ui';
 export default function Jamaah({ accounts, summary, filters }) {
     const filtered = !!(filters.gender || filters.paspor);
     const tiles = [
-        ['Akun perwakilan', summary.accounts, Users, 'text-primary-700 bg-primary-100', null],
-        ['Total jamaah', summary.total, BookUser, 'text-sky-700 bg-sky-100', null],
-        ['Paspor < 6 bulan', summary.segera, AlertTriangle, 'text-amber-700 bg-amber-100', 'segera'],
-        ['Paspor kedaluwarsa / kosong', summary.habis + summary.kosong, FileX2, 'text-red-600 bg-red-100', 'habis'],
+        ['Akun perwakilan', summary.accounts, 'Akun yang memesan', 'jamaah-akun', 'green', null],
+        ['Total jamaah', summary.total, 'Semua orang terdaftar', 'jamaah-total', 'blue', null],
+        ['Paspor < 6 bulan', summary.segera, 'Perlu diperpanjang', 'jamaah-segera', 'gold', 'segera'],
+        ['Paspor habis / kosong', summary.habis + summary.kosong, `${summary.habis} kedaluwarsa · ${summary.kosong} kosong`, 'jamaah-habis', 'red', 'habis'],
     ];
 
     return (
         <AdminLayout title="Data Jamaah" icon={BookUser}>
             <PageHeader title="Data Jamaah" subtitle="Dikelompokkan per akun perwakilan (yang memesan). Buka Detail untuk melihat semua jamaah, dokumen, dan riwayat pesanan akun tersebut." />
 
-            <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                {tiles.map(([label, value, Icon, tone, key]) => (
-                    <Link key={label} href={route('admin.jamaah.index', key ? { paspor: key } : {})}
-                        className="flex items-center gap-3 rounded-2xl border border-white bg-white/85 p-4 shadow-[0_8px_24px_-16px_rgba(11,77,42,0.35)] transition hover:-translate-y-0.5">
-                        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${tone}`}><Icon className="h-5 w-5" /></span>
-                        <span className="min-w-0"><span className="block truncate text-xs font-semibold text-slate-500">{label}</span><span className="block text-xl font-extrabold text-slate-900">{value}</span></span>
-                    </Link>
+            <div className="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {tiles.map(([label, value, sub, img, tone, key]) => (
+                    <IllustratedStat key={label} label={label} value={value} sub={sub} image={`/images/admin/kartu/${img}.webp`} tone={tone}
+                        href={route('admin.jamaah.index', key ? { paspor: key } : {})} />
                 ))}
             </div>
 

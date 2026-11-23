@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Modal from '@/Components/Modal';
 import ImageCropper from '@/Components/ImageCropper';
+import GalleryAudioCard from '@/Components/admin/GalleryAudioCard';
 import { Badge, Card, Empty, PageHeader, Pagination, cx } from '@/Components/ui';
 import { blobToFile, fileBase, formatBytes, shrinkToLimit } from '@/lib/image';
 
@@ -15,7 +16,7 @@ let seq = 0;
 const videoLimit = (limits) => Math.min(limits.video_mb * 1024 * 1024, limits.file || Infinity);
 
 /** Kelola galeri: album foto (judul + subjudul + banyak foto) dan video */
-export default function Gallery({ items, filter, counts, limits }) {
+export default function Gallery({ items, filter, counts, limits, audio }) {
     const [modal, setModal] = useState(null); // { mode: 'create' } | { mode: 'edit', item }
     const close = () => setModal(null);
     const total = Number(counts.foto ?? 0) + Number(counts.video ?? 0);
@@ -25,6 +26,8 @@ export default function Gallery({ items, filter, counts, limits }) {
         <AdminLayout title="Galeri">
             <PageHeader title="Galeri" subtitle="Satu album = satu judul + subjudul + banyak foto. Di halaman utama, pengunjung membuka album lalu menggeser fotonya."
                 actions={<button onClick={() => setModal({ mode: 'create' })} className="btn-primary"><Plus className="h-4 w-4" />Tambah</button>} />
+
+            <GalleryAudioCard audio={audio} maxBytes={Math.min(10 * 1024 * 1024, limits.file || Infinity)} />
 
             <div className="mb-4 inline-flex rounded-xl bg-slate-100 p-1">
                 {tabs.map(([key, label, n]) => (

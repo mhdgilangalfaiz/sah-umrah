@@ -168,7 +168,7 @@ export default function PackageShow({ package: p, roomTypes, payment }) {
                                 <p className="mt-2 text-sm text-amber-700">Keberangkatan sudah dekat — hanya tersedia pembayaran lunas.</p>
                             )}
                         </div>
-                        <div className="card flex items-center gap-3 p-4 text-sm text-slate-600"><Plane className="h-5 w-5 text-gold-500" />{p.airline} · berangkat dari {p.departure_city}</div>
+                        <div className="card flex items-center gap-3 p-4 text-sm text-slate-600">{p.airline_logo ? <img src={p.airline_logo} alt={p.airline} className="h-8 w-auto max-w-[120px] object-contain" /> : <Plane className="h-5 w-5 text-gold-500" />}{p.airline} · berangkat dari {p.departure_city}</div>
                     </aside>
                 </div>
             </div>

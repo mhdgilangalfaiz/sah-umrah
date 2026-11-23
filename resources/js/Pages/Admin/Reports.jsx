@@ -1,23 +1,30 @@
-import { FileDown, FileSpreadsheet, Landmark, Receipt, RotateCcw, Users, Wallet } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+import { BarChart3, FileDown, FileSpreadsheet, Landmark } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import AdminLayout from '@/Layouts/AdminLayout';
 import FilterBar from '@/Components/FilterBar';
-import { Card, PageHeader, Stat } from '@/Components/ui';
+import IllustratedStat from '@/Components/admin/IllustratedStat';
+import { Card, PageHeader } from '@/Components/ui';
 import { date, rupiah, shortRupiah } from '@/lib/format';
 
 export default function Reports({ period, summary, byService, byMethod, daily, rows }) {
+    // Super Admin tidak punya akses ke Refund & Data Jamaah → kartu itu tidak bisa diklik
+    const isAdmin = usePage().props.auth.user.role === 'admin';
     return (
-        <AdminLayout title="Laporan">
+        <AdminLayout title="Rekap Penjualan" icon={BarChart3}>
             <PageHeader title="Laporan Keuangan & Pesanan" subtitle={`Periode ${date(period.dari)} – ${date(period.sampai)}`} actions={<>
                 <a href={route('admin.reports.export', { ...period, format: 'xlsx' })} className="btn-outline"><FileSpreadsheet className="h-4 w-4 text-emerald-700" />Excel</a>
                 <a href={route('admin.reports.export', { ...period, format: 'pdf' })} className="btn-outline"><FileDown className="h-4 w-4 text-red-600" />PDF</a>
             </>} />
             <FilterBar routeName="admin.reports.index" filters={period} fields={[{ name: 'dari', type: 'date', label: 'Dari' }, { name: 'sampai', type: 'date', label: 'Sampai' }]} />
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-                <Stat label="Pemasukan" value={shortRupiah(summary.revenue)} icon={Wallet} sub={`${summary.transactions} transaksi`} />
-                <Stat label="Refund dibayar" value={shortRupiah(summary.refunds)} icon={RotateCcw} tone="red" />
-                <Stat label="Pesanan baru" value={summary.new_bookings + summary.new_flights + summary.new_visas} icon={Receipt} tone="blue" sub={`${summary.new_bookings} umrah · ${summary.new_flights} tiket · ${summary.new_visas} visa`} />
-                <Stat label="Jamaah baru" value={summary.jamaah} icon={Users} tone="gold" sub={`Piutang ${shortRupiah(summary.receivable)}`} />
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <IllustratedStat label="Pemasukan" value={rupiah(summary.revenue)} sub={`${summary.transactions} transaksi`} image="/images/admin/kartu/rekap-pemasukan.webp" tone="green"
+                    href={route('admin.payments.index', { status: 'dibayar', dari: period.dari, sampai: period.sampai })} />
+                <IllustratedStat label="Refund Dibayar" value={rupiah(summary.refunds)} sub="Dikembalikan ke jamaah" image="/images/admin/kartu/rekap-refund.webp" tone="red"
+                    href={isAdmin ? route('admin.refunds.index') : undefined} />
+                <IllustratedStat label="Pesanan Baru" value={summary.new_bookings + summary.new_flights + summary.new_visas} sub={`${summary.new_bookings} umrah · ${summary.new_flights} tiket · ${summary.new_visas} visa`} image="/images/admin/kartu/rekap-pesanan.webp" tone="blue" href={route('admin.bookings.index')} />
+                <IllustratedStat label="Jamaah Baru" value={summary.jamaah} sub={`Piutang ${rupiah(summary.receivable)}`} image="/images/admin/kartu/rekap-jamaah.webp" tone="gold"
+                    href={isAdmin ? route('admin.jamaah.index') : undefined} />
             </div>
             <div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
                 <Card title="Pemasukan harian">

@@ -6,7 +6,7 @@ import { arrowShift, SectionHeading } from './shared';
 import type { GalleryPhoto, Heading } from './types';
 
 /** Album galeri. Klik album → lightbox berisi semua foto album itu (bisa digeser, lanjut ke album berikutnya). */
-export default function Gallery({ heading, photos }: { heading: Heading; photos: GalleryPhoto[] }) {
+export default function Gallery({ heading, photos, audio = null }: { heading: Heading; photos: GalleryPhoto[]; audio?: { url: string; title: string | null } | null }) {
     const [index, setIndex] = useState<number | null>(null); // indeks album yang dibuka
     const shown = photos.slice(0, 5);
 
@@ -59,7 +59,7 @@ export default function Gallery({ heading, photos }: { heading: Heading; photos:
                 )}
             </div>
 
-            <GalleryLightbox albums={photos} album={index} onClose={() => setIndex(null)} />
+            <GalleryLightbox albums={photos} album={index} onClose={() => setIndex(null)} audio={audio} />
         </section>
     );
 }

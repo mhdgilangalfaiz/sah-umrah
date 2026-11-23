@@ -44,7 +44,7 @@ export default function SiteChrome({ children, onHome = false, className }: Site
                     <Footer company={company} onHome={onHome} />
                 </div>
                 <div className="landing-ds contents font-jakarta">
-                    <FloatingActions showTop={scroll.far} chat={!user?.is_admin} />
+                    <FloatingActions showTop={scroll.far} chat />
                 </div>
             </div>
         </MotionConfig>

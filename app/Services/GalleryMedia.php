@@ -74,6 +74,9 @@ class GalleryMedia
     {
         $folder = self::folder($type);
         $name = self::nextName($folder, self::baseName($title, $date), self::extension($file, $type), $numbered);
+        if ($type === 'foto') {
+            ImageOptimizer::optimize($file); // kompres sebelum disimpan
+        }
 
         return $file->storeAs($folder, $name, self::DISK);
     }

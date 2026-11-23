@@ -72,7 +72,7 @@ export default function PackageDetailModal({ p, onClose }) {
                         {/* Penerbangan & hotel */}
                         <Section title="Penerbangan & hotel" icon={Plane}>
                             <ul className="space-y-3 text-sm">
-                                <li className="flex gap-3"><Plane className="mt-0.5 h-4 w-4 shrink-0 text-brand-700" /><span><b>{p.airline}</b> — start {p.departure_city}</span></li>
+                                <li className="flex items-center gap-3">{p.airline_logo ? <img src={p.airline_logo} alt="" className="h-6 w-auto max-w-[96px] shrink-0 object-contain" /> : <Plane className="h-4 w-4 shrink-0 text-brand-700" />}<span><b>{p.airline}</b> — start {p.departure_city}</span></li>
                                 <HotelRow city="Makkah" name={p.hotel_makkah} star={p.hotel_makkah_star} distance={p.hotel_makkah_distance} />
                                 <HotelRow city="Madinah" name={p.hotel_madinah} star={p.hotel_madinah_star} distance={p.hotel_madinah_distance} />
                             </ul>

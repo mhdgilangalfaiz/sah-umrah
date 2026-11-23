@@ -133,6 +133,8 @@ class LandingContent
     {
         $name = now()->format('d-m-y').'-'.Str::slug(str_replace('.', '-', $key)).'-'.Str::random(6).'.'.$file->extension();
 
+        \App\Services\ImageOptimizer::optimize($file); // gambar beranda dikompres dulu
+
         return $file->storeAs('landing', $name, 'public');
     }
 

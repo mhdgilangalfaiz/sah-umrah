@@ -21,6 +21,8 @@ class LandingController extends Controller
                 ->mapWithKeys(fn ($k) => [$k => LandingContent::url(data_get(LandingContent::raw(), $k))]),
             'defaults' => LandingContent::defaults(),
             'imageLabels' => LandingContent::IMAGES,
+            // Logo maskapai untuk kartu paket (Best Seller); disimpan per maskapai lewat CRUD "maskapai"
+            'airlines' => \App\Models\Airline::withCount('packages')->orderBy('name')->get(['id', 'name', 'logo']),
         ]);
     }
 

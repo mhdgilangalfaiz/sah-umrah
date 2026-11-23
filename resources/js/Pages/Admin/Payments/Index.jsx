@@ -1,21 +1,25 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Clock, RefreshCw, Scale, Wallet } from 'lucide-react';
+import { CreditCard, RefreshCw, Scale } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { NewDot, useUnread } from '@/lib/unread';
 import FilterBar from '@/Components/FilterBar';
-import { Card, Empty, PageHeader, Pagination, Stat, StatusBadge } from '@/Components/ui';
-import { rupiah, shortRupiah } from '@/lib/format';
+import IllustratedStat from '@/Components/admin/IllustratedStat';
+import { Card, Empty, PageHeader, Pagination, StatusBadge } from '@/Components/ui';
+import { rupiah } from '@/lib/format';
 
 export default function Index({ payments, filters, methods, summary }) {
     const isNew = useUnread();
     const canCheck = usePage().props.auth.user.role === 'admin'; // Super Admin hanya melihat
     return (
-        <AdminLayout title="Pembayaran">
+        <AdminLayout title="Pembayaran" icon={CreditCard}>
             <PageHeader title="Monitoring Pembayaran" subtitle="Status diperbarui otomatis oleh webhook payment gateway." actions={<Link href={route('admin.payments.reconcile')} className="btn-outline"><Scale className="h-4 w-4" />Rekonsiliasi</Link>} />
-            <div className="mb-6 grid gap-4 sm:grid-cols-3">
-                <Stat label="Diterima hari ini" value={shortRupiah(summary.paid_today)} icon={Wallet} />
-                <Stat label="Transaksi pending" value={summary.pending} icon={Clock} tone="gold" />
-                <Stat label="Nilai pending" value={shortRupiah(summary.pending_amount)} icon={Clock} tone="slate" />
+            <div className="mb-6 grid gap-4 md:grid-cols-3">
+                <IllustratedStat label="Diterima Hari Ini" value={rupiah(summary.paid_today)} sub="Pembayaran berhasil hari ini" image="/images/admin/kartu/bayar-diterima.webp" tone="green"
+                    href={route('admin.payments.index', { status: 'dibayar' })} />
+                <IllustratedStat label="Transaksi Pending" value={summary.pending} sub="Menunggu dibayar jamaah" image="/images/admin/kartu/bayar-pending.webp" tone="gold"
+                    href={route('admin.payments.index', { status: 'menunggu_pembayaran' })} />
+                <IllustratedStat label="Nilai Pending" value={rupiah(summary.pending_amount)} sub="Total tagihan yang belum masuk" image="/images/admin/kartu/bayar-nilai.webp" tone="blue"
+                    href={route('admin.payments.index', { status: 'menunggu_pembayaran' })} />
             </div>
             <FilterBar routeName="admin.payments.index" filters={filters} fields={[
                 { name: 'q', type: 'search', label: 'Kode / nomor VA' },

@@ -8,7 +8,41 @@ import { date } from '@/lib/format';
 const lines = (arr) => (arr ?? []).join('\n');
 const toArr = (s) => s.split('\n').map((x) => x.trim()).filter(Boolean);
 
-export default function Form({ package: p, types }) {
+/**
+ * Pilih maskapai dari menu Maskapai (agar nama selalu sama & logonya tersambung),
+ * atau ketik nama baru → otomatis masuk daftar Maskapai saat paket disimpan.
+ */
+function AirlinePicker({ value, onChange, airlines, error }) {
+    const known = airlines.some((a) => a.name === value);
+    const [custom, setCustom] = useState(!!value && !known);
+    const picked = airlines.find((a) => a.name === value);
+
+    return (
+        <div>
+            <label className="label">Maskapai</label>
+            {custom ? (
+                <div className="flex gap-2">
+                    <input className="input" value={value} onChange={(e) => onChange(e.target.value)} placeholder="Nama maskapai baru" />
+                    {airlines.length > 0 && <button type="button" onClick={() => { setCustom(false); onChange(''); }} className="btn-outline btn-sm shrink-0">Pilih</button>}
+                </div>
+            ) : (
+                <div className="flex items-center gap-2">
+                    <select className="input" value={value} onChange={(e) => (e.target.value === '__new' ? (setCustom(true), onChange('')) : onChange(e.target.value))}>
+                        <option value="">Pilih maskapai</option>
+                        {airlines.map((a) => <option key={a.id} value={a.name}>{a.name}{a.logo_url ? '' : ' (belum ada logo)'}</option>)}
+                        <option value="__new">+ Maskapai lain…</option>
+                    </select>
+                    {picked?.logo_url && <img src={picked.logo_url} alt="" className="h-10 w-20 shrink-0 rounded-lg bg-white object-contain p-1 ring-1 ring-slate-200" />}
+                </div>
+            )}
+            {error ? <p className="error">{error}</p> : (
+                <p className="hint">Logo diatur di <a href={`${route('admin.landing.edit')}?tab=packages`} className="font-semibold text-brand-700 underline">Konten Beranda → Paket Umrah</a>.</p>
+            )}
+        </div>
+    );
+}
+
+export default function Form({ package: p, types, airlines = [] }) {
     const editing = !!p;
     const [facilities, setFacilities] = useState(lines(p?.facilities));
     const [excludes, setExcludes] = useState(lines(p?.excludes));
@@ -41,7 +75,7 @@ export default function Form({ package: p, types }) {
                             <Input className="sm:col-span-2" label="Nama paket" {...f('name')} required />
                             <Select label="Jenis" options={types} {...f('type')} />
                             <Input label="Durasi (hari)" type="number" {...f('duration_days')} />
-                            <Input label="Maskapai" {...f('airline')} />
+                            <AirlinePicker value={data.airline} onChange={(v) => setData('airline', v)} airlines={airlines} error={errors.airline} />
                             <Input label="Kota keberangkatan" {...f('departure_city')} />
                             <Textarea className="sm:col-span-2" rows={2} label="Ringkasan singkat" {...f('summary')} />
                             <Textarea className="sm:col-span-2" rows={5} label="Deskripsi" {...f('description')} />

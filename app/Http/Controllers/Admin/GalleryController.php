@@ -48,6 +48,11 @@ class GalleryController extends Controller
             'filter' => $type,
             'counts' => Gallery::selectRaw('type, count(*) as total')->groupBy('type')->pluck('total', 'type'),
             'limits' => GalleryMedia::limits() + ['video_mb' => self::VIDEO_MAX_MB, 'max_photos' => Gallery::MAX_PHOTOS],
+            'audio' => [
+                'url' => GalleryAudioController::url(),
+                'title' => \App\Models\Setting::get(GalleryAudioController::TITLE_KEY) ?: null,
+                'is_link' => str_starts_with((string) \App\Models\Setting::get(GalleryAudioController::KEY), 'http'),
+            ],
         ]);
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Airline;
 use App\Models\Package;
 use App\Models\PackageDeparture;
 use App\Services\FileStorage;
@@ -26,12 +27,12 @@ class PackageController extends Controller
 
     public function create()
     {
-        return Inertia::render('Admin/Packages/Form', ['package' => null, 'types' => Package::TYPES]);
+        return Inertia::render('Admin/Packages/Form', ['package' => null, 'types' => Package::TYPES, 'airlines' => Airline::orderBy('name')->get(['id', 'name', 'logo'])]);
     }
 
     public function edit(Package $package)
     {
-        return Inertia::render('Admin/Packages/Form', ['package' => $package->load('departures'), 'types' => Package::TYPES]);
+        return Inertia::render('Admin/Packages/Form', ['package' => $package->load('departures'), 'types' => Package::TYPES, 'airlines' => Airline::orderBy('name')->get(['id', 'name', 'logo'])]);
     }
 
     private function validated(Request $request, ?Package $package = null): array

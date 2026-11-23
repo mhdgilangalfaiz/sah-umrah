@@ -34,6 +34,10 @@ class LandingPage
             'galleries' => self::galleries(),
             'testimonials' => self::testimonials(),
             'rating' => self::rating(),
+            // audio suasana galeri (diputar hanya bila pengunjung menekan tombol di lightbox)
+            'galleryAudio' => \App\Http\Controllers\Admin\GalleryAudioController::url()
+                ? ['url' => \App\Http\Controllers\Admin\GalleryAudioController::url(), 'title' => \App\Models\Setting::get(\App\Http\Controllers\Admin\GalleryAudioController::TITLE_KEY) ?: null]
+                : null,
         ];
     }
 
@@ -74,11 +78,17 @@ class LandingPage
             })->all();
     }
 
-    /** Logo maskapai di public/images/airlines/{slug}.webp|png; null → kartu menampilkan nama maskapai. */
+    /**
+     * Logo maskapai dari menu admin Maskapai; cadangan: public/images/airlines/{slug}.webp|png|svg.
+     * null → kartu menampilkan nama maskapai.
+     */
     private static function airlineLogo(?string $airline): ?string
     {
         if (! $airline) {
             return null;
+        }
+        if ($logo = \App\Models\Airline::logoFor($airline)) {
+            return $logo;
         }
         $slug = Str::slug($airline);
         foreach (['webp', 'png', 'svg'] as $ext) {

@@ -36,6 +36,7 @@ export default function Crud({ resource, title, description, columns, fields, it
 
     const cell = (item, key) => {
         const v = item[key];
+        if (key === 'logo') return item.logo_url ? <img src={item.logo_url} alt="" className="h-10 w-28 rounded-lg bg-white object-contain p-1 ring-1 ring-slate-200" /> : <span className="text-xs font-semibold text-amber-700">Belum ada logo</span>;
         if (key === 'image' || key === 'cover_image' || key === 'photo') { const url = item[`${key === 'cover_image' ? 'cover' : key}_url`]; return url ? <img src={url} alt="" className="h-12 w-16 rounded-lg object-cover" /> : '-'; }
         if (key === 'is_active') return v ? <Badge className="bg-emerald-50 text-emerald-700 ring-emerald-600/20">Ya</Badge> : <Badge className="bg-slate-100 text-slate-500 ring-slate-300">Tidak</Badge>;
         if (key === 'price') return rupiah(v);

@@ -31,8 +31,7 @@ export const GROUPS = [
     ['Produk & Layanan', [
         ['Paket Umrah', 'admin.packages.index', null, Package, A, null, 'admin.packages.*'],
         ['Keberangkatan', 'admin.departures.index', null, CalendarClock, A],
-        ['Jadwal Penerbangan', 'admin.flights.index', null, Plane, A, null, 'admin.flights.*'],
-        ['Layanan Visa', 'admin.crud.index', 'visa', Globe, A],
+        ['Jadwal Penerbangan', 'admin.flights.index', null, Plane, A, null, 'admin.flights.*'],        ['Layanan Visa', 'admin.crud.index', 'visa', Globe, A],
     ]],
     ['Keuangan', [
         ['Refund', 'admin.refunds.index', null, RotateCcw, A, 'refunds'],

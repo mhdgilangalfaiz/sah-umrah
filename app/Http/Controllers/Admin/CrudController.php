@@ -73,6 +73,16 @@ class CrudController extends Controller
                     ['name' => 'sort', 'label' => 'Urutan', 'type' => 'number', 'rules' => 'required|integer|min:0'],
                 ],
             ],
+            'maskapai' => [
+                'model' => \App\Models\Airline::class, 'title' => 'Maskapai', 'roles' => ['admin'],
+                'description' => 'Logo tampil di kartu paket umrah (beranda & daftar paket) sesuai maskapai yang dipilih di paket. Gunakan logo berlatar transparan (PNG/WebP) agar rapi. Mengganti nama maskapai otomatis memperbarui paket yang memakainya.',
+                'columns' => ['logo' => 'Logo', 'name' => 'Nama maskapai', 'packages_count' => 'Dipakai paket'],
+                'with_count' => ['packages'],
+                'fields' => [
+                    ['name' => 'name', 'label' => 'Nama maskapai (sama persis dengan yang dipilih di paket)', 'type' => 'text', 'rules' => 'required|string|max:80|unique:airlines,name,{id}'],
+                    ['name' => 'logo', 'label' => 'Logo (PNG/WebP transparan, maks 2 MB)', 'type' => 'image', 'rules' => 'nullable|image|mimes:png,webp,jpg,jpeg,svg|max:2048'],
+                ],
+            ],
             'blog' => [
                 'model' => Post::class, 'title' => 'Blog / Artikel', 'roles' => ['admin'],
                 'columns' => ['cover_image' => 'Sampul', 'title' => 'Judul', 'published_at' => 'Terbit'],
@@ -98,7 +108,7 @@ class CrudController extends Controller
     public function index(string $resource)
     {
         $cfg = $this->resolve($resource);
-        $items = $cfg['model']::latest('id')->paginate(25);
+        $items = $cfg['model']::when($cfg['with_count'] ?? null, fn ($q, $c) => $q->withCount($c))->latest('id')->paginate(25);
 
         return Inertia::render('Admin/Crud', [
             'resource' => $resource,
@@ -114,7 +124,8 @@ class CrudController extends Controller
     {
         $rules = [];
         foreach ($cfg['fields'] as $f) {
-            $rules[$f['name']] = str_replace('required_without:id|', $model ? '' : 'required|', $f['rules']);
+            // {id} → id data yang sedang diubah (untuk aturan unique); NULL saat menambah
+            $rules[$f['name']] = str_replace(['required_without:id|', '{id}'], [$model ? '' : 'required|', $model?->id ?? 'NULL'], $f['rules']);
             if ($f['type'] === 'list') $rules[$f['name'].'.*'] = 'string|max:300';
         }
         $data = $request->validate($rules);

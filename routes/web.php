@@ -204,6 +204,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
         // Konten: galeri, beranda (didaftarkan sebelum CRUD generik)
         Route::get('/kelola/galeri', [Admin\GalleryController::class, 'index'])->name('galeri.index');
+        Route::post('/kelola/galeri-audio', [Admin\GalleryAudioController::class, 'update'])->name('galeri.audio.update');
+        Route::delete('/kelola/galeri-audio', [Admin\GalleryAudioController::class, 'destroy'])->name('galeri.audio.destroy');
         Route::post('/kelola/galeri', [Admin\GalleryController::class, 'store'])->name('galeri.store');
         Route::post('/kelola/galeri/{gallery}', [Admin\GalleryController::class, 'update'])->name('galeri.update');
         Route::delete('/kelola/galeri/{gallery}', [Admin\GalleryController::class, 'destroy'])->name('galeri.destroy');

@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { ExternalLink, ImagePlus, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import AirlineLogos from '@/Components/admin/AirlineLogos';
 import { Card, Input, PageHeader, Select, Textarea, cx } from '@/Components/ui';
 
 const TABS = [
@@ -18,8 +19,12 @@ const SERVICE_NAMES = ['Paket Umrah', 'Tiket Pesawat', 'Layanan Visa'];
  * Editor konten landing page. Semua teks & gambar beranda diatur dari sini —
  * isi galeri, testimoni, FAQ, dan paket tetap dikelola di menunya masing-masing.
  */
-export default function Landing({ content, previews, defaults, imageLabels }) {
-    const [tab, setTab] = useState('hero');
+export default function Landing({ content, previews, defaults, imageLabels, airlines = [] }) {
+    // ?tab=packages dsb → langsung buka tab tertentu (mis. dari link "Logo maskapai" di form paket)
+    const [tab, setTab] = useState(() => {
+        const t = new URLSearchParams(window.location.search).get('tab');
+        return TABS.some(([k]) => k === t) ? t : 'hero';
+    });
     const form = useForm({
         ...content,
         files: { hero: null, about: null, services: [null, null, null] },
@@ -146,6 +151,7 @@ export default function Landing({ content, previews, defaults, imageLabels }) {
                                 options={{ 4: '4 kartu (1 baris × 4)', 5: '5 kartu (1 baris × 5)', 8: '8 kartu (2 baris × 4)', 10: '10 kartu (2 baris × 5)' }} error={err('packages.count')} />
                         </div>
                         <p className="mt-4 rounded-xl bg-brand-50 p-3 text-sm text-brand-900">Poster, harga, dan detail paket diatur di menu <b>Paket Umrah</b>. Paket bertanda “unggulan” ditampilkan lebih dulu.</p>
+                        <AirlineLogos airlines={airlines} />
                     </Card>
                 )}
 

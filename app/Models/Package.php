@@ -19,7 +19,23 @@ class Package extends Model
         'gallery', 'itinerary', 'facilities', 'excludes', 'document_requirements', 'is_featured', 'is_active',
     ];
 
-    protected $appends = ['cover_url', 'gallery_urls'];
+    protected $appends = ['cover_url', 'gallery_urls', 'airline_logo'];
+
+    /** Logo maskapai dari menu admin Maskapai (null → tampilkan nama maskapai). */
+    public function getAirlineLogoAttribute(): ?string
+    {
+        return Airline::logoFor($this->airline);
+    }
+
+    protected static function booted(): void
+    {
+        // Nama maskapai baru (dari form/seeder) otomatis masuk daftar Maskapai agar admin tinggal unggah logonya
+        static::saved(function (Package $p) {
+            if ($name = trim((string) $p->airline)) {
+                Airline::firstOrCreate(['name' => $name]);
+            }
+        });
+    }
 
     protected function casts(): array
     {

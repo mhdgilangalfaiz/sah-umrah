@@ -103,6 +103,7 @@ class FileStorage
     public static function storePublic(UploadedFile $file, string $folder, string $label): string
     {
         $name = now()->format('d-m-y').'-'.Str::slug($label).'-'.Str::lower(Str::random(4)).'.'.strtolower($file->getClientOriginalExtension());
+        ImageOptimizer::optimize($file); // foto paket, testimoni, blog, logo: dikompres dulu
 
         return $file->storeAs($folder, $name, 'public');
     }

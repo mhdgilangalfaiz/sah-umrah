@@ -38,7 +38,7 @@ export function PackageCard({ p }) {
                 <h3 className="text-base leading-snug group-hover:text-brand-700">{p.name}</h3>
                 <div className="mt-2.5 space-y-1 text-xs text-slate-600">
                     <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-gold-500" />{next ? `Berangkat ${date(next.departure_date)}` : 'Jadwal segera hadir'}</p>
-                    <p className="flex items-center gap-2"><Plane className="h-4 w-4 text-gold-500" />{p.airline} · dari {p.departure_city}</p>
+                    <p className="flex items-center gap-2">{p.airline_logo ? <img src={p.airline_logo} alt={p.airline} className="h-5 w-auto max-w-[90px] object-contain" /> : <Plane className="h-4 w-4 text-gold-500" />}{p.airline} · dari {p.departure_city}</p>
                     <p className="flex items-center gap-2"><BedDouble className="h-4 w-4 text-gold-500" /><span className="truncate">Makkah: {p.hotel_makkah}</span><span className="flex shrink-0 text-gold-400">{Array.from({ length: p.hotel_makkah_star }).map((_, i) => <Star key={i} className="h-3 w-3 fill-current" />)}</span></p>
                     <p className="flex items-center gap-2"><BedDouble className="h-4 w-4 text-gold-500" /><span className="truncate">Madinah: {p.hotel_madinah}</span><span className="flex shrink-0 text-gold-400">{Array.from({ length: p.hotel_madinah_star }).map((_, i) => <Star key={i} className="h-3 w-3 fill-current" />)}</span></p>
                 </div>

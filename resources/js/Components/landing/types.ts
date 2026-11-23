@@ -100,6 +100,7 @@ export interface LandingProps {
     galleries: GalleryPhoto[];
     testimonials: Testimonial[];
     rating: RatingSummary;
+    galleryAudio: { url: string; title: string | null } | null;
 }
 
 /** Props bersama dari HandleInertiaRequests yang dipakai landing. */
