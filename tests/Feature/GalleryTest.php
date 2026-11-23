@@ -155,6 +155,30 @@ class GalleryTest extends TestCase
         Storage::disk('public')->assertMissing(['galeri/foto/20-11-26-mekah-2.jpg', 'galeri/foto/20-11-26-mekah-3.jpg']);
     }
 
+    public function test_details_are_saved_and_videos_shown_on_home(): void
+    {
+        $this->actingAs($this->admin)->post(route('admin.galeri.store'), [
+            'type' => 'foto', 'title' => 'Kegiatan Umroh 2025', 'subtitle' => 'Umroh Berkah', 'event_date' => '2025-01-15',
+            'location' => 'Masjidil Haram, Makkah', 'description' => 'Dokumentasi ibadah.', 'photos' => [UploadedFile::fake()->image('a.jpg')],
+        ])->assertSessionHasNoErrors();
+        $this->post(route('admin.galeri.store'), [
+            'type' => 'video', 'title' => 'Manasik', 'location' => 'Medan', 'video' => UploadedFile::fake()->create('m.mp4', 500, 'video/mp4'),
+        ])->assertSessionHasNoErrors();
+
+        $this->get('/')->assertInertia(fn ($p) => $p
+            ->where('galleries.0.date', '15 Januari 2025')->where('galleries.0.location', 'Masjidil Haram, Makkah')
+            ->where('galleries.0.description', 'Dokumentasi ibadah.')
+            ->has('galleryVideos', 1)->where('galleryVideos.0.type', 'video')->where('galleryVideos.0.location', 'Medan')
+            ->where('galleryVideos.0.video_url', fn ($u) => str_contains($u, 'galeri/video/')));
+
+        // ubah detail
+        $album = Gallery::where('type', 'foto')->first();
+        $this->post(route('admin.galeri.update', $album), ['title' => 'Kegiatan Umroh 2025', 'keep' => $album->photos, 'event_date' => '', 'location' => 'Madinah'])
+            ->assertSessionHasNoErrors();
+        $this->assertNull($album->fresh()->event_date);
+        $this->assertSame('Madinah', $album->fresh()->location);
+    }
+
     public function test_super_admin_cannot_manage_gallery(): void
     {
         $this->actingAs(User::factory()->admin('super_admin', true)->create())

@@ -32,7 +32,7 @@ class RefundController extends Controller
                     'has_proof' => (bool) $r->proof_path, 'created_at' => $r->created_at->format('d/m/Y H:i'),
                     'is_booking' => $r->refundable instanceof Booking,
                     'type' => $r->type, 'type_label' => Refund::TYPES[$r->type] ?? $r->type,
-                    'order_url' => $r->refundable instanceof Booking ? route('admin.bookings.show', $r->refundable) : null,
+                    'order_url' => $r->adminOrderUrl(),
                     'passengers' => $r->passenger_ids && $r->refundable instanceof Booking
                         ? $r->refundable->passengers()->whereIn('id', $r->passenger_ids)->get(['full_name', 'category', 'price'])->map(fn ($p) => $p->full_name.' ('.($p->category ?: 'dewasa').', Rp'.number_format((int) $p->price, 0, ',', '.').')')
                         : [],
@@ -81,6 +81,10 @@ class RefundController extends Controller
                 }
                 $refund->update(['status' => 'disetujui', 'approved_amount' => $amount, 'admin_note' => $data['admin_note'] ?? null, 'reviewed_by' => $request->user()->id, 'reviewed_at' => now()]);
                 $cancel = $refund->type === 'pembatalan' || ($refund->type === 'refund' && ($data['cancel_order'] ?? false));
+                if ($refund->type === 'refund' && ! $cancel && $order instanceof Booking && $amount > 0) {
+                    // pengembalian dana saja (mis. bayar ganda): total dibayar berkurang, status & cicilan dihitung ulang
+                    $bookings->refundPayment($order, $amount, $request->user(), $refund);
+                }
                 if ($cancel && $order instanceof Booking && ! in_array($order->status, ['dibatalkan', 'refund'], true)) {
                     // status pesanan ikut berubah: Refund bila ada dana dikembalikan, Dibatalkan bila tidak
                     $bookings->cancel($order, 'Pengajuan '.$refund->code.' disetujui', $request->user(), $amount > 0 ? 'refund' : 'dibatalkan');

@@ -39,6 +39,8 @@ return [
     'whatsapp' => [
         'endpoint' => env('WHATSAPP_ENDPOINT', 'https://api.fonnte.com/send'),
         'token' => env('WHATSAPP_TOKEN'),
+        // jeda antar pesan saat siaran ke banyak agen (detik) — mengurangi risiko nomor diblokir
+        'broadcast_delay' => (float) env('WHATSAPP_BROADCAST_DELAY', 2),
     ],
 
     'slack' => [

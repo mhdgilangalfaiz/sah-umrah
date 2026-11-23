@@ -26,7 +26,10 @@ export default function Refunds({ refunds, filters }) {
                         <tbody className="divide-y divide-slate-100">
                             {refunds.data.map((r) => (
                                 <tr key={r.id}>
-                                    <td className="font-medium"><Link href={route('admin.refunds.index', { q: r.code })} className="hover:underline">{r.code}</Link><NewDot show={isNew(route('admin.refunds.index'), r.code)} /><p className="text-[11px] font-semibold text-violet-700">{r.type_label}</p></td><td>{r.user}<p className="text-xs text-slate-500">{r.customer_code}</p></td>
+                                    <td className="whitespace-nowrap">{r.order_url
+                                        ? <Link href={r.order_url} className="font-semibold text-brand-700 hover:underline" title={`Buka pesanan ${r.order}`}>{r.code}</Link>
+                                        : <span className="font-semibold text-brand-700">{r.code}</span>}
+                                        <NewDot show={(r.order_url && isNew(r.order_url)) || isNew(route('admin.refunds.index'), r.code)} /><p className="text-[11px] font-semibold text-violet-700">{r.type_label}</p></td><td>{r.user}<p className="text-xs text-slate-500">{r.customer_code}</p></td>
                                     <td>{r.order}<p className="text-xs text-slate-500">dibayar {rupiah(r.paid)}</p></td>
                                     <td className="text-right">{rupiah(r.requested_amount)}</td><td className="text-right">{r.approved_amount != null ? rupiah(r.approved_amount) : '-'}</td>
                                     <td><StatusBadge status={r.status} /></td><td>{r.created_at}</td>

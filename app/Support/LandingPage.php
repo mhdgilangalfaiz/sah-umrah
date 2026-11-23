@@ -32,6 +32,7 @@ class LandingPage
             'packages' => self::packages($content['packages']['count']),
             'packageOptions' => Package::active()->orderBy('name')->pluck('name'),
             'galleries' => self::galleries(),
+            'galleryVideos' => self::galleryVideos(),
             'testimonials' => self::testimonials(),
             'rating' => self::rating(),
             // audio suasana galeri (diputar hanya bila pengunjung menekan tombol di lightbox)
@@ -101,22 +102,39 @@ class LandingPage
         return null;
     }
 
-    /** Album foto: sampul + judul + subjudul + seluruh foto (digeser di lightbox). */
+    /** Item galeri untuk lightbox: foto (album) & video, beserta detail kegiatan. */
+    private static function galleryItem(Gallery $g): array
+    {
+        return [
+            'id' => $g->id,
+            'type' => $g->type,
+            'title' => $g->title,
+            'subtitle' => $g->subtitle,
+            'date' => $g->event_date?->translatedFormat('d F Y'),
+            'location' => $g->location,
+            'description' => $g->description,
+            'image_url' => $g->isVideo() ? null : $g->image_url,
+            'photos' => $g->isVideo() ? [] : array_column($g->photo_items, 'url'),
+            'video_url' => $g->isVideo() ? $g->image_url : null,
+        ];
+    }
+
+    /** Album foto (sampul + semua foto, digeser di lightbox). */
     private static function galleries(): array
     {
         $albums = Gallery::where('type', 'foto')->latest('id')->take(24)->get()
-            ->map(fn (Gallery $g) => [
-                'id' => $g->id,
-                'title' => $g->title,
-                'subtitle' => $g->subtitle,
-                'image_url' => $g->image_url,
-                'photos' => array_column($g->photo_items, 'url'),
-            ])->filter(fn ($a) => $a['photos'])->values()->all();
+            ->map(fn (Gallery $g) => self::galleryItem($g))->filter(fn ($a) => $a['photos'])->values()->all();
 
         return $albums ?: collect(self::DEFAULT_GALLERY)
-            ->map(fn ($title, $i) => ['id' => 'd'.($i + 1), 'title' => $title, 'subtitle' => null,
-                'image_url' => '/images/landing/galeri-'.($i + 1).'.webp', 'photos' => ['/images/landing/galeri-'.($i + 1).'.webp']])
+            ->map(fn ($title, $i) => ['id' => 'd'.($i + 1), 'type' => 'foto', 'title' => $title, 'subtitle' => null, 'date' => null, 'location' => null, 'description' => null,
+                'image_url' => '/images/landing/galeri-'.($i + 1).'.webp', 'photos' => ['/images/landing/galeri-'.($i + 1).'.webp'], 'video_url' => null])
             ->all();
+    }
+
+    /** Video kegiatan (tab "Video" di galeri halaman utama). */
+    private static function galleryVideos(): array
+    {
+        return Gallery::where('type', 'video')->latest('id')->take(24)->get()->map(fn (Gallery $g) => self::galleryItem($g))->values()->all();
     }
 
     private static function testimonials(): array

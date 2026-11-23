@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    BarChart3, BookOpen, BookUser, Bot, CalendarClock, ChevronsLeft, ClipboardList, CreditCard, FileText, Globe, Headset, HelpCircle, Image, LayoutDashboard,
+    BarChart3, BookOpen, BookUser, Bot, CalendarClock, ChevronsLeft, ClipboardList, CreditCard, FileText, Globe, Handshake, Headset, HelpCircle, Image, LayoutDashboard,
     LayoutTemplate, LogOut, Megaphone, MessageSquareQuote, Package, Plane, Receipt, RotateCcw, ScrollText, Settings, ShieldAlert, Stamp, Ticket, UserCog, Users,
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -41,6 +41,7 @@ export const GROUPS = [
         ['Pusat Bantuan', 'admin.support.index', null, Headset, A, 'support', 'admin.support.*'],
         ['Jawaban Chatbot', 'admin.crud.index', 'chatbot', Bot, A],
         ['FAQ', 'admin.crud.index', 'faq', HelpCircle, A],
+        ['Agen', 'admin.agents.index', null, Handshake, A],
     ]],
     ['Konten Website', [
         ['Konten Beranda', 'admin.landing.edit', null, LayoutTemplate, A],

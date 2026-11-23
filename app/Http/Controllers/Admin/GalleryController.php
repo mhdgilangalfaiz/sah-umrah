@@ -62,12 +62,15 @@ class GalleryController extends Controller
             'type' => ['required', Rule::in(array_keys(Gallery::TYPES))],
             'title' => 'required|string|max:120',
             'subtitle' => 'nullable|string|max:255',
+            'event_date' => 'nullable|date',
+            'location' => 'nullable|string|max:150',
+            'description' => 'nullable|string|max:2000',
             'photos' => 'required_if:type,foto|array|max:'.Gallery::MAX_PHOTOS,
             'photos.*' => self::PHOTO_RULE,
             'video' => 'required_if:type,video|nullable|'.self::videoRule(),
         ], self::MESSAGES);
 
-        $gallery = new Gallery(['title' => $data['title'], 'subtitle' => $data['subtitle'] ?? null, 'type' => $data['type']]);
+        $gallery = new Gallery(['type' => $data['type'], ...self::details($data)]);
 
         if ($data['type'] === 'foto') {
             $files = $request->file('photos', []);
@@ -94,6 +97,9 @@ class GalleryController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:120',
             'subtitle' => 'nullable|string|max:255',
+            'event_date' => 'nullable|date',
+            'location' => 'nullable|string|max:150',
+            'description' => 'nullable|string|max:2000',
             'keep' => 'nullable|array',
             'keep.*' => 'string',
             'photos' => 'nullable|array|max:'.Gallery::MAX_PHOTOS,
@@ -102,7 +108,7 @@ class GalleryController extends Controller
         ], self::MESSAGES + ['file.max' => 'Ukuran video maksimal '.self::VIDEO_MAX_MB.' MB.']);
 
         $before = $gallery->paths();
-        $gallery->fill(['title' => $data['title'], 'subtitle' => $data['subtitle'] ?? null]);
+        $gallery->fill(self::details($data));
         $titleChanged = $gallery->isDirty('title');
         $date = $gallery->created_at ?? now();
 
@@ -139,6 +145,15 @@ class GalleryController extends Controller
         Audit::changes('konten.galeri.ubah', "Mengubah galeri #{$gallery->id}", $gallery);
 
         return back()->with('success', 'Galeri diperbarui.');
+    }
+
+    /** Judul, subjudul & detail yang tampil di lightbox halaman utama */
+    private static function details(array $data): array
+    {
+        return [
+            'title' => $data['title'], 'subtitle' => $data['subtitle'] ?? null, 'event_date' => $data['event_date'] ?? null,
+            'location' => $data['location'] ?? null, 'description' => $data['description'] ?? null,
+        ];
     }
 
     public function destroy(Gallery $gallery)

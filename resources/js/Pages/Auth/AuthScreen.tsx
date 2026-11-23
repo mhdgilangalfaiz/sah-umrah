@@ -15,6 +15,8 @@ interface AuthScreenProps {
     canResetPassword: boolean;
     captchaEnabled: boolean;
     slides: AuthSlide[];
+    /** Diisi setelah login Google berhasil: pesawat langsung terbang lalu menuju alamat ini */
+    autoFly?: string | null;
 }
 
 const TABS = [
@@ -39,7 +41,7 @@ function useDesktop(): boolean {
  * Login & Registrasi dalam satu komponen. Desktop: double slider (panel visual & form bertukar tempat).
  * Pesawat: melayang (idle), jatuh saat gagal, terbang lalu menuju dashboard saat berhasil.
  */
-export default function AuthScreen({ mode: initialMode, status, canResetPassword, captchaEnabled, slides }: AuthScreenProps) {
+export default function AuthScreen({ mode: initialMode, status, canResetPassword, captchaEnabled, slides, autoFly = null }: AuthScreenProps) {
     const [mode, setMode] = useState<AuthMode>(initialMode);
     const [plane, setPlane] = useState<PlaneState>('idle');
     const [planeKey, setPlaneKey] = useState(0);
@@ -65,6 +67,15 @@ export default function AuthScreen({ mode: initialMode, status, canResetPassword
         setPlane('crash');
     };
 
+    // Kembali dari Google (sudah login): pesawat melayang sebentar lalu terbang, sama seperti login biasa
+    useEffect(() => {
+        if (!autoFly) return undefined;
+        window.history.replaceState(window.history.state, '', route('login')); // alamat rapi selama animasi
+        const t = window.setTimeout(() => onResult(true, autoFly), 700);
+        return () => window.clearTimeout(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoFly]);
+
     // pesawat jatuh → kembali melayang setelah 1,7 detik
     useEffect(() => {
         if (plane !== 'crash') return undefined;
@@ -83,7 +94,7 @@ export default function AuthScreen({ mode: initialMode, status, canResetPassword
                     initial={{ opacity: 0, x: mode === 'register' ? 28 : -28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: mode === 'register' ? -28 : 28 }}
                     transition={{ duration: 0.3, ease: 'easeOut' }}>
                     {mode === 'login'
-                        ? <LoginForm status={status} canResetPassword={canResetPassword} captchaEnabled={captchaEnabled} busy={plane === 'fly'} onResult={onResult} onSwitch={() => switchMode('register')} />
+                        ? <LoginForm status={status} canResetPassword={canResetPassword} captchaEnabled={captchaEnabled} busy={plane === 'fly' || !!autoFly} onResult={onResult} onSwitch={() => switchMode('register')} />
                         : <RegisterForm busy={plane === 'fly'} onResult={onResult} onSwitch={() => switchMode('login')} />}
                 </motion.div>
             </AnimatePresence>

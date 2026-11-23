@@ -16,11 +16,11 @@ class Gallery extends Model
 
     public const MAX_PHOTOS = 30;
 
-    protected $fillable = ['title', 'subtitle', 'type', 'image', 'photos'];
+    protected $fillable = ['title', 'subtitle', 'event_date', 'location', 'description', 'type', 'image', 'photos'];
 
     protected $attributes = ['type' => 'foto'];
 
-    protected $casts = ['photos' => 'array'];
+    protected $casts = ['photos' => 'array', 'event_date' => 'date:Y-m-d'];
 
     protected $appends = ['image_url', 'file_name', 'photo_items'];
 

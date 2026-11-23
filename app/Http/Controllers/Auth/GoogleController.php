@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Notifications\SystemNotification;
 use App\Support\Audit;
+use App\Support\AuthScreen;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -19,7 +20,18 @@ class GoogleController extends Controller
     {
         abort_unless(config('services.google.client_id'), 404);
 
-        return Socialite::driver('google')->with(['prompt' => 'select_account'])->redirect();
+        return $this->driver()->with(['prompt' => 'select_account'])->redirect();
+    }
+
+    /**
+     * Alamat callback mengikuti alamat situs yang sedang dibuka, mis.
+     *  - uji lokal  : http://localhost:8000/auth/google/callback (Google menolak domain .test)
+     *  - hosting    : https://domain-anda.com/auth/google/callback
+     * Kedua alamat harus didaftarkan di Google Cloud Console → Authorized redirect URIs.
+     */
+    private function driver()
+    {
+        return Socialite::driver('google')->redirectUrl(url('/auth/google/callback'));
     }
 
     public function callback()
@@ -27,7 +39,7 @@ class GoogleController extends Controller
         abort_unless(config('services.google.client_id'), 404);
 
         try {
-            $g = Socialite::driver('google')->user();
+            $g = $this->driver()->user();
         } catch (\Throwable) {
             return redirect()->route('login')->withErrors(['email' => 'Login Google dibatalkan atau gagal. Silakan coba lagi.']);
         }
@@ -68,6 +80,24 @@ class GoogleController extends Controller
         $user->forceFill(['last_login_at' => now(), 'last_login_ip' => request()->ip()])->save();
         Audit::log($isNew ? 'auth.registrasi_google' : 'auth.login_google', ($isNew ? 'Registrasi' : 'Login').' via Google', $user);
 
-        return $user->profile_completed_at ? redirect()->intended(route('dashboard')) : redirect()->route('profile.complete');
+        // Tujuan akhir disimpan sekali pakai; halaman animasi pesawat yang akan mengarahkan ke sana
+        $to = $user->profile_completed_at ? redirect()->intended(route('dashboard'))->getTargetUrl() : route('profile.complete');
+        session()->flash('google_redirect', $to);
+
+        return redirect()->route('auth.google.welcome');
+    }
+
+    /**
+     * Halaman login tampil sebentar lalu pesawat terbang (sama seperti login dengan email & sandi),
+     * kemudian klien pindah ke tujuan. Dibuka ulang (refresh) tanpa data → langsung ke dashboard.
+     */
+    public function welcome()
+    {
+        $to = session('google_redirect');
+        if (! $to) {
+            return redirect()->route('dashboard');
+        }
+
+        return AuthScreen::render('login', ['autoFly' => $to, 'status' => 'Berhasil masuk dengan Google. Mengantar Anda ke dashboard…']);
     }
 }
