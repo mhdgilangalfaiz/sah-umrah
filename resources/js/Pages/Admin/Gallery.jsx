@@ -24,7 +24,7 @@ export default function Gallery({ items, filter, counts, limits, audio }) {
 
     return (
         <AdminLayout title="Galeri">
-            <PageHeader title="Galeri" subtitle="Satu album = satu judul + subjudul + banyak foto. Di halaman utama, pengunjung membuka album lalu menggeser fotonya."
+            <PageHeader title="Galeri" subtitle="Satu album = satu judul + banyak foto, atau satu video. Isi tanggal, lokasi & keterangan agar tampil lengkap saat pengunjung membuka foto/video."
                 actions={<button onClick={() => setModal({ mode: 'create' })} className="btn-primary"><Plus className="h-4 w-4" />Tambah</button>} />
 
             <GalleryAudioCard audio={audio} maxBytes={Math.min(10 * 1024 * 1024, limits.file || Infinity)} />
@@ -62,6 +62,7 @@ export default function Gallery({ items, filter, counts, limits, audio }) {
                                 <div className="p-3">
                                     <p className="line-clamp-1 font-semibold">{it.title}</p>
                                     <p className="line-clamp-2 min-h-[2rem] text-xs text-slate-500">{it.subtitle || <span className="italic text-slate-400">Tanpa subjudul</span>}</p>
+                                    {(it.event_date || it.location) && <p className="mt-1 truncate text-[11px] text-slate-400">{[it.event_date && new Date(it.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }), it.location].filter(Boolean).join(' · ')}</p>}
                                     <div className="mt-2 flex justify-end gap-1">
                                         <button onClick={() => setModal({ mode: 'edit', item: it })} className="btn-ghost btn-sm" aria-label="Ubah"><Pencil className="h-4 w-4" /></button>
                                         <button onClick={() => confirm(`Hapus "${it.title}" dari galeri? Semua file di dalamnya juga akan dihapus.`) && router.delete(route('admin.galeri.destroy', it.id), { preserveScroll: true })}
@@ -208,9 +209,30 @@ function TitleFields({ form }) {
                     placeholder="mis. Rombongan jamaah melempar jumrah di Mina" maxLength={255} />
                 {form.errors.subtitle && <p className="error">{form.errors.subtitle}</p>}
             </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label className="label">Tanggal kegiatan <span className="font-normal text-slate-400">(opsional)</span></label>
+                    <input type="date" className="input" value={form.data.event_date ?? ''} onChange={(e) => form.setData('event_date', e.target.value)} />
+                    {form.errors.event_date && <p className="error">{form.errors.event_date}</p>}
+                </div>
+                <div>
+                    <label className="label">Lokasi <span className="font-normal text-slate-400">(opsional)</span></label>
+                    <input className="input" value={form.data.location ?? ''} onChange={(e) => form.setData('location', e.target.value)} placeholder="mis. Masjidil Haram, Makkah" maxLength={150} />
+                    {form.errors.location && <p className="error">{form.errors.location}</p>}
+                </div>
+            </div>
+            <div>
+                <label className="label">Keterangan <span className="font-normal text-slate-400">(opsional)</span></label>
+                <textarea className="input min-h-[90px]" value={form.data.description ?? ''} onChange={(e) => form.setData('description', e.target.value)}
+                    placeholder="Cerita singkat kegiatan — tampil di panel kanan saat pengunjung membuka foto/video." maxLength={2000} />
+                {form.errors.description && <p className="error">{form.errors.description}</p>}
+            </div>
         </div>
     );
 }
+
+/** Nilai awal form dari item galeri (ubah) */
+const detailsOf = (item) => ({ title: item.title, subtitle: item.subtitle ?? '', event_date: item.event_date ?? '', location: item.location ?? '', description: item.description ?? '' });
 
 function Errors({ clientError, form, keys }) {
     const server = Object.entries(form.errors).filter(([k]) => keys.some((p) => k.startsWith(p))).map(([, v]) => v);
@@ -224,7 +246,7 @@ function Errors({ clientError, form, keys }) {
 }
 
 function CreateForm({ limits, onDone, onCancel }) {
-    const form = useForm({ type: 'foto', title: '', subtitle: '' });
+    const form = useForm({ type: 'foto', title: '', subtitle: '', event_date: '', location: '', description: '' });
     const urls = useObjectUrls();
     const [clientError, setClientError] = useState(null);
     const picker = usePhotoPicker(limits, setClientError);
@@ -342,7 +364,7 @@ function CreateForm({ limits, onDone, onCancel }) {
 
 /** Ubah album: judul/subjudul, hapus foto lama, jadikan sampul, tambah foto baru */
 function AlbumEditForm({ item, limits, onDone, onCancel }) {
-    const form = useForm({ title: item.title, subtitle: item.subtitle ?? '' });
+    const form = useForm(detailsOf(item));
     const [keep, setKeep] = useState(item.photo_items); // foto lama yang dipertahankan (urutan = urutan tampil)
     const [clientError, setClientError] = useState(null);
     const picker = usePhotoPicker(limits, setClientError);
@@ -408,7 +430,7 @@ function AlbumEditForm({ item, limits, onDone, onCancel }) {
 }
 
 function VideoEditForm({ item, limits, onDone, onCancel }) {
-    const form = useForm({ title: item.title, subtitle: item.subtitle ?? '' });
+    const form = useForm(detailsOf(item));
     const urls = useObjectUrls();
     const [result, setResult] = useState(null); // { file, url }
     const [clientError, setClientError] = useState(null);

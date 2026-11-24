@@ -49,6 +49,8 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            // Tombol "Masuk dengan Google" aktif otomatis bila GOOGLE_CLIENT_ID & SECRET sudah diisi di .env
+            'googleLogin' => (bool) (config('services.google.client_id') && config('services.google.client_secret')),
             'unreadNotifications' => fn () => $user ? $user->unreadNotifications()->count() : 0,
             // Admin: jumlah notifikasi belum dibaca per halaman tujuan → dipetakan ke menu di sidebar
             'unreadByPath' => fn () => $user?->isAdmin()

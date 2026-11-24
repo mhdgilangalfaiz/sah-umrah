@@ -30,5 +30,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Penolakan aturan bisnis (abort 422) saat mengirim form lewat Inertia → kembali ke halaman
+        // dengan pesan merah, bukan halaman error. Contoh: "Masih ada pengajuan yang sedang ditinjau".
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
+            if ($e->getStatusCode() === 422 && $request->header('X-Inertia') && ! $request->isMethod('GET')) {
+                return back()->with('error', $e->getMessage() ?: 'Permintaan tidak dapat diproses.');
+            }
+
+            return null;
+        });
     })->create();

@@ -56,6 +56,8 @@ Route::middleware('guest')->group(function () {
     Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('auth.google');
     Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 });
+// Setelah login Google berhasil: tampilkan animasi pesawat terbang dulu, baru ke dashboard
+Route::get('/auth/google/berhasil', [GoogleController::class, 'welcome'])->middleware('auth')->name('auth.google.welcome');
 
 /*
 |--------------------------------------------------------------------------
@@ -234,6 +236,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::put('/pengaturan', [Admin\ContentController::class, 'updateSettings'])->name('settings.update');
         Route::get('/promo', [Admin\PromotionController::class, 'index'])->name('promotions.index');
         Route::post('/promo', [Admin\PromotionController::class, 'store'])->middleware('throttle:5,1')->name('promotions.store');
+        // Agen (penanda internal) & siaran WhatsApp ke semua agen
+        Route::get('/agen', [Admin\AgentController::class, 'index'])->name('agents.index');
+        Route::get('/agen/cari', [Admin\AgentController::class, 'search'])->name('agents.search');
+        Route::post('/agen/pratinjau', [Admin\AgentController::class, 'preview'])->name('agents.preview');
+        Route::post('/agen/kirim', [Admin\AgentController::class, 'send'])->middleware('throttle:5,1')->name('agents.send');
+        Route::get('/agen/siaran/{broadcast}', [Admin\AgentController::class, 'status'])->name('agents.status');
+        Route::post('/agen/{user}', [Admin\AgentController::class, 'mark'])->name('agents.mark');
+        Route::put('/agen/{user}', [Admin\AgentController::class, 'note'])->name('agents.note');
+        Route::delete('/agen/{user}', [Admin\AgentController::class, 'unmark'])->name('agents.unmark');
     });
 
     // ---- Super Admin: buat & kelola akun admin ----

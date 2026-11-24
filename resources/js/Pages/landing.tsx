@@ -12,7 +12,7 @@ import type { LandingProps, SharedProps } from '@/Components/landing/types';
 const DESCRIPTION = 'SAH - PT. Sumatera Andalan Haramain, travel umrah amanah & profesional dari Kota Medan. Paket umrah terbaik, tiket pesawat, dan layanan visa dengan pembimbing berpengalaman.';
 
 /** Landing page (route "/"). Semua isi berasal dari App\Support\LandingPage. */
-export default function Landing({ content, services, packages, packageOptions, galleries, testimonials, rating, galleryAudio }: LandingProps) {
+export default function Landing({ content, services, packages, packageOptions, galleries, galleryVideos = [], testimonials, rating, galleryAudio }: LandingProps) {
     const { company } = usePage<SharedProps>().props;
 
     // Datang dari halaman lain lewat "/#galeri" dsb → langsung ke section tujuan
@@ -31,7 +31,7 @@ export default function Landing({ content, services, packages, packageOptions, g
             <Services heading={content.services_heading} services={services} />
             <Packages heading={content.packages} packages={packages} whatsapp={company.whatsapp} />
             <Testimonials heading={content.testimonials} testimonials={testimonials} rating={rating} packageOptions={packageOptions} />
-            <Gallery heading={content.gallery} photos={galleries} audio={galleryAudio} />
+            <Gallery heading={content.gallery} photos={galleries} videos={galleryVideos} audio={galleryAudio} />
         </SiteChrome>
     );
 }

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 /** Riwayat perubahan pesanan umrah: pengurangan jamaah, perubahan kategori/harga, pembatalan. */
 class BookingChange extends Model
 {
-    public const TYPES = ['pengurangan' => 'Pengurangan jamaah', 'perubahan' => 'Perubahan jamaah', 'pembatalan' => 'Pembatalan pesanan'];
+    public const TYPES = ['pengurangan' => 'Pengurangan jamaah', 'perubahan' => 'Perubahan jamaah', 'pembatalan' => 'Pembatalan pesanan', 'refund' => 'Pengembalian dana'];
 
     protected $fillable = ['booking_id', 'type', 'description', 'old_total', 'new_total', 'refund_amount', 'refund_id', 'changed_by'];
 

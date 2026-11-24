@@ -133,6 +133,33 @@ class BookingAdjustmentTest extends TestCase
         $this->assertScheduleMatches($b);
     }
 
+    public function test_approved_refund_does_not_block_new_request_and_errors_are_friendly(): void
+    {
+        $b = $this->booking(10_000_000);
+        $adik = $b->passengers()->where('full_name', 'Adik')->first();
+        $form = fn (array $x = []) => $x + ['order_type' => 'booking', 'order_code' => $b->code, 'type' => 'pengurangan', 'passenger_ids' => [$adik->id],
+            'amount' => 1_000_000, 'reason' => 'Adik tidak jadi ikut karena sekolah', 'bank_name' => 'BSI', 'account_number' => '1234567890', 'account_holder' => 'Boy'];
+
+        // refund biasa disetujui admin (menunggu transfer) → total dibayar berkurang, status ikut dihitung ulang
+        Refund::create(['code' => 'RF-LAMA', 'type' => 'refund', 'user_id' => $this->customer->id, 'refundable_type' => $b->getMorphClass(), 'refundable_id' => $b->id,
+            'requested_amount' => 2_000_000, 'reason' => 'Pembayaran ganda', 'bank_name' => 'BSI', 'account_number' => '1', 'account_holder' => 'Boy']);
+        $this->actingAs($this->admin)->put(route('admin.refunds.update', Refund::where('code', 'RF-LAMA')->first()), ['action' => 'setujui', 'approved_amount' => 2_000_000])->assertSessionHasNoErrors();
+        $this->assertSame(8_000_000, $b->fresh()->paid_amount);
+        $this->assertScheduleMatches($b);
+
+        // refund "disetujui" tidak menghalangi pengajuan baru
+        $this->actingAs($this->customer)->post(route('customer.refunds.store'), $form())->assertSessionHasNoErrors();
+
+        // pengajuan yang masih "diajukan" → pesan rapi di form, bukan halaman error
+        $this->post(route('customer.refunds.store'), $form())->assertStatus(302)->assertSessionHasErrors('order_code');
+        $this->post(route('customer.refunds.store'), $form(['amount' => 999_000_000]))->assertSessionHasErrors('amount');
+
+        // penolakan 422 di aksi admin (Inertia) → kembali dengan pesan merah
+        $this->actingAs($this->admin)->post(route('admin.bookings.cancel', $b), ['reason' => 'x', 'refund_amount' => 0]);
+        $this->post(route('admin.bookings.reduce', $b), ['passenger_ids' => [$adik->id], 'refund_amount' => 0, 'reason' => 'x'], ['X-Inertia' => 'true'])
+            ->assertRedirect()->assertSessionHas('error', 'Pesanan sudah ditutup.');
+    }
+
     public function test_customer_cancellation_request_approved_sets_refund_status(): void
     {
         $b = $this->booking(6_000_000);

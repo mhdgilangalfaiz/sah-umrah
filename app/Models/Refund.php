@@ -28,6 +28,17 @@ class Refund extends Model
     }
 
     public function refundable() { return $this->morphTo(); }
+
+    /** Halaman detail pesanan di panel admin (umrah / tiket / visa) */
+    public function adminOrderUrl(): ?string
+    {
+        return match (true) {
+            $this->refundable instanceof Booking => route('admin.bookings.show', $this->refundable),
+            $this->refundable instanceof FlightOrder => route('admin.flight-orders.show', $this->refundable),
+            $this->refundable instanceof VisaApplication => route('admin.visa.show', $this->refundable),
+            default => null,
+        };
+    }
     public function user() { return $this->belongsTo(User::class); }
     public function reviewer() { return $this->belongsTo(User::class, 'reviewed_by'); }
 }

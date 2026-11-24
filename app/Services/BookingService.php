@@ -200,6 +200,18 @@ class BookingService
         });
     }
 
+    /** Pengembalian dana saja (mis. bayar ganda): jamaah tetap, total dibayar berkurang, status & cicilan dihitung ulang. */
+    public function refundPayment(Booking $booking, int $refund, ?User $by = null, ?Refund $refundRecord = null): BookingChange
+    {
+        return DB::transaction(function () use ($booking, $refund, $by, $refundRecord) {
+            $booking = Booking::lockForUpdate()->findOrFail($booking->id);
+            $this->guardRefund($booking, (int) $booking->total_amount, $refund);
+
+            return $this->applyChange($booking, 'refund', 'Pengembalian dana Rp'.number_format($refund, 0, ',', '.').($refundRecord ? ' ('.$refundRecord->code.')' : '').'.',
+                (int) $booking->total_amount, $refund, $by, $refundRecord);
+        });
+    }
+
     /** Dana dikembalikan tidak boleh melebihi yang sudah dibayar, dan kelebihan bayar wajib dikembalikan */
     private function guardRefund(Booking $booking, int $newTotal, int $refund): void
     {

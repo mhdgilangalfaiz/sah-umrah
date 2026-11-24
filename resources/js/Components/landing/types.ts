@@ -63,13 +63,19 @@ export interface LandingPackage {
     facilities: string[];
 }
 
-/** Satu album galeri: sampul + judul + subjudul + seluruh fotonya. */
+/** Satu item galeri: album foto (sampul + semua foto) atau video, beserta detail kegiatan. */
 export interface GalleryPhoto {
     id: number | string;
+    type: 'foto' | 'video';
     title: string | null;
     subtitle: string | null;
-    image_url: string;
+    /** tanggal kegiatan, sudah diformat, mis. "15 Januari 2025" */
+    date: string | null;
+    location: string | null;
+    description: string | null;
+    image_url: string | null;
     photos: string[];
+    video_url: string | null;
 }
 
 export interface Testimonial {
@@ -100,6 +106,7 @@ export interface LandingProps {
     packages: LandingPackage[];
     packageOptions: string[];
     galleries: GalleryPhoto[];
+    galleryVideos: GalleryPhoto[];
     testimonials: Testimonial[];
     rating: RatingSummary;
     galleryAudio: { url: string; title: string | null } | null;

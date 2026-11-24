@@ -37,7 +37,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $attributes = ['role' => 'customer', 'is_active' => true, 'is_primary_admin' => false];
 
-    protected $hidden = ['password', 'remember_token', 'nik', 'google_id'];
+    // is_agent & catatan agen: penanda internal admin — tidak pernah dikirim ke tampilan pelanggan
+    protected $hidden = ['password', 'remember_token', 'nik', 'google_id', 'is_agent', 'agent_marked_at', 'agent_note'];
 
     protected function casts(): array
     {
@@ -51,6 +52,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'nik' => 'encrypted',
             'is_primary_admin' => 'boolean',
             'is_active' => 'boolean',
+            'is_agent' => 'boolean',
+            'agent_marked_at' => 'datetime',
         ];
     }
 
@@ -108,4 +111,5 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function scopeAdmins($q) { return $q->whereIn('role', self::ADMIN_ROLES); }
     public function scopeCustomers($q) { return $q->where('role', self::ROLE_CUSTOMER); }
+    public function scopeAgents($q) { return $q->customers()->where('is_agent', true); }
 }

@@ -62,17 +62,26 @@ class RefundController extends Controller
             'account_number.required_unless' => 'Nomor rekening wajib diisi.', 'account_holder.required_unless' => 'Nama pemilik rekening wajib diisi.',
         ]);
         $data['type'] ??= 'refund';
-        abort_if($data['type'] === 'refund' && $data['amount'] < 10000, 422, 'Nominal refund minimal Rp10.000.');
+        if ($data['type'] === 'refund' && $data['amount'] < 10000) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Nominal pengembalian dana minimal Rp10.000.']);
+        }
 
         $order = self::TYPES[$data['order_type']]::where('code', $data['order_code'])->where('user_id', $request->user()->id)->firstOrFail();
         if ($data['type'] === 'pengurangan') {
             abort_unless($order instanceof Booking, 422, 'Pengurangan jamaah hanya untuk pesanan umrah.');
             $ids = $order->passengers()->whereIn('id', $data['passenger_ids'])->pluck('id');
-            abort_if($ids->isEmpty() || $ids->count() >= $order->pax_count, 422, 'Pilih jamaah yang dibatalkan (minimal 1 jamaah tetap berangkat). Untuk membatalkan semua, pilih Pembatalan pesanan.');
+            if ($ids->isEmpty() || $ids->count() >= $order->pax_count) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['passenger_ids' => 'Pilih jamaah yang dibatalkan (minimal 1 jamaah tetap berangkat). Untuk membatalkan semua, pilih Batalkan seluruh pesanan.']);
+            }
             $data['passenger_ids'] = $ids->all();
         }
-        abort_if($data['amount'] > $order->paid_amount, 422, 'Nominal refund melebihi jumlah yang telah dibayar.');
-        abort_if($order->refunds()->whereIn('status', ['diajukan', 'disetujui'])->exists(), 422, 'Masih ada pengajuan refund yang sedang diproses untuk pesanan ini.');
+        if ($data['amount'] > $order->paid_amount) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Nominal melebihi jumlah yang telah dibayar (Rp'.number_format($order->paid_amount, 0, ',', '.').').']);
+        }
+        // hanya pengajuan yang belum diputuskan admin yang menghalangi; refund "disetujui" tinggal ditransfer admin
+        if ($pending = $order->refunds()->where('status', 'diajukan')->first()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['order_code' => 'Masih ada pengajuan '.$pending->code.' yang sedang ditinjau admin untuk pesanan ini. Tunggu keputusannya terlebih dahulu.']);
+        }
 
         $refund = Refund::create([
             'code' => 'RF-'.now()->format('ymd').'-'.strtoupper(Str::random(4)),
@@ -88,7 +97,8 @@ class RefundController extends Controller
             'proof_path' => $request->hasFile('proof') ? FileStorage::storePrivate($request->file('proof'), 'refunds/'.$request->user()->id, 'bukti_refund') : null,
         ]);
         Audit::log('refund.diajukan', "Pengajuan refund {$refund->code} Rp".number_format($refund->requested_amount, 0, ',', '.')." untuk {$order->code}", $refund);
-        AdminNotifier::notify('refund', 'Pengajuan '.strtolower(Refund::TYPES[$refund->type]).' '.$refund->code, $request->user()->name.' — '.$order->code, route('admin.refunds.index', ['q' => $refund->code]), true);
+        AdminNotifier::notify('refund', 'Pengajuan '.strtolower(Refund::TYPES[$refund->type]).' '.$refund->code, $request->user()->name.' — '.$order->code, // umrah: pengajuan tampil di detail pesanan (bisa langsung diproses); tiket/visa: di menu Refund
+            $order instanceof Booking ? route('admin.bookings.show', $order) : route('admin.refunds.index', ['q' => $refund->code]), true);
 
         return back()->with('success', 'Pengajuan '.strtolower(Refund::TYPES[$refund->type]).' terkirim. Admin akan meninjau sesuai kebijakan refund.');
     }
