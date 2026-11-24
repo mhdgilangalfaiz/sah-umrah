@@ -3,6 +3,7 @@ import {
     AlertTriangle, BarChart3, BookUser, CalendarDays, ChevronRight, LayoutGrid, Package, Receipt, ShieldAlert, Stamp, Ticket, UserCog, Wallet,
 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CalendarCard, ClockCard } from '@/Components/admin/DashboardWidgets';
 import { cn } from '@/Components/landing/lib';
 import { Reveal, Stagger, StaggerItem } from '@/Components/landing/motion';
 import AdminLayout from '@/Layouts/AdminLayout';
@@ -61,7 +62,9 @@ export default function Dashboard({ stats, chart, departures, recentPayments, al
                 ))}
             </Stagger>
 
-            <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+            {/* Dua kolom bebas tinggi: kiri = omzet + pembayaran, kanan = keberangkatan (+ kalender & jam) + menu utama */}
+            <div className="mt-5 grid grid-cols-[minmax(0,1fr)] items-start gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+                <div className="flex min-w-0 flex-col gap-5">
                 <Reveal delay={0.1} className={panel}>
                     <PanelHead icon={BarChart3} title="Omzet 6 bulan terakhir per layanan" />
                     <div className="h-72 p-4">
@@ -80,6 +83,27 @@ export default function Dashboard({ stats, chart, departures, recentPayments, al
                     </div>
                 </Reveal>
 
+                <Reveal delay={0.2} className={panel}>
+                    <PanelHead icon={Wallet} title="Pembayaran terbaru" action={seeAll(route('admin.payments.index'))} />
+                    <div className="overflow-x-auto p-3">
+                        <table className="w-full min-w-[560px] text-sm">
+                            <thead><tr className="bg-primary-50 text-left text-xs font-bold uppercase tracking-wide text-neutral-600">
+                                <th className="rounded-l-xl px-3 py-2.5">Kode</th><th className="px-3 py-2.5">Pelanggan</th><th className="px-3 py-2.5">Metode</th><th className="px-3 py-2.5 text-right">Nominal</th><th className="rounded-r-xl px-3 py-2.5">Waktu</th>
+                            </tr></thead>
+                            <tbody className="divide-y divide-primary-900/5">
+                                {recentPayments.length === 0 && (
+                                    <tr><td colSpan={5} className="py-10 text-center text-neutral-600"><Wallet className="mx-auto mb-2 h-10 w-10 text-neutral-600/40" />Belum ada pembayaran</td></tr>
+                                )}
+                                {recentPayments.map((p) => (
+                                    <tr key={p.code}><td className="px-3 py-2.5 font-semibold">{p.code}</td><td className="px-3 py-2.5">{p.user}</td><td className="px-3 py-2.5">{p.method}</td><td className="px-3 py-2.5 text-right font-bold">{rupiah(p.amount)}</td><td className="px-3 py-2.5 text-neutral-600">{p.paid_at}</td></tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Reveal>
+                </div>
+
+                <div className="flex min-w-0 flex-col gap-5">
                 <Reveal delay={0.15} className={cn(panel, 'relative overflow-hidden')}>
                     <PanelHead icon={CalendarDays} title="Keberangkatan 45 hari ke depan" action={isAdmin && seeAll(route('admin.departures.index'))} />
                     <img src="/images/admin/nabawi-ilustrasi.webp" alt="" aria-hidden="true" className="pointer-events-none absolute bottom-0 right-0 w-[45%] max-w-[240px] opacity-90 sm:w-[55%] [mask-image:linear-gradient(to_left,#000_60%,transparent)]" />
@@ -102,27 +126,14 @@ export default function Dashboard({ stats, chart, departures, recentPayments, al
                         </p>
                     </div>
                 </Reveal>
-            </div>
 
-            <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
-                <Reveal delay={0.2} className={panel}>
-                    <PanelHead icon={Wallet} title="Pembayaran terbaru" action={seeAll(route('admin.payments.index'))} />
-                    <div className="overflow-x-auto p-3">
-                        <table className="w-full min-w-[560px] text-sm">
-                            <thead><tr className="bg-primary-50 text-left text-xs font-bold uppercase tracking-wide text-neutral-600">
-                                <th className="rounded-l-xl px-3 py-2.5">Kode</th><th className="px-3 py-2.5">Pelanggan</th><th className="px-3 py-2.5">Metode</th><th className="px-3 py-2.5 text-right">Nominal</th><th className="rounded-r-xl px-3 py-2.5">Waktu</th>
-                            </tr></thead>
-                            <tbody className="divide-y divide-primary-900/5">
-                                {recentPayments.length === 0 && (
-                                    <tr><td colSpan={5} className="py-10 text-center text-neutral-600"><Wallet className="mx-auto mb-2 h-10 w-10 text-neutral-600/40" />Belum ada pembayaran</td></tr>
-                                )}
-                                {recentPayments.map((p) => (
-                                    <tr key={p.code}><td className="px-3 py-2.5 font-semibold">{p.code}</td><td className="px-3 py-2.5">{p.user}</td><td className="px-3 py-2.5">{p.method}</td><td className="px-3 py-2.5 text-right font-bold">{rupiah(p.amount)}</td><td className="px-3 py-2.5 text-neutral-600">{p.paid_at}</td></tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </Reveal>
+                {/* Super Admin: kalender & jam WIB di bawah keberangkatan */}
+                {!isAdmin && (
+                    <Reveal delay={0.2} className="grid gap-5 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] xl:grid-cols-1 2xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+                        <CalendarCard />
+                        <ClockCard />
+                    </Reveal>
+                )}
 
                 <Reveal delay={0.25} className={panel}>
                     <PanelHead icon={LayoutGrid} title="Menu Utama" />
@@ -145,6 +156,7 @@ export default function Dashboard({ stats, chart, departures, recentPayments, al
                         </Link>
                     )}
                 </Reveal>
+                </div>
             </div>
         </AdminLayout>
     );

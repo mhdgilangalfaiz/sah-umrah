@@ -45,6 +45,7 @@ class RegisteredUserController extends Controller
         event(new Registered($user)); // kirim email verifikasi
         Auth::login($user);
         Audit::log('auth.registrasi', 'Registrasi akun baru '.$user->customer_code, $user);
+        \App\Support\AdminNotifier::notify('akun', 'Pendaftar baru '.$user->customer_code, "{$user->name} ({$user->email}) membuat akun.", route('admin.users.index', ['q' => $user->customer_code]));
 
         $user->notify(new SystemNotification('akun', 'Registrasi Berhasil',
             'Selamat datang di PT. Sumatera Andalan Haramain! Kode pelanggan Anda: '.$user->customer_code.'. Silakan verifikasi email Anda untuk mulai melakukan pemesanan.',

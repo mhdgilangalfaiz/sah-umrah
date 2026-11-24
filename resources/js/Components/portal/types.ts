@@ -40,7 +40,19 @@ export interface DashboardNotification {
     time: string;
 }
 
+/** Tanggal penting di "Kalender Perjalanan Saya". */
+export interface CalendarEvent {
+    date: string; // YYYY-MM-DD
+    type: 'departure' | 'installment' | 'deadline';
+    title: string;
+    detail: string;
+    amount?: number;
+    overdue?: boolean;
+    url: string;
+}
+
 export interface DashboardProps {
+    calendarEvents: CalendarEvent[];
     stats: DashboardStats;
     activeTrip: ActiveTrip | null;
     installments: Installment[];

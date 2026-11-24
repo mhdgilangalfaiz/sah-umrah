@@ -1,7 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     BarChart3, BookOpen, BookUser, Bot, CalendarClock, ChevronsLeft, ClipboardList, CreditCard, FileText, Globe, Handshake, Headset, HelpCircle, Image, LayoutDashboard,
-    LayoutTemplate, LogOut, Megaphone, MessageSquareQuote, Package, Plane, Receipt, RotateCcw, ScrollText, Settings, ShieldAlert, Stamp, Ticket, UserCog, Users,
+    History, LayoutTemplate, LogOut, Megaphone, MessageSquareQuote, Package, Plane, Receipt, RotateCcw, ScrollText, Settings, ShieldAlert, Stamp, Ticket, UserCog, Users,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLayoutEffect, useMemo, useRef } from 'react';
@@ -31,7 +31,8 @@ export const GROUPS = [
     ['Produk & Layanan', [
         ['Paket Umrah', 'admin.packages.index', null, Package, A, null, 'admin.packages.*'],
         ['Keberangkatan', 'admin.departures.index', null, CalendarClock, A],
-        ['Jadwal Penerbangan', 'admin.flights.index', null, Plane, A, null, 'admin.flights.*'],        ['Layanan Visa', 'admin.crud.index', 'visa', Globe, A],
+        ['Jadwal Penerbangan', 'admin.flights.index', null, Plane, A, null, 'admin.flights.*'],
+        ['Layanan Visa', 'admin.crud.index', 'visa', Globe, A],
     ]],
     ['Keuangan', [
         ['Refund', 'admin.refunds.index', null, RotateCcw, A, 'refunds'],
@@ -52,9 +53,10 @@ export const GROUPS = [
         ['Kirim Promo', 'admin.promotions.index', null, Megaphone, A],
     ]],
     ['Sistem', [
-        ['Audit Log', 'admin.audit.index', null, ScrollText, A],
+        ['Audit Log', 'admin.audit.index', null, ScrollText, VIEW],
         ['Pengaturan', 'admin.settings.index', null, Settings, A],
         ['Akun Admin', 'admin.admins.index', null, UserCog, SA],
+        ['Log Aktivitas', 'admin.activity.index', null, History, SA],
     ]],
 ];
 
@@ -107,10 +109,13 @@ export default function AdminSidebar({ collapsed = false, pillId, onToggle, onNa
 
     return (
         <div className="flex h-full flex-col">
-            <div className={cn('flex border-b border-primary-900/10 pb-3', collapsed ? 'flex-col items-center gap-2' : 'items-center justify-between pl-1')}>
-                <Link href={route('admin.dashboard')} aria-label="Dashboard admin" className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
-                    {collapsed ? <img src="/images/logo-sah-mark.png" alt="SAH" className="h-10 w-10" /> : <img src="/images/logo-sah.png" alt="SAH - PT. Sumatera Andalan Haramain" className="h-11 w-auto" />}
-                </Link>
+            {/* Terlipat: logo disembunyikan, hanya tombol lebarkan; logo muncul lagi saat sidebar dibuka */}
+            <div className={cn('flex border-b border-primary-900/10 pb-3', collapsed ? 'justify-center' : 'items-center justify-between pl-1')}>
+                {!collapsed && (
+                    <Link href={route('admin.dashboard')} aria-label="Dashboard admin" className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                        <img src="/images/logo-sah.png" alt="SAH - PT. Sumatera Andalan Haramain" className="h-11 w-auto" />
+                    </Link>
+                )}
                 {onToggle && (
                     <button type="button" onClick={onToggle} aria-label={collapsed ? 'Lebarkan sidebar' : 'Lipat sidebar'} title={collapsed ? 'Lebarkan sidebar' : 'Lipat sidebar'}
                         className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-primary-100 bg-white text-primary-700 shadow-sm transition hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">

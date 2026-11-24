@@ -4,13 +4,14 @@ import UserAvatar from '@/Components/portal/UserAvatar';
 import { Reveal } from '@/Components/landing/motion';
 import ActiveTrip from '@/Components/portal/ActiveTrip';
 import PromoBanner from '@/Components/portal/PromoBanner';
-import { InstallmentsCard, NotificationsCard } from '@/Components/portal/SideCards';
+import { NotificationsCard } from '@/Components/portal/SideCards';
+import TripCalendar from '@/Components/portal/TripCalendar';
 import StatCards from '@/Components/portal/StatCards';
 import type { DashboardProps } from '@/Components/portal/types';
 import PortalLayout from '@/Layouts/PortalLayout';
 
 /** Dashboard jamaah (/dashboard). */
-export default function Dashboard({ stats, activeTrip, installments, notifications }: DashboardProps) {
+export default function Dashboard({ stats, activeTrip, calendarEvents = [], notifications }: DashboardProps) {
     const { auth } = usePage<{ auth: { user: { name: string; avatar: string | null } } }>().props;
     const name = auth.user.name;
 
@@ -43,7 +44,8 @@ export default function Dashboard({ stats, activeTrip, installments, notificatio
                     <Reveal delay={0.2}><PromoBanner /></Reveal>
                 </div>
                 <div className="space-y-6">
-                    <Reveal delay={0.15}><InstallmentsCard items={installments} /></Reveal>
+                    {/* kalender berisi jatuh tempo cicilan + keberangkatan (menggantikan kartu Jadwal Cicilan) */}
+                    <Reveal delay={0.15}><TripCalendar events={calendarEvents} /></Reveal>
                     <Reveal delay={0.25}><NotificationsCard items={notifications} /></Reveal>
                 </div>
             </div>

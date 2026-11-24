@@ -22,4 +22,12 @@ class AdminNotifier
         if ($admins->isEmpty()) return;
         Notification::send($admins, new SystemNotification($category, $title, $message, $url, 'Buka', $mail, false, $level));
     }
+
+    /** Hanya ke Super Admin (mis. keamanan akun admin). */
+    public static function notifySuperAdmins(string $category, string $title, string $message, ?string $url = null, string $level = 'info'): void
+    {
+        $supers = User::where('role', User::ROLE_SUPER_ADMIN)->where('is_active', true)->get();
+        if ($supers->isEmpty()) return;
+        Notification::send($supers, new SystemNotification($category, $title, $message, $url, 'Buka', false, false, $level));
+    }
 }

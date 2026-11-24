@@ -37,13 +37,13 @@ export default function SidebarNav({ collapsed = false, pillId, onToggle, onNavi
 
     return (
         <div className="flex h-full flex-col">
-            {/* Lebar: logo kiri + tombol lipat kanan. Terlipat: ikon Ka'bah di atas, tombol lebarkan di bawahnya, rata tengah. */}
-            <div className={cn('flex border-b border-primary-900/10 pb-4 short:pb-3', collapsed ? 'flex-col items-center gap-3 short:gap-2' : 'items-center justify-between pl-2')}>
-                <Link href={route('home')} aria-label="Ke beranda SAH" className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
-                    {collapsed
-                        ? <img src="/images/logo-sah-mark.png" alt="SAH" className="h-11 w-11 short:h-9 short:w-9" />
-                        : <img src="/images/logo-sah.png" alt="SAH - PT. Sumatera Andalan Haramain" className="h-12 w-auto short:h-10" />}
-                </Link>
+            {/* Lebar: logo kiri + tombol lipat kanan. Terlipat: logo disembunyikan, hanya tombol lebarkan di tengah. */}
+            <div className={cn('flex border-b border-primary-900/10 pb-4 short:pb-3', collapsed ? 'justify-center' : 'items-center justify-between pl-2')}>
+                {!collapsed && (
+                    <Link href={route('home')} aria-label="Ke beranda SAH" className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                        <img src="/images/logo-sah.png" alt="SAH - PT. Sumatera Andalan Haramain" className="h-12 w-auto short:h-10" />
+                    </Link>
+                )}
                 {onToggle && (
                     <button type="button" onClick={onToggle} aria-label={collapsed ? 'Lebarkan sidebar' : 'Lipat sidebar'} title={collapsed ? 'Lebarkan sidebar' : 'Lipat sidebar'}
                         className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-primary-100 bg-white text-primary-700 shadow-sm transition hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">

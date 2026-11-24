@@ -150,6 +150,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
     // ---- Admin & Super Admin: lihat pembelian, pembayaran, laporan & invoice (tanpa mengubah) ----
     Route::middleware('admin:admin,super_admin')->group(function () {
+        // Audit log: Super Admin melihat semua, Admin tanpa aktivitas Super Admin (difilter di controller)
+        Route::get('/audit-log', [Admin\AuditLogController::class, 'index'])->name('audit.index');
+        Route::get('/audit-log/ekspor', [Admin\AuditLogController::class, 'export'])->name('audit.export');
         Route::get('/pesanan-umrah', [Admin\BookingController::class, 'index'])->name('bookings.index');
         Route::get('/pesanan-umrah/ekspor', [Admin\BookingController::class, 'export'])->name('bookings.export');
         Route::get('/pesanan-umrah/{booking}', [Admin\BookingController::class, 'show'])->name('bookings.show');
@@ -232,7 +235,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::get('/jamaah', [Admin\JamaahController::class, 'index'])->name('jamaah.index');
         Route::get('/jamaah/{user:customer_code}', [Admin\JamaahController::class, 'show'])->name('jamaah.show');
         Route::post('/pengguna/{user}/status', [Admin\UserController::class, 'toggle'])->name('users.toggle');
-        Route::get('/audit-log', [Admin\AuditLogController::class, 'index'])->name('audit.index');
         Route::get('/halaman', [Admin\ContentController::class, 'pages'])->name('pages.index');
         Route::put('/halaman/{page}', [Admin\ContentController::class, 'updatePage'])->name('pages.update');
         Route::get('/pengaturan', [Admin\ContentController::class, 'settings'])->name('settings.index');
@@ -255,6 +257,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::get('/akun-admin', [Admin\AdminAccountController::class, 'index'])->name('admins.index');
         Route::post('/akun-admin', [Admin\AdminAccountController::class, 'store'])->name('admins.store');
         Route::put('/akun-admin/{user}', [Admin\AdminAccountController::class, 'update'])->name('admins.update');
+        Route::get('/log-aktivitas', [Admin\ActivityLogController::class, 'index'])->name('activity.index');
+        Route::get('/log-aktivitas/ekspor', [Admin\ActivityLogController::class, 'export'])->name('activity.export');
     });
 });
 

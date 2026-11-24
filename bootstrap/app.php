@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'customer' => \App\Http\Middleware\EnsureCustomer::class,
         ]);
 
+        // Sudah login lalu membuka /login atau /register → langsung ke dashboard sesuai peran
+        $middleware->redirectUsersTo(fn (\Illuminate\Http\Request $r) => $r->user()?->isAdmin() ? route('admin.dashboard') : route('dashboard'));
+
         // Webhook dari payment gateway tidak membawa token CSRF (diverifikasi via signature)
         $middleware->validateCsrfTokens(except: ['webhooks/*']);
 

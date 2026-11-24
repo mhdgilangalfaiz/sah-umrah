@@ -24,7 +24,7 @@ const navBtn = 'absolute top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-item
  * Geser (swipe) / tombol ‹ › / panah keyboard; setelah item terakhir lanjut ke item berikutnya.
  */
 export default function GalleryLightbox({ albums, album, onClose, audio }: GalleryLightboxProps) {
-    const slides = useMemo<Slide[]>(() => albums.flatMap((a, ai) => (a.type === 'video'
+    const slides = useMemo<Slide[]>(() => albums.flatMap((a, ai): Slide[] => (a.type === 'video'
         ? (a.video_url ? [{ ai, pi: 0, url: a.video_url, video: true }] : [])
         : a.photos.map((url, pi) => ({ ai, pi, url, video: false })))), [albums]);
     const [pos, setPos] = useState(0);

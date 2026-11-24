@@ -1,12 +1,28 @@
 import { ArrowUp, Bot, X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ChatWidget from '@/Components/ChatWidget';
+
+/*
+ * Bertahan selama website terbuka (pindah halaman lewat Inertia tidak memuat ulang modul ini):
+ *  - entered: tombol Chat Bot sudah pernah tampil → animasi "muncul dari bawah" hanya sekali di awal,
+ *  - chatOpen: jendela chat tetap terbuka saat berpindah halaman.
+ */
+let entered = false;
+let chatOpen = false;
 
 /** Kanan bawah: tombol "Kembali ke atas" (setelah 600px) dan pill "Chat Bot" yang membuka chatbot internal. */
 export default function FloatingActions({ showTop, chat }: { showTop: boolean; chat: boolean }) {
     const reduce = useReducedMotion();
-    const [open, setOpen] = useState(false);
+    const firstEntrance = useRef(!entered).current; // true hanya pada tampilan pertama
+    const [open, setOpenState] = useState(chatOpen);
+    const setOpen = (next: boolean | ((o: boolean) => boolean)) => setOpenState((o) => {
+        const v = typeof next === 'function' ? next(o) : next;
+        chatOpen = v;
+        return v;
+    });
+
+    useEffect(() => { entered = true; }, []);
     const toTop = () => window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
 
     return (
@@ -24,8 +40,8 @@ export default function FloatingActions({ showTop, chat }: { showTop: boolean; c
 
                 {chat && (
                     <motion.button type="button" onClick={() => setOpen((o) => !o)} aria-label={open ? 'Tutup Chat Bot' : 'Buka Chat Bot'} aria-expanded={open}
-                        initial={reduce ? false : { opacity: 0, y: 80, scale: 0.6 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={reduce ? undefined : { delay: 1, type: 'spring', stiffness: 420, damping: 14 }}
+                        initial={reduce || !firstEntrance ? false : { opacity: 0, y: 80, scale: 0.6 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={reduce || !firstEntrance ? undefined : { delay: 1, type: 'spring', stiffness: 420, damping: 14 }}
                         className="flex items-center gap-2.5 rounded-full bg-gradient-to-r from-primary-700 to-primary-900 py-3 pl-3.5 pr-5 text-sm font-bold text-white shadow-lg shadow-primary-900/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2">
                         <span className="relative grid h-8 w-8 place-items-center rounded-full bg-white/15">
                             {open ? <X className="h-4 w-4" aria-hidden="true" /> : <Bot className="h-5 w-5" aria-hidden="true" />}

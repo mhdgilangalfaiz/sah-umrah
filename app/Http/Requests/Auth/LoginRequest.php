@@ -84,6 +84,11 @@ class LoginRequest extends FormRequest
         $locked = $throttle->fail();
         if ($user) {
             Audit::log('auth.login_gagal', 'Percobaan login gagal untuk '.$email, $user, [], [], $user);
+            // akun admin dicoba dengan sandi salah → Super Admin diberi tahu
+            if ($user->isAdmin()) {
+                \App\Support\AdminNotifier::notifySuperAdmins('keamanan', 'Login gagal akun '.$user->roleLabel(),
+                    "Percobaan login gagal untuk {$user->name} ({$email}) dari IP {$this->ip()}.", route('admin.activity.index'), 'danger');
+            }
         }
 
         $this->fail(self::FAILED.($locked ? ' Demi keamanan, coba lagi dalam '.LoginThrottle::human($locked).'.' : ''), $locked);

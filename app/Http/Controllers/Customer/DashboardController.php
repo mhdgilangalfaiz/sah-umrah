@@ -62,6 +62,7 @@ class DashboardController extends Controller
                     'overdue' => $i->due_date && $i->due_date->lt(today()),
                     'url' => route('customer.bookings.show', $i->booking->code),
                 ]),
+            'calendarEvents' => $this->calendarEvents($u, $active),
             'notifications' => $u->notifications()->take(4)->get()->map(fn ($n) => [
                 'id' => $n->id,
                 'title' => $n->data['title'] ?? 'Notifikasi',
@@ -70,5 +71,44 @@ class DashboardController extends Controller
                 'time' => $n->created_at->locale('id')->diffForHumans(),
             ]),
         ]);
+    }
+
+    /**
+     * Tanggal penting jamaah untuk "Kalender Perjalanan Saya":
+     * keberangkatan umrah & tiket (hijau), jatuh tempo cicilan (merah), batas pelunasan (emas).
+     */
+    private function calendarEvents($u, $active): array
+    {
+        $events = [];
+        foreach ($active as $b) {
+            $url = route('customer.bookings.show', $b->code);
+            $events[] = ['date' => $b->departure->departure_date->toDateString(), 'type' => 'departure',
+                'title' => 'Berangkat umrah', 'detail' => $b->departure->package->name.' · '.$b->code, 'url' => $url];
+            if ($b->status !== 'lunas' && $b->payment_deadline) {
+                $events[] = ['date' => $b->payment_deadline->toDateString(), 'type' => 'deadline',
+                    'title' => 'Batas pelunasan', 'detail' => $b->code.' · sisa Rp'.number_format($b->outstandingAmount(), 0, ',', '.'),
+                    'overdue' => $b->payment_deadline->lt(today()), 'url' => $url];
+            }
+        }
+
+        PaymentInstallment::with('booking:id,code')
+            ->whereHas('booking', fn ($q) => $q->where('user_id', $u->id)->whereIn('status', ['menunggu_pembayaran', 'cicilan_berjalan']))
+            ->where('status', '!=', 'lunas')->whereNotNull('due_date')->orderBy('due_date')->get()
+            ->each(function (PaymentInstallment $i) use (&$events) {
+                $events[] = ['date' => $i->due_date->toDateString(), 'type' => 'installment',
+                    'title' => ($i->label ?: 'Termin '.$i->sequence).' jatuh tempo', 'detail' => $i->booking->code,
+                    'amount' => (int) ($i->amount - $i->paid_amount), 'overdue' => $i->due_date->lt(today()),
+                    'url' => route('customer.bookings.show', $i->booking->code)];
+            });
+
+        $u->flightOrders()->with('flight')->whereNotIn('status', ['dibatalkan', 'kedaluwarsa'])->get()
+            ->filter(fn ($o) => $o->flight?->depart_at)
+            ->each(function ($o) use (&$events) {
+                $events[] = ['date' => $o->flight->depart_at->toDateString(), 'type' => 'departure',
+                    'title' => 'Terbang '.$o->flight->origin_code.' → '.$o->flight->destination_code, 'detail' => $o->flight->airline.' · '.$o->code,
+                    'url' => route('customer.flight-orders.show', $o->code)];
+            });
+
+        return collect($events)->sortBy('date')->values()->all();
     }
 }

@@ -69,6 +69,7 @@ class GoogleController extends Controller
                 'avatar' => $g->getAvatar(),
                 'email_verified_at' => now(), // email Google sudah terverifikasi
             ]);
+            \App\Support\AdminNotifier::notify('akun', 'Pendaftar baru '.$user->customer_code, "{$user->name} ({$user->email}) membuat akun lewat Google.", route('admin.users.index', ['q' => $user->customer_code]));
             $user->notify(new SystemNotification('akun', 'Registrasi Berhasil',
                 'Selamat datang! Kode pelanggan Anda: '.$user->customer_code.'. Mohon lengkapi data profil Anda.', route('profile.complete'), 'Lengkapi Profil', false));
         } else {
