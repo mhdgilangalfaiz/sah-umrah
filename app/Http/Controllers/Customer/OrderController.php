@@ -108,7 +108,40 @@ class OrderController extends Controller
             'payments' => $flightOrder->payments()->get(),
             'documents' => self::documentsOf($flightOrder),
             'payBox' => self::payBox($flightOrder, 'flight'),
+            'billTo' => $flightOrder->billTo(),
+            'deposit' => (int) $flightOrder->paid_amount === 0 ? $flightOrder->minimumPayment() : 0,
+            'manifest' => [
+                'can_upload' => $flightOrder->canUploadManifest(),
+                'uploaded_at' => $flightOrder->manifest_uploaded_at?->format('d/m/Y H:i'),
+                'warnings' => $flightOrder->manifest_warnings ?? [],
+                'count' => $flightOrder->passengers->count(),
+            ],
         ]);
+    }
+
+    /** Template Excel manifest (berisi baris sebanyak seat yang dibeli) */
+    public function manifestTemplate(FlightOrder $flightOrder, \App\Services\Flights\FlightManifest $manifest)
+    {
+        $this->ensureOwner($flightOrder);
+
+        return response()->download($manifest->template($flightOrder), 'Manifest-'.$flightOrder->code.'.xlsx')->deleteFileAfterSend();
+    }
+
+    /** Unggah manifest penumpang (Excel) — hanya setelah tagihan lunas & sebelum e-ticket terbit */
+    public function uploadManifest(Request $request, FlightOrder $flightOrder, \App\Services\Flights\FlightManifest $manifest)
+    {
+        $this->ensureOwner($flightOrder);
+        if (! $flightOrder->canUploadManifest()) {
+            return back()->with('error', $flightOrder->status === 'tiket_terbit'
+                ? 'E-ticket sudah terbit. Hubungi admin bila ada perubahan data penumpang.'
+                : 'Manifest dapat diunggah setelah tagihan lunas.');
+        }
+        $request->validate(['file' => 'required|file|max:10240|mimes:xlsx,xls,csv'], [], ['file' => 'file manifest']);
+
+        $result = $manifest->store($flightOrder, $request->file('file'), $request->user());
+
+        return back()->with('success', "Manifest diterima: {$result['count']} penumpang."
+            .($result['warnings'] ? ' Mohon cek catatan di bawah.' : ' Tim kami akan memproses penerbitan tiket.'));
     }
 
     public function visas(Request $request)

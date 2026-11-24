@@ -1,12 +1,12 @@
 import { useForm, usePage } from '@inertiajs/react';
-import { Download, FilePenLine, Minus, Plus, Ticket, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Download, FilePenLine, FileSpreadsheet, Minus, Plus, Ticket, Trash2, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { FlightCard } from '@/Components/Cards';
 import { Card, DefList, Input, PageHeader, StatusBadge, Textarea } from '@/Components/ui';
 import { dateTime, rupiah } from '@/lib/format';
 
-export default function Show({ order: o, passengers, payments, documents, outstanding, flightDetails, extras, seatsAvailable, invoices, closed }) {
+export default function Show({ order: o, passengers, payments, documents, outstanding, flightDetails, extras, seatsAvailable, invoices, closed, billTo, manifest }) {
     const { auth } = usePage().props;
     const isAdmin = auth.user.role === 'admin';
     const issue = useForm({ pnr: o.pnr ?? '', file: null });
@@ -32,10 +32,13 @@ export default function Show({ order: o, passengers, payments, documents, outsta
                         <InvoiceHistory invoices={invoices} />
                     </Card>
 
-                    <Card title="Penumpang (sesuai paspor)" pad={false}>
+                    <ManifestCard o={o} manifest={manifest} count={passengers.length} files={documents.filter((d) => d.type === 'manifest')} canUpload={isAdmin && !closed} />
+
+                    <Card title={`Penumpang (manifest) · ${passengers.length}/${o.pax_count}`} pad={false}>
+                        {passengers.length === 0 && <p className="px-5 py-4 text-sm text-slate-500">Belum ada data penumpang. Pembeli mengunggah manifest setelah tagihan lunas.</p>}
                         <div className="overflow-x-auto"><table className="table-app">
-                            <thead><tr><th>Nama</th><th>L/P</th><th>Lahir</th><th>Paspor</th><th>Exp</th><th>Negara</th></tr></thead>
-                            <tbody className="divide-y divide-slate-100">{passengers.map((p) => <tr key={p.id}><td className="font-medium">{p.title} {p.full_name}</td><td>{p.gender}</td><td>{p.birth_date}</td><td className="font-mono">{p.passport_number}</td><td>{p.passport_expiry}</td><td>{p.nationality}</td></tr>)}</tbody>
+                            {passengers.length > 0 && <thead><tr><th>No</th><th>Nama</th><th>L/P</th><th>Lahir</th><th>Paspor</th><th>Exp</th><th>Negara</th></tr></thead>}
+                            <tbody className="divide-y divide-slate-100">{passengers.map((p, i) => <tr key={p.id}><td className="text-slate-500">{i + 1}</td><td className="font-medium">{p.title} {p.full_name}</td><td>{p.gender}</td><td>{p.birth_date}</td><td className="font-mono">{p.passport_number}</td><td>{p.passport_expiry}</td><td>{p.nationality}</td></tr>)}</tbody>
                         </table></div>
                     </Card>
                     <Card title="Transaksi" pad={false}>
@@ -43,13 +46,24 @@ export default function Show({ order: o, passengers, payments, documents, outsta
                     </Card>
                 </div>
                 <div className="grid content-start items-start gap-6 md:grid-cols-2 2xl:grid-cols-1">
-                    <Card title="Kontak"><DefList items={[['Email', o.contact_email], ['HP', o.contact_phone], ['Batas bayar', dateTime(o.expires_at)]]} /></Card>
+                    <Card title="Penerima invoice">
+                        <DefList items={[
+                            ['Pembeli', o.buyer_type === 'agen' ? 'Agen / Travel' : 'Perorangan / Keluarga'],
+                            billTo?.company && ['Travel / perusahaan', billTo.company],
+                            ['Penanggung jawab', billTo?.name ?? o.user.name],
+                            billTo?.address && ['Alamat', billTo.address],
+                            ['Email', o.contact_email], ['HP', o.contact_phone],
+                            o.status === 'menunggu_pembayaran' && ['Batas bayar DP', dateTime(o.expires_at)],
+                            o.settlement_due_at && ['Batas pelunasan', dateTime(o.settlement_due_at)],
+                        ].filter(Boolean)} />
+                    </Card>
                     <Card title="Detail penerbangan berlaku">
                         <DefList items={[['Maskapai', flightDetails.airline], ['No. flight', flightDetails.flight_number], ['Rute', flightDetails.route], ['Berangkat', flightDetails.depart], ['Kembali', flightDetails.return], ['PNR', flightDetails.pnr ?? o.pnr]]} />
                         <p className="mt-3 text-xs text-slate-500">Mengikuti invoice terbaru. Ubah lewat <b>Revisi invoice</b> — jadwal penerbangan mitra tidak ikut berubah.</p>
                     </Card>
                     {canIssue && (
                         <Card title={o.status === 'tiket_terbit' ? 'Terbitkan ulang e-ticket' : 'Terbitkan e-ticket'}>
+                            {!manifest.uploaded_at && <p className="mb-3 flex gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-900"><AlertTriangle className="h-4 w-4 shrink-0" />Manifest penumpang belum diunggah pembeli.</p>}
                             <form onSubmit={(e) => { e.preventDefault(); issue.post(route('admin.flight-orders.issue', o.code), { forceFormData: true }); }} className="space-y-3">
                                 <Input label="Kode booking (PNR)" value={issue.data.pnr} onChange={(e) => issue.setData('pnr', e.target.value.toUpperCase())} error={issue.errors.pnr} required />
                                 <div><label className="label">File e-ticket (PDF/JPG)</label><input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => issue.setData('file', e.target.files[0])} className="text-sm" />{issue.errors.file && <p className="error">{issue.errors.file}</p>}</div>
@@ -57,10 +71,47 @@ export default function Show({ order: o, passengers, payments, documents, outsta
                             </form>
                         </Card>
                     )}
-                    {documents.length > 0 && <Card title="Dokumen">{documents.map((d) => <a key={d.id} href={d.url} className="block text-sm text-brand-700 hover:underline">{d.type_label}: {d.file_name}</a>)}</Card>}
+                    {documents.some((d) => d.type !== 'manifest') && <Card title="Dokumen">{documents.filter((d) => d.type !== 'manifest').map((d) => <a key={d.id} href={d.url} className="block text-sm text-brand-700 hover:underline">{d.type_label}: {d.file_name}</a>)}</Card>}
                 </div>
             </div>
         </AdminLayout>
+    );
+}
+
+/** Manifest Excel dari pembeli: file asli (bisa diunduh) + catatan pemeriksaan; admin juga bisa mengunggah atas nama pembeli */
+function ManifestCard({ o, manifest, count, files, canUpload }) {
+    const form = useForm({ file: null });
+    return (
+        <Card title="Manifest penumpang">
+            {manifest.uploaded_at ? (
+                <p className="text-sm text-slate-700">Diunggah <b>{manifest.uploaded_at}</b> · terbaca <b>{count}</b> penumpang dari <b>{o.pax_count}</b> seat.</p>
+            ) : (
+                <p className="text-sm text-slate-500">{['dibayar', 'tiket_terbit'].includes(o.status) ? 'Tagihan sudah lunas, menunggu pembeli mengunggah manifest.' : 'Manifest diunggah pembeli setelah tagihan lunas.'}</p>
+            )}
+            {manifest.warnings.length > 0 && (
+                <ul className="mt-3 space-y-1 rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
+                    {manifest.warnings.map((w, i) => <li key={i} className="flex gap-2 [overflow-wrap:anywhere]"><AlertTriangle className="h-3.5 w-3.5 shrink-0" />{w}</li>)}
+                </ul>
+            )}
+            {files.length > 0 && (
+                <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-100">
+                    {files.map((d, i) => (
+                        <li key={d.id} className="flex items-center gap-3 p-3 text-sm">
+                            <FileSpreadsheet className="h-5 w-5 shrink-0 text-emerald-600" />
+                            <span className="min-w-0 flex-1 truncate">{d.original_name || d.file_name}<span className="block text-xs text-slate-500">{d.created_at}{i === 0 ? ' · terbaru' : ''}</span></span>
+                            <a href={d.url} className="btn-ghost btn-sm"><Download className="h-4 w-4" />Unduh</a>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            {canUpload && (
+                <form onSubmit={(e) => { e.preventDefault(); form.post(route('admin.flight-orders.manifest', o.code), { forceFormData: true, preserveScroll: true, onSuccess: () => form.reset() }); }} className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
+                    <input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => form.setData('file', e.target.files[0])} className="min-w-0 flex-1 text-sm" />
+                    <button disabled={form.processing || !form.data.file} className="btn-outline btn-sm shrink-0"><Upload className="h-4 w-4" />Unggah atas nama pembeli</button>
+                </form>
+            )}
+            {form.errors.file && <p className="error">{form.errors.file}</p>}
+        </Card>
     );
 }
 

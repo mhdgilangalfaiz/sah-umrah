@@ -18,7 +18,7 @@ class FlightOrderController extends Controller
         return Inertia::render('Admin/FlightOrders/Index', [
             'orders' => FlightOrder::with('user:id,name,customer_code', 'flight')
                 ->when($request->status, fn ($q, $s) => $q->where('status', $s))
-                ->when($request->q, fn ($q, $s) => $q->where('code', 'like', "%$s%"))
+                ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('code', 'like', "%$s%")->orWhere('bill_company', 'like', "%$s%")->orWhere('bill_name', 'like', "%$s%")))
                 ->latest()->paginate(20)->withQueryString(),
             'filters' => $request->only('status', 'q'),
         ]);
@@ -50,7 +50,12 @@ class FlightOrderController extends Controller
                 'passport_expiry' => $p->passport_expiry?->format('d/m/Y'),
             ]),
             'payments' => $flightOrder->payments()->get(),
-            'documents' => $flightOrder->documents()->get()->map(fn ($d) => ['id' => $d->id, 'type_label' => $d->type_label, 'file_name' => $d->file_name, 'url' => $d->signedUrl()]),
+            'documents' => $flightOrder->documents()->latest()->get()->map(fn ($d) => ['id' => $d->id, 'type' => $d->type, 'type_label' => $d->type_label, 'file_name' => $d->file_name, 'original_name' => $d->original_name, 'created_at' => $d->created_at->format('d/m/Y H:i'), 'url' => $d->signedUrl()]),
+            'billTo' => $flightOrder->billTo(),
+            'manifest' => [
+                'uploaded_at' => $flightOrder->manifest_uploaded_at?->format('d/m/Y H:i'),
+                'warnings' => $flightOrder->manifest_warnings ?? [],
+            ],
         ]);
     }
 
@@ -84,6 +89,17 @@ class FlightOrderController extends Controller
         $invoice = $service->revise($flightOrder, $data, $request->user());
 
         return back()->with('success', "Invoice {$invoice->number} terbit dan dikirim ke pelanggan.");
+    }
+
+    /** Admin mengunggah manifest atas nama pembeli (mis. dikirim agen lewat WhatsApp/email) */
+    public function uploadManifest(Request $request, FlightOrder $flightOrder, \App\Services\Flights\FlightManifest $manifest)
+    {
+        abort_if(in_array($flightOrder->status, FlightOrderRevisionService::CLOSED, true), 422, 'Pesanan sudah dibatalkan/kedaluwarsa.');
+        $request->validate(['file' => 'required|file|max:10240|mimes:xlsx,xls,csv'], [], ['file' => 'file manifest']);
+
+        $result = $manifest->store($flightOrder, $request->file('file'), $request->user());
+
+        return back()->with('success', "Manifest disimpan: {$result['count']} penumpang.");
     }
 
     /** Terbitkan e-ticket: unggah file + PNR → dikirim ke email & tersedia di dashboard */

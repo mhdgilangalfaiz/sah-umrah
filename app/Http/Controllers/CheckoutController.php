@@ -145,63 +145,102 @@ class CheckoutController extends Controller
     }
 
     // ---------------- Tiket Pesawat ----------------
+    /**
+     * Pesan seat: pembeli (agen travel atau perorangan) menentukan jumlah seat sendiri dan data penerima invoice.
+     * Data penumpang TIDAK diisi di sini — manifest (Excel) diunggah setelah tagihan lunas.
+     */
     public function flight(Request $request, Flight $flight)
     {
         abort_unless($flight->is_active && $flight->depart_at->isFuture(), 404);
+        $u = $request->user();
+        $last = FlightOrder::where('user_id', $u->id)->whereNotNull('bill_name')->latest()->first();
 
         return Inertia::render('Checkout/Flight', [
             'flight' => $flight,
-            'pax' => max(1, min(9, $request->integer('penumpang', 1))),
-            'jamaah' => $this->savedJamaah($request),
+            'seats' => max(1, min(max(1, $flight->seats_available), $request->integer('penumpang', 1))),
+            // isian awal: data penerima invoice pesanan sebelumnya (agen biasanya memesan berulang)
+            'billing' => [
+                'buyer_type' => $last?->buyer_type ?? 'perorangan',
+                'bill_company' => $last?->bill_company ?? '',
+                'bill_name' => $last?->bill_name ?? $u->name,
+                'bill_address' => $last?->bill_address ?? ($u->address ?? ''),
+                'contact_email' => $last?->contact_email ?? $u->email,
+                'contact_phone' => $last?->contact_phone ?? ($u->phone ?? ''),
+            ],
             'holdHours' => config('payment.flight_hold_hours'),
+            'dpPercent' => (int) config('payment.flight_min_dp_percent', 30),
+            'settlementDue' => $this->flightSettlementDue($flight)->translatedFormat('d M Y'),
         ]);
+    }
+
+    private function flightSettlementDue(Flight $flight): \Carbon\Carbon
+    {
+        $due = $flight->depart_at->copy()->subDays((int) config('payment.flight_settlement_days', 14))->endOfDay();
+
+        return $due->isPast() ? now()->addHours((int) config('payment.flight_hold_hours', 3)) : $due;
     }
 
     public function storeFlight(Request $request, InvoiceService $invoices)
     {
         $data = $request->validate([
             'flight_id' => 'required|integer|exists:flights,id',
-            'contact_email' => 'required|email',
+            'seats' => 'required|integer|min:1|max:999',
+            'buyer_type' => ['required', Rule::in(array_keys(FlightOrder::BUYER_TYPES))],
+            'bill_company' => 'nullable|required_if:buyer_type,agen|string|max:150',
+            'bill_name' => 'required|string|max:150',
+            'bill_address' => 'nullable|string|max:500',
+            'contact_email' => 'required|email|max:150',
             'contact_phone' => 'required|string|max:20',
             'agree' => 'accepted',
-        ] + $this->passengerRules(true));
+        ], [
+            'bill_company.required_if' => 'Nama travel / perusahaan wajib diisi untuk pembelian agen.',
+        ], [
+            'seats' => 'jumlah seat', 'bill_company' => 'nama travel / perusahaan', 'bill_name' => 'nama penanggung jawab',
+            'bill_address' => 'alamat', 'contact_email' => 'email', 'contact_phone' => 'no. HP',
+        ]);
+        $seats = (int) $data['seats'];
 
-        $flight = Flight::findOrFail($data['flight_id']);
-        $passengers = $this->passengers($request, $data['passengers'], true, $flight->depart_at->format('Y-m-d'));
-        $pax = count($passengers);
-
-        $order = DB::transaction(function () use ($request, $data, $passengers, $pax, $invoices) {
+        $order = DB::transaction(function () use ($request, $data, $seats, $invoices) {
+            // kunci baris penerbangan → dua pembeli tidak bisa mengambil seat yang sama (anti double order)
             $f = Flight::lockForUpdate()->findOrFail($data['flight_id']);
-            if (! $f->is_active || $f->seats_available < $pax) {
-                throw ValidationException::withMessages(['flight_id' => 'Kursi tidak mencukupi. Silakan pilih penerbangan lain.']);
+            if (! $f->is_active || $f->depart_at->isPast()) {
+                throw ValidationException::withMessages(['seats' => 'Penerbangan ini sudah tidak tersedia.']);
             }
-            $f->decrement('seats_available', $pax); // ditahan selama batas bayar
+            if ($f->seats_available < $seats) {
+                throw ValidationException::withMessages(['seats' => "Seat tidak mencukupi, sisa {$f->seats_available} seat."]);
+            }
+            $f->decrement('seats_available', $seats); // langsung berkurang dari stok, ditahan selama batas bayar DP
 
             $order = FlightOrder::create([
                 'code' => FlightOrder::generateCode('T'),
                 'user_id' => $request->user()->id,
                 'flight_id' => $f->id,
-                'pax_count' => $pax,
+                'buyer_type' => $data['buyer_type'],
+                'bill_company' => $data['buyer_type'] === 'agen' ? trim($data['bill_company']) : null,
+                'bill_name' => trim($data['bill_name']),
+                'bill_address' => $data['bill_address'] ?? null,
+                'pax_count' => $seats,
                 'unit_price' => $f->price,
-                'total_amount' => $f->price * $pax,
+                'total_amount' => $f->price * $seats,
                 'status' => 'menunggu_pembayaran',
                 'contact_email' => $data['contact_email'],
                 'contact_phone' => $data['contact_phone'],
                 'expires_at' => now()->addHours((int) config('payment.flight_hold_hours', 3)),
+                'settlement_due_at' => $this->flightSettlementDue($f),
             ]);
-            foreach ($passengers as $p) $order->passengers()->create($p);
             $invoices->issueInvoice($order->load('flight'));
-            Audit::log('pesanan.tiket_dibuat', "Membuat order tiket {$order->code} ({$pax} penumpang)", $order);
+            Audit::log('pesanan.tiket_dibuat', "Membuat order tiket {$order->code} ({$seats} seat".($order->bill_company ? ", {$order->bill_company}" : '').')', $order);
 
             return $order;
         });
 
         $request->user()->notify(new SystemNotification('pesanan', 'Pesanan Tiket Dibuat — '.$order->code,
-            'Kursi Anda ditahan sampai '.$order->expires_at->translatedFormat('d M Y H:i').' WIB. Segera selesaikan pembayaran.',
+            $order->pax_count.' seat ditahan sampai '.$order->expires_at->translatedFormat('d M Y H:i').' WIB. Bayar DP minimal Rp'.number_format($order->minimumPayment(), 0, ',', '.').' untuk mengunci seat, sisanya dapat dicicil sampai lunas.',
             $order->customerUrl(), 'Bayar Sekarang'));
-        AdminNotifier::notify('pesanan', 'Order tiket baru '.$order->code, $request->user()->name.' — '.$pax.' penumpang', route('admin.flight-orders.show', $order));
+        AdminNotifier::notify('pesanan', 'Order tiket baru '.$order->code,
+            ($order->bill_company ?: $order->bill_name).' — '.$order->pax_count.' seat', route('admin.flight-orders.show', $order));
 
-        return redirect()->route('customer.flight-orders.show', $order)->with('success', 'Pesanan tiket dibuat. Silakan lakukan pembayaran.');
+        return redirect()->route('customer.flight-orders.show', $order)->with('success', 'Pesanan seat dibuat dan invoice terbit. Silakan bayar DP untuk mengunci seat.');
     }
 
     // ---------------- Visa ----------------

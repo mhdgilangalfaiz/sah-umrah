@@ -20,10 +20,24 @@
         <td style="vertical-align:top">
             <div class="box">
                 <div class="muted" style="font-size:9px">DITAGIHKAN KEPADA</div>
-                <b>{{ $invoice->user->name }}</b><br>
-                Kode Pelanggan: {{ $invoice->user->customer_code }}<br>
-                {{ $invoice->user->email }}<br>
-                {{ $invoice->user->phone }}
+                @php($bill = $payable && method_exists($payable, 'billTo') ? $payable->billTo() : null)
+                @if($bill)
+                    @if($bill['company'])
+                        <b>{{ $bill['company'] }}</b><br>
+                        u.p. {{ $bill['name'] }}<br>
+                    @else
+                        <b>{{ $bill['name'] }}</b><br>
+                    @endif
+                    @if($bill['address']){{ $bill['address'] }}<br>@endif
+                    Kode Pelanggan: {{ $invoice->user->customer_code }}<br>
+                    {{ $bill['email'] }}<br>
+                    {{ $bill['phone'] }}
+                @else
+                    <b>{{ $invoice->user->name }}</b><br>
+                    Kode Pelanggan: {{ $invoice->user->customer_code }}<br>
+                    {{ $invoice->user->email }}<br>
+                    {{ $invoice->user->phone }}
+                @endif
             </div>
         </td>
     </tr>

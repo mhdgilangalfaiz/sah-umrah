@@ -15,7 +15,7 @@ export default function FlightOrders({ orders }) {
                             <Link key={o.id} href={route('customer.flight-orders.show', o.code)} className="flex flex-wrap items-center justify-between gap-3 p-5 hover:bg-sand-50">
                                 <div>
                                     <p className="font-semibold">{o.flight.airline} · {o.flight.route_label}</p>
-                                    <p className="text-xs text-slate-500">{o.code} · {dateTime(o.flight.depart_at)} · {o.pax_count} penumpang{o.pnr && ` · PNR ${o.pnr}`}</p>
+                                    <p className="text-xs text-slate-500">{o.code} · {dateTime(o.flight.depart_at)} · {o.pax_count} seat{o.bill_company && ` · ${o.bill_company}`}{o.pnr && ` · PNR ${o.pnr}`}</p>
                                 </div>
                                 <div className="text-right"><p className="font-semibold">{rupiah(o.total_amount)}</p><StatusBadge status={o.status} /></div>
                             </Link>

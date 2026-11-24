@@ -113,6 +113,8 @@ Route::middleware(['auth', 'verified', 'customer'])->group(function () {
         Route::post('/umrah/{booking}/batal', [Customer\OrderController::class, 'cancelBooking'])->name('bookings.cancel');
         Route::get('/tiket', [Customer\OrderController::class, 'flightOrders'])->name('flight-orders.index');
         Route::get('/tiket/{flightOrder}', [Customer\OrderController::class, 'flightOrder'])->name('flight-orders.show');
+        Route::get('/tiket/{flightOrder}/manifest/template', [Customer\OrderController::class, 'manifestTemplate'])->name('flight-orders.manifest.template');
+        Route::post('/tiket/{flightOrder}/manifest', [Customer\OrderController::class, 'uploadManifest'])->middleware('throttle:10,1')->name('flight-orders.manifest');
         Route::get('/visa', [Customer\OrderController::class, 'visas'])->name('visa.index');
         Route::get('/visa/{visaApplication}', [Customer\OrderController::class, 'visa'])->name('visa.show');
         Route::post('/visa/{visaApplication}/berkas', [Customer\OrderController::class, 'uploadVisaFiles'])->middleware('throttle:10,1')->name('visa.upload');
@@ -185,6 +187,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::post('/pesanan-umrah/{booking}/ubah-jamaah', [Admin\BookingController::class, 'change'])->name('bookings.change');
         Route::post('/pesanan-tiket/{flightOrder}/terbitkan', [Admin\FlightOrderController::class, 'issue'])->name('flight-orders.issue');
         Route::post('/pesanan-tiket/{flightOrder}/revisi-invoice', [Admin\FlightOrderController::class, 'revise'])->name('flight-orders.revise');
+        Route::post('/pesanan-tiket/{flightOrder}/manifest', [Admin\FlightOrderController::class, 'uploadManifest'])->name('flight-orders.manifest');
         Route::post('/visa/{visaApplication}/invoice', [Admin\VisaController::class, 'invoice'])->name('visa.invoice');
         Route::post('/visa/{visaApplication}/status', [Admin\VisaController::class, 'status'])->name('visa.status');
         Route::get('/visa/{visaApplication}/berkas/{document}/file', [Admin\VisaController::class, 'berkasFile'])->name('visa.berkas.file');

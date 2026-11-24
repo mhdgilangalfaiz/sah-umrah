@@ -38,6 +38,12 @@ return [
     // Tiket pesawat: batas bayar (jam)
     'flight_hold_hours' => (int) env('FLIGHT_HOLD_HOURS', 3),
 
+    // Tiket pesawat: DP minimum pembayaran pertama (% dari total), sisa dicicil sampai lunas
+    'flight_min_dp_percent' => (int) env('FLIGHT_MIN_DP_PERCENT', 30),
+
+    // Tiket pesawat: batas pelunasan H-X sebelum keberangkatan
+    'flight_settlement_days' => (int) env('FLIGHT_SETTLEMENT_DAYS', 14),
+
     // Deposit awal umrah dihitung per jamaah (true) atau per pesanan (false). Nominal diatur per paket (default 3jt).
     'deposit_per_pax' => (bool) env('DEPOSIT_PER_PAX', true),
 

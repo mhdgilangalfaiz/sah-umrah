@@ -72,8 +72,8 @@ class SmokeTest extends TestCase
             'passengers' => [['jamaah_id' => $u->jamaah()->first()->id], ['full_name' => 'Anak', 'gender' => 'P', 'birth_date' => '2015-01-01', 'save' => true]]])->assertSessionHasNoErrors();
         $b = Booking::first();
         $flight = Flight::where('depart_at', '>', now()->addDay())->first();
-        $this->post('/pesan/tiket', ['flight_id' => $flight->id, 'contact_email' => $u->email, 'contact_phone' => '0812', 'agree' => true,
-            'passengers' => [['jamaah_id' => $u->jamaah()->first()->id, 'title' => 'Bapak']]])->assertSessionHasNoErrors();
+        $this->post('/pesan/tiket', ['flight_id' => $flight->id, 'seats' => 1, 'buyer_type' => 'perorangan', 'bill_name' => $u->name,
+            'contact_email' => $u->email, 'contact_phone' => '0812', 'agree' => true])->assertSessionHasNoErrors();
         $this->post('/pesan/visa', ['visa_service_id' => VisaService::first()->id, 'pax_count' => 2, 'agree' => true, 'applicants' => [['full_name' => 'Jaya', 'passport_number' => 'C1234567']]])->assertSessionHasNoErrors();
         $this->post('/bayar', ['payable_type' => 'booking', 'code' => $b->code, 'method' => 'va_bsi', 'amount' => 6000000, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $pay = Payment::first();
@@ -121,8 +121,8 @@ class SmokeTest extends TestCase
         $this->actingAs($u)->post('/pesan/visa', ['visa_service_id' => VisaService::first()->id, 'pax_count' => 1, 'agree' => true]);
         $this->actingAs($u)->postJson('/bantuan/chat', ['message' => 'Hubungkan saya dengan Admin']);
         $flight = Flight::where('depart_at', '>', now()->addDay())->first();
-        $this->actingAs($u)->post('/pesan/tiket', ['flight_id' => $flight->id, 'contact_email' => $u->email, 'contact_phone' => '0812', 'agree' => true,
-            'passengers' => [['full_name' => 'Jaya', 'title' => 'Bapak', 'gender' => 'L', 'birth_date' => '1990-01-01', 'passport_number' => 'C1234567', 'passport_expiry' => now()->addYears(3)->toDateString()]]]);
+        $this->actingAs($u)->post('/pesan/tiket', ['flight_id' => $flight->id, 'seats' => 30, 'buyer_type' => 'agen', 'bill_company' => 'PT. Travel Uji', 'bill_name' => 'Jaya',
+            'contact_email' => $u->email, 'contact_phone' => '0812', 'agree' => true])->assertSessionHasNoErrors();
 
         $admin = User::where('email', 'admin@sah.co.id')->first();
         $this->actingAs($admin);

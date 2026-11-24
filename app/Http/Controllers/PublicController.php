@@ -68,7 +68,7 @@ class PublicController extends Controller
             'asal' => 'nullable|string|max:5',
             'tujuan' => 'nullable|string|max:5',
             'tanggal' => 'nullable|date',
-            'penumpang' => 'nullable|integer|min:1|max:9',
+            'penumpang' => 'nullable|integer|min:1|max:999',
             'kelas' => 'nullable|in:ekonomi,bisnis',
             'jenis' => 'nullable|in:oneway,pp',
             'transit' => 'nullable|in:langsung,transit',

@@ -98,10 +98,11 @@ export function SeatUpdated({ at, className = '' }) {
     return <span className={cx('inline-flex items-center gap-1', className)}><RefreshCw className="h-3 w-3" />Seat diperbarui {dateTime(at)}</span>;
 }
 
-export function FlightCard({ f, pax = 1, action, footer }) {
+/** booked: dipakai di halaman pesanan → sembunyikan stok seat publik, tampilkan jumlah seat yang dibeli */
+export function FlightCard({ f, pax = 1, action, footer, booked = false }) {
     const it = f.itinerary ?? {};
     return (
-        <div className={cx('card overflow-hidden', f.seats_available <= 0 && 'opacity-75')}>
+        <div className={cx('card overflow-hidden', !booked && f.seats_available <= 0 && 'opacity-75')}>
             <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_240px]">
                 <div className="min-w-0">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -121,18 +122,23 @@ export function FlightCard({ f, pax = 1, action, footer }) {
                 </div>
 
                 <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-                    <SeatPanel f={f} pax={pax} />
+                    {booked ? (
+                        <div className="rounded-xl bg-brand-50 p-3 ring-1 ring-brand-100">
+                            <span className="text-[11px] font-bold uppercase tracking-wide text-brand-800">Seat dipesan</span>
+                            <p className="mt-0.5 text-3xl font-extrabold leading-none tabular-nums text-brand-800">{pax}<span className="text-sm font-semibold"> seat</span></p>
+                        </div>
+                    ) : <SeatPanel f={f} pax={pax} />}
                     <div>
-                        <p className="text-[11px] text-slate-500">Harga per orang{f.trip_type === 'pp' ? ' (PP)' : ''}</p>
+                        <p className="text-[11px] text-slate-500">Harga per {booked ? 'seat' : 'orang'}{f.trip_type === 'pp' ? ' (PP)' : ''}</p>
                         <p className="text-2xl font-extrabold text-brand-800">{rupiah(f.price)}</p>
-                        {pax > 1 && <p className="text-xs text-slate-500">Total {pax} org: <b className="text-slate-700">{rupiah(f.price * pax)}</b></p>}
+                        {pax > 1 && <p className="text-xs text-slate-500">Total {pax} {booked ? 'seat' : 'org'}: <b className="text-slate-700">{rupiah(f.price * pax)}</b></p>}
                     </div>
                     {action}
                 </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 bg-slate-50/70 px-4 py-2.5 text-xs text-slate-500 sm:px-5">
                 <span className="flex items-center gap-1"><Luggage className="h-3.5 w-3.5" />Bagasi {f.baggage_kg} kg + kabin {f.cabin_baggage_kg} kg</span>
-                <SeatUpdated at={f.seats_updated_at} />
+                {!booked && <SeatUpdated at={f.seats_updated_at} />}
                 {footer}
             </div>
         </div>

@@ -17,6 +17,7 @@ class Document extends Model
         'berkas_visa' => 'Berkas Visa (ZIP/RAR)',
         'visa_terbit' => 'Visa Terbit',
         'eticket' => 'E-Ticket',
+        'manifest' => 'Manifest Penumpang',
         'lainnya' => 'Lainnya',
     ];
 

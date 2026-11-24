@@ -84,7 +84,7 @@ class FlightOrderRevisionService
             $order->total_amount = $newTotal;
             $order->paid_amount = (int) $order->paid_amount - $refund;
             if ($flight['pnr']) $order->pnr = $flight['pnr'];
-            if ($order->status === 'menunggu_pembayaran' && (int) $order->paid_amount > 0 && $order->outstandingAmount() <= 0) {
+            if (in_array($order->status, ['menunggu_pembayaran', 'cicilan_berjalan'], true) && (int) $order->paid_amount > 0 && $order->outstandingAmount() <= 0) {
                 $order->status = 'dibayar';
             }
             $order->save();
