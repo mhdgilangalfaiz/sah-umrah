@@ -32,7 +32,12 @@ class FlightOrder extends Model implements Payable
 
     public function canBePaid(): bool
     {
-        return $this->status === 'menunggu_pembayaran' && $this->expires_at?->isFuture();
+        if ($this->status === 'menunggu_pembayaran') {
+            return (bool) $this->expires_at?->isFuture();
+        }
+
+        // Invoice direvisi naik setelah lunas (mis. tambah seat) → sisa tagihan tetap bisa dibayar tanpa mengubah status pesanan
+        return in_array($this->status, ['dibayar', 'tiket_terbit'], true) && $this->outstandingAmount() > 0;
     }
 
     public function paymentExpiry(): CarbonInterface
@@ -43,10 +48,39 @@ class FlightOrder extends Model implements Payable
     public function applyPayment(Payment $payment): void
     {
         $this->paid_amount = (int) $this->paid_amount + (int) $payment->amount;
-        if ($this->outstandingAmount() <= 0) {
+        // Pelunasan sisa tagihan revisi tidak boleh menurunkan status "tiket_terbit"
+        if ($this->outstandingAmount() <= 0 && $this->status === 'menunggu_pembayaran') {
             $this->status = 'dibayar';
         }
         $this->save();
+    }
+
+    /** Invoice tagihan yang sedang berlaku (revisi terbaru) */
+    public function activeInvoice(): ?Invoice
+    {
+        return $this->invoices()->where('type', 'invoice')->active()->first();
+    }
+
+    /**
+     * Detail penerbangan yang berlaku untuk pesanan ini: hasil revisi invoice bila admin mengubahnya,
+     * selain itu diambil dari jadwal penerbangan. Jadwal penerbangan (stok mitra) tidak diubah karena dipakai pesanan lain.
+     */
+    public function flightDetails(): array
+    {
+        $override = $this->activeInvoice()?->details['flight'] ?? null;
+        if ($override) return $override;
+
+        $f = $this->flight;
+        $fmt = fn ($d) => $d?->translatedFormat('d M Y H:i');
+
+        return [
+            'airline' => $f->airline,
+            'flight_number' => $f->flight_number,
+            'route' => $f->route_label,
+            'depart' => $fmt($f->depart_at),
+            'return' => $fmt($f->return_depart_at),
+            'pnr' => $this->pnr,
+        ];
     }
 
     public function payableLabel(): string

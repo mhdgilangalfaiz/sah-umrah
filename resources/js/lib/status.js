@@ -42,6 +42,7 @@ export const STATUS = {
     // invoice
     belum_lunas: ['Belum Lunas', C.amber],
     batal: ['Batal', C.red],
+    direvisi: ['Direvisi', C.gray], // diganti invoice revisi (-R1, -R2, …)
     // bantuan
     bot: ['Asisten Otomatis', C.gray],
     menunggu_admin: ['Menunggu Admin', C.amber],

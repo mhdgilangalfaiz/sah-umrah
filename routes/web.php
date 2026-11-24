@@ -182,6 +182,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::post('/pesanan-umrah/{booking}/kurangi', [Admin\BookingController::class, 'reduce'])->name('bookings.reduce');
         Route::post('/pesanan-umrah/{booking}/ubah-jamaah', [Admin\BookingController::class, 'change'])->name('bookings.change');
         Route::post('/pesanan-tiket/{flightOrder}/terbitkan', [Admin\FlightOrderController::class, 'issue'])->name('flight-orders.issue');
+        Route::post('/pesanan-tiket/{flightOrder}/revisi-invoice', [Admin\FlightOrderController::class, 'revise'])->name('flight-orders.revise');
         Route::post('/visa/{visaApplication}/invoice', [Admin\VisaController::class, 'invoice'])->name('visa.invoice');
         Route::post('/visa/{visaApplication}/status', [Admin\VisaController::class, 'status'])->name('visa.status');
         Route::get('/visa/{visaApplication}/berkas/{document}/file', [Admin\VisaController::class, 'berkasFile'])->name('visa.berkas.file');

@@ -29,6 +29,32 @@
     </tr>
 </table>
 
+@if($invoice->type === 'invoice' && ($invoice->revision > 0 || $invoice->notes))
+    <div class="box" style="margin-top:10px; border-color:#C9A24B; background:#FFFBEB">
+        <b>{{ $invoice->revision > 0 ? 'INVOICE REVISI KE-'.$invoice->revision : 'CATATAN INVOICE' }}</b>
+        @if($invoice->replaces) — menggantikan invoice No. {{ $invoice->replaces->number }} @endif
+        @if($invoice->notes)<br>Keterangan: {{ $invoice->notes }}@endif
+        @if(isset($invoice->details['seats_before']) && $invoice->details['seats_before'] !== $invoice->details['seats_after'])
+            <br>Seat terpakai: {{ $invoice->details['seats_before'] }} → <b>{{ $invoice->details['seats_after'] }} seat</b>
+        @endif
+        @if(($invoice->details['refund'] ?? 0) > 0)
+            <br>Kelebihan bayar dikembalikan: <b>{{ $rp($invoice->details['refund']) }}</b>
+        @endif
+    </div>
+@endif
+
+@if(! empty($invoice->details['flight']))
+    @php($fl = $invoice->details['flight'])
+    <p style="margin:12px 0 4px"><b>Detail Penerbangan</b></p>
+    <table class="items">
+        <thead><tr><th>Maskapai</th><th>No. Flight</th><th>Rute</th><th>Berangkat</th><th>Kembali</th><th>PNR</th></tr></thead>
+        <tr>
+            <td>{{ $fl['airline'] ?? '-' }}</td><td>{{ $fl['flight_number'] ?? '-' }}</td><td>{{ $fl['route'] ?? '-' }}</td>
+            <td>{{ $fl['depart'] ?? '-' }}</td><td>{{ $fl['return'] ?? '-' }}</td><td>{{ $fl['pnr'] ?? '-' }}</td>
+        </tr>
+    </table>
+@endif
+
 <table class="items">
     <thead><tr><th style="width:5%">No</th><th>Keterangan</th><th class="right" style="width:8%">Qty</th><th class="right" style="width:18%">Harga</th><th class="right" style="width:18%">Jumlah</th></tr></thead>
     <tbody>
@@ -72,6 +98,7 @@
         <td style="text-align:center">
             @if($invoice->status === 'lunas')<span class="stamp paid">LUNAS</span>
             @elseif($invoice->status === 'batal')<span class="stamp void">BATAL</span>
+            @elseif($invoice->status === 'direvisi')<span class="stamp void">DIREVISI</span>
             @else<span class="stamp unpaid">BELUM LUNAS</span>@endif
         </td>
     </tr>

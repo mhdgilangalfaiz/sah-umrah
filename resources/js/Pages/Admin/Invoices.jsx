@@ -10,6 +10,7 @@ const STATUS = {
     belum_lunas: ['Belum lunas', 'bg-amber-50 text-amber-800 ring-amber-200'],
     lunas: ['Lunas', 'bg-emerald-50 text-emerald-700 ring-emerald-200'],
     batal: ['Batal', 'bg-slate-100 text-slate-500 ring-slate-200'],
+    direvisi: ['Direvisi', 'bg-slate-100 text-slate-500 ring-slate-200'],
 };
 
 /** Laporan invoice & kwitansi seluruh pembelian (Admin & Super Admin). */
@@ -21,13 +22,13 @@ export default function Invoices({ invoices, summary, filters }) {
                 { name: 'q', type: 'search', label: 'No. invoice / nama / email pelanggan' },
                 { name: 'jenis', type: 'select', label: 'Invoice & kwitansi', options: { invoice: 'Invoice', kwitansi: 'Kwitansi' } },
                 { name: 'layanan', type: 'select', label: 'Semua layanan', options: { umrah: 'Paket Umrah', tiket: 'Tiket Pesawat', visa: 'Visa' } },
-                { name: 'status', type: 'select', label: 'Semua status', options: { belum_lunas: 'Belum lunas', lunas: 'Lunas', batal: 'Batal' } },
+                { name: 'status', type: 'select', label: 'Semua status', options: { belum_lunas: 'Belum lunas', lunas: 'Lunas', batal: 'Batal', direvisi: 'Direvisi' } },
                 { name: 'dari', type: 'date', label: 'Dari' }, { name: 'sampai', type: 'date', label: 'Sampai' },
             ]} />
 
             <div className="mb-6 grid gap-4 md:grid-cols-3">
                 <IllustratedStat label="Total Invoice" value={rupiah(summary.invoice_total)} sub={`${summary.invoice_count} invoice`} image="/images/admin/kartu/invoice-total.webp" tone="green" />
-                <IllustratedStat label="Belum Lunas" value={rupiah(summary.unpaid_total)} sub="Sisa tagihan dari invoice terbit" image="/images/admin/kartu/invoice-belum.webp" tone="gold" />
+                <IllustratedStat label="Belum Lunas" value={rupiah(summary.unpaid_total)} sub="Sisa tagihan dari invoice berlaku" image="/images/admin/kartu/invoice-belum.webp" tone="gold" />
                 <IllustratedStat label="Kwitansi (Uang Diterima)" value={rupiah(summary.receipt_total)} sub={`${summary.receipt_count} kwitansi`} image="/images/admin/kartu/invoice-kwitansi.webp" tone="blue" />
             </div>
 
@@ -42,7 +43,7 @@ export default function Invoices({ invoices, summary, filters }) {
                                     <tr key={i.id}>
                                         <td>
                                             <p className="font-semibold text-slate-900">{i.number}</p>
-                                            <p className="text-xs text-slate-500">{i.type === 'kwitansi' ? 'Kwitansi' : 'Invoice'}</p>
+                                            <p className="text-xs text-slate-500">{i.type === 'kwitansi' ? 'Kwitansi' : 'Invoice'}{i.revision > 0 && ` · revisi ke-${i.revision}`}</p>
                                         </td>
                                         <td className="whitespace-nowrap">{i.issued_at ? dateTime(i.issued_at) : '-'}</td>
                                         <td><p className="font-medium">{i.customer ?? '-'}</p><p className="text-xs text-slate-500">{i.email}</p></td>

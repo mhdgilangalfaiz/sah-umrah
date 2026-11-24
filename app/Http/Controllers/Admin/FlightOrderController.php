@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FlightOrder;
 use App\Notifications\SystemNotification;
 use App\Services\FileStorage;
+use App\Services\FlightOrderRevisionService;
 use App\Support\Audit;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,10 +26,24 @@ class FlightOrderController extends Controller
 
     public function show(FlightOrder $flightOrder)
     {
-        $flightOrder->load('user', 'flight', 'passengers', 'invoices');
+        $flightOrder->load('user', 'flight', 'passengers', 'invoices.reviser:id,name');
+        $active = $flightOrder->activeInvoice();
 
         return Inertia::render('Admin/FlightOrders/Show', [
             'order' => $flightOrder,
+            'outstanding' => $flightOrder->outstandingAmount(),
+            'flightDetails' => $flightOrder->flightDetails(),
+            // Baris tambahan (biaya/potongan) invoice yang berlaku → dipakai sebagai isian awal form revisi
+            'extras' => array_values(array_slice($active?->items ?? [], 1)),
+            'seatsAvailable' => (int) $flightOrder->flight->seats_available,
+            'invoices' => $flightOrder->invoices->where('type', 'invoice')->values()->map(fn ($i) => [
+                'id' => $i->id, 'number' => $i->number, 'status' => $i->status, 'amount' => $i->amount,
+                'revision' => $i->revision, 'notes' => $i->notes, 'by' => $i->reviser?->name,
+                'issued_at' => $i->issued_at->format('d/m/Y H:i'),
+                'seats_before' => $i->details['seats_before'] ?? null, 'seats_after' => $i->details['seats_after'] ?? null,
+                'refund' => $i->details['refund'] ?? 0,
+            ]),
+            'closed' => in_array($flightOrder->status, FlightOrderRevisionService::CLOSED, true),
             'passengers' => $flightOrder->passengers->map(fn ($p) => [
                 ...$p->only('id', 'title', 'full_name', 'gender', 'nationality'),
                 'birth_date' => $p->birth_date?->format('d/m/Y'), 'passport_number' => $p->passport_number,
@@ -37,6 +52,38 @@ class FlightOrderController extends Controller
             'payments' => $flightOrder->payments()->get(),
             'documents' => $flightOrder->documents()->get()->map(fn ($d) => ['id' => $d->id, 'type_label' => $d->type_label, 'file_name' => $d->file_name, 'url' => $d->signedUrl()]),
         ]);
+    }
+
+    /**
+     * Revisi invoice: ubah seat terpakai, harga, baris biaya/potongan, dan detail penerbangan.
+     * Invoice baru (-R{n}) terbit; kelebihan bayar otomatis tercatat di menu Refund.
+     */
+    public function revise(Request $request, FlightOrder $flightOrder, FlightOrderRevisionService $service)
+    {
+        $data = $request->validate([
+            'seats' => 'required|integer|min:1|max:999',
+            'unit_price' => 'required|integer|min:0|max:1000000000',
+            'extras' => 'array|max:10',
+            'extras.*.description' => 'required|string|max:150',
+            'extras.*.qty' => 'required|integer|min:1|max:999',
+            'extras.*.price' => 'required|integer|min:-1000000000|max:1000000000',
+            'flight' => 'array',
+            'flight.airline' => 'nullable|string|max:60',
+            'flight.flight_number' => 'nullable|string|max:40',
+            'flight.route' => 'nullable|string|max:120',
+            'flight.depart' => 'nullable|string|max:60',
+            'flight.return' => 'nullable|string|max:60',
+            'flight.pnr' => 'nullable|string|max:20',
+            'reason' => 'required|string|min:5|max:500',
+            'adjust_stock' => 'boolean',
+        ], [], [
+            'seats' => 'seat terpakai', 'unit_price' => 'harga per seat', 'reason' => 'alasan revisi',
+            'extras.*.description' => 'keterangan', 'extras.*.qty' => 'qty', 'extras.*.price' => 'harga',
+        ]);
+
+        $invoice = $service->revise($flightOrder, $data, $request->user());
+
+        return back()->with('success', "Invoice {$invoice->number} terbit dan dikirim ke pelanggan.");
     }
 
     /** Terbitkan e-ticket: unggah file + PNR → dikirim ke email & tersedia di dashboard */

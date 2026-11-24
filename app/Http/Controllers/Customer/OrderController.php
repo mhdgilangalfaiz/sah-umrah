@@ -98,8 +98,13 @@ class OrderController extends Controller
         $this->ensureOwner($flightOrder);
         $flightOrder->load('flight', 'passengers', 'invoices');
 
+        $active = $flightOrder->activeInvoice();
+
         return Inertia::render('Customer/FlightOrderShow', [
             'order' => $flightOrder,
+            // Detail penerbangan & catatan revisi terbaru (bila admin merevisi invoice)
+            'flightDetails' => $active?->details['flight'] ?? null,
+            'revisionNote' => $active && $active->revision > 0 ? ['number' => $active->number, 'notes' => $active->notes, 'at' => $active->issued_at->format('d/m/Y H:i')] : null,
             'payments' => $flightOrder->payments()->get(),
             'documents' => self::documentsOf($flightOrder),
             'payBox' => self::payBox($flightOrder, 'flight'),

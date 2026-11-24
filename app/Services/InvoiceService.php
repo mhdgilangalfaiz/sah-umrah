@@ -8,6 +8,7 @@ use App\Models\FlightOrder;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Setting;
+use App\Models\User;
 use App\Models\VisaApplication;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Model;
@@ -53,7 +54,7 @@ class InvoiceService
     /** Pesanan berubah (jamaah dikurangi/diubah) → invoice tagihan ikut diperbarui meski sudah ada pembayaran */
     public function refreshInvoice(Model&Payable $payable): void
     {
-        $invoice = $payable->invoices()->where('type', 'invoice')->where('status', '!=', 'batal')->first();
+        $invoice = $payable->invoices()->where('type', 'invoice')->active()->first();
         if (! $invoice) {
             $this->issueInvoice($payable);
 
@@ -69,7 +70,7 @@ class InvoiceService
     /** Terbitkan (atau perbarui jika belum dibayar sama sekali) invoice tagihan */
     public function issueInvoice(Model&Payable $payable): Invoice
     {
-        $existing = $payable->invoices()->where('type', 'invoice')->where('status', '!=', 'batal')->first();
+        $existing = $payable->invoices()->where('type', 'invoice')->active()->first();
         if ($existing && $existing->status === 'belum_lunas' && (int) $payable->paid_amount === 0) {
             $existing->update(['amount' => $payable->total_amount, 'items' => $this->items($payable)]);
 
@@ -88,6 +89,36 @@ class InvoiceService
             'status' => 'belum_lunas',
             'issued_at' => now(),
         ]);
+    }
+
+    /**
+     * Revisi invoice oleh admin: terbitkan invoice baru bernomor "-R{n}" berisi baris tagihan terbaru,
+     * invoice lama berstatus "direvisi" (tetap tersimpan sebagai riwayat). Total pesanan harus sudah diperbarui pemanggil.
+     */
+    public function revise(Model&Payable $payable, array $items, string $notes, ?array $details, ?User $by): Invoice
+    {
+        $current = $payable->invoices()->where('type', 'invoice')->active()->first();
+        $revision = $current ? $current->revision + 1 : 0;
+
+        $invoice = Invoice::create([
+            'number' => $current ? $current->revisionNumber($revision) : Invoice::nextNumber('invoice'),
+            'type' => 'invoice',
+            'invoiceable_type' => $payable->getMorphClass(),
+            'invoiceable_id' => $payable->getKey(),
+            'user_id' => $payable->user_id,
+            'amount' => $payable->total_amount,
+            'items' => $items,
+            'notes' => $notes,
+            'details' => $details,
+            'status' => (int) $payable->paid_amount >= (int) $payable->total_amount ? 'lunas' : 'belum_lunas',
+            'revision' => $revision,
+            'replaces_id' => $current?->id,
+            'revised_by' => $by?->id,
+            'issued_at' => now(),
+        ]);
+        $current?->update(['status' => 'direvisi']);
+
+        return $invoice;
     }
 
     public function issueReceipt(Payment $payment, Model&Payable $payable): Invoice
@@ -117,7 +148,7 @@ class InvoiceService
 
     public function pdf(Invoice $invoice)
     {
-        $invoice->loadMissing('invoiceable', 'user', 'payment');
+        $invoice->loadMissing('invoiceable', 'user', 'payment', 'replaces');
         $payable = $invoice->invoiceable;
 
         return Pdf::loadView('pdf.invoice', [

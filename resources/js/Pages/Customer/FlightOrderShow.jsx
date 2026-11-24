@@ -2,10 +2,10 @@ import { Download, Ticket } from 'lucide-react';
 import CustomerLayout from '@/Layouts/CustomerLayout';
 import PayBox from '@/Components/PayBox';
 import { FlightCard } from '@/Components/Cards';
-import { Card, PageHeader, StatusBadge, Stepper } from '@/Components/ui';
+import { Card, DefList, PageHeader, StatusBadge, Stepper } from '@/Components/ui';
 import { dateTime, rupiah } from '@/lib/format';
 
-export default function FlightOrderShow({ order: o, payments, documents, payBox }) {
+export default function FlightOrderShow({ order: o, payments, documents, payBox, flightDetails, revisionNote }) {
     const step = { menunggu_pembayaran: 2, dibayar: 3, tiket_terbit: 4 }[o.status] ?? 2;
     return (
         <CustomerLayout title={o.code}>
@@ -13,7 +13,16 @@ export default function FlightOrderShow({ order: o, payments, documents, payBox 
             {!['dibatalkan', 'kedaluwarsa'].includes(o.status) && <div className="card mb-6 p-4"><Stepper steps={['Pilih', 'Data Penumpang', 'Pembayaran', 'Penerbitan', 'E-Ticket']} current={step} /></div>}
             <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
                 <div className="min-w-0 space-y-6">
-                    <FlightCard f={o.flight} pax={o.pax_count} />
+                    {revisionNote && (
+                        <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
+                            <b>Invoice diperbarui</b> ({revisionNote.number}, {revisionNote.at}). {revisionNote.notes}
+                        </div>
+                    )}
+                    {flightDetails ? (
+                        <Card title={`Detail penerbangan · ${o.pax_count} seat`}>
+                            <DefList items={[['Maskapai', flightDetails.airline], ['No. flight', flightDetails.flight_number], ['Rute', flightDetails.route], ['Berangkat', flightDetails.depart], ['Kembali', flightDetails.return], ['PNR', flightDetails.pnr ?? o.pnr]]} />
+                        </Card>
+                    ) : <FlightCard f={o.flight} pax={o.pax_count} />}
                     {o.status === 'tiket_terbit' && (
                         <Card title="E-Ticket">
                             <p className="text-sm">Kode booking (PNR): <b className="font-mono text-lg text-brand-700">{o.pnr}</b></p>
@@ -38,7 +47,7 @@ export default function FlightOrderShow({ order: o, payments, documents, payBox 
                     <Card title="Invoice & kwitansi">
                         {o.invoices.map((i) => (
                             <div key={i.id} className="flex items-center justify-between py-1.5 text-sm">
-                                <span>{i.number}<br /><span className="text-xs text-slate-500">{rupiah(i.amount)}</span></span>
+                                <span className="min-w-0">{i.number}<br /><span className="flex items-center gap-2 text-xs text-slate-500">{rupiah(i.amount)} <StatusBadge status={i.status} /></span></span>
                                 <a target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="btn-outline btn-sm"><Download className="h-3.5 w-3.5" />PDF</a>
                             </div>
                         ))}

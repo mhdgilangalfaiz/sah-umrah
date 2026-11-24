@@ -21,7 +21,7 @@ class InvoiceController extends Controller
         $filters = $request->validate([
             'q' => 'nullable|string|max:100',
             'jenis' => 'nullable|in:invoice,kwitansi',
-            'status' => 'nullable|in:belum_lunas,lunas,batal',
+            'status' => 'nullable|in:belum_lunas,lunas,batal,direvisi',
             'layanan' => 'nullable|in:umrah,tiket,visa',
             'dari' => 'nullable|date',
             'sampai' => 'nullable|date',
@@ -40,13 +40,15 @@ class InvoiceController extends Controller
                 ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%$v%")->orWhere('email', 'like', "%$v%"))));
 
         $summary = (clone $q)->selectRaw('type, status, COUNT(*) as n, SUM(amount) as total')->groupBy('type', 'status')->get();
-        $sum = fn ($type, $status = null) => (int) $summary->where('type', $type)->when($status, fn ($c) => $c->where('status', $status))->sum('total');
+        $counted = $summary->reject(fn ($r) => $r->type === 'invoice' && in_array($r->status, Invoice::INACTIVE, true));
+        $sum = fn ($type, $status = null) => (int) $counted->where('type', $type)->when($status, fn ($c) => $c->where('status', $status))->sum('total');
 
         return Inertia::render('Admin/Invoices', [
             'invoices' => $q->latest('issued_at')->latest('id')->paginate(25)->withQueryString()->through(fn (Invoice $i) => [
                 'id' => $i->id,
                 'number' => $i->number,
                 'type' => $i->type,
+                'revision' => $i->revision,
                 'status' => $i->status,
                 'amount' => $i->amount,
                 'issued_at' => $i->issued_at?->format('Y-m-d H:i'),
@@ -58,7 +60,7 @@ class InvoiceController extends Controller
                 'pdf_url' => route('invoices.pdf', $i),
             ]),
             'summary' => [
-                'invoice_count' => (int) $summary->where('type', 'invoice')->sum('n'),
+                'invoice_count' => (int) $counted->where('type', 'invoice')->sum('n'),
                 'invoice_total' => $sum('invoice'),
                 'unpaid_total' => $sum('invoice', 'belum_lunas'),
                 'receipt_count' => (int) $summary->where('type', 'kwitansi')->sum('n'),
