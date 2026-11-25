@@ -1,4 +1,4 @@
-import { Images, Play, Video, ZoomIn } from 'lucide-react';
+import { Images, Play, Video } from 'lucide-react';
 import { useState } from 'react';
 import GalleryLightbox from './GalleryLightbox';
 import { cn } from './lib';
@@ -64,11 +64,7 @@ export default function Gallery({ heading, photos, videos = [], audio = null }: 
                                                 <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-neutral-900/70 px-2 py-0.5 text-xs font-semibold text-white">
                                                     <Images className="h-3.5 w-3.5" aria-hidden="true" />{g.photos.length}
                                                 </span>
-                                            )}
-                                            <span className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-primary-700 opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true">
-                                                <ZoomIn className="h-4 w-4" />
-                                            </span>
-                                        </>
+                                            )}                                        </>
                                     )}
                                 </button>
                             </StaggerItem>

@@ -1,4 +1,4 @@
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Expand, Image as ImageIcon, MapPin, Share2, Video, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Expand, Image as ImageIcon, MapPin, Share2, Video, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, TouchEvent } from 'react';
 import AmbientAudio from './AmbientAudio';
@@ -91,7 +91,9 @@ export default function GalleryLightbox({ albums, album, onClose, audio }: Galle
                                     <>
                                         {/* latar buram agar foto tegak/miring tetap utuh tanpa ruang kosong hitam */}
                                         <img src={slide.url} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-xl" />
-                                        <div className={cn('relative h-full w-full', zoom && 'cursor-zoom-out overflow-auto')} onClick={() => zoom && setZoom(false)}>
+                                        {/* klik foto: perbesar / kecilkan lagi (tanpa tombol kaca pembesar) */}
+                                        <div className={cn('relative h-full w-full', zoom ? 'cursor-zoom-out overflow-auto' : 'cursor-zoom-in')} onClick={() => setZoom((z) => !z)}
+                                            title={zoom ? 'Klik untuk memperkecil' : 'Klik untuk memperbesar'}>
                                             <img key={slide.url} src={slide.url} alt={current.title ?? 'Foto galeri'} draggable={false}
                                                 className={cn('animate-pop', zoom ? 'h-auto w-[200%] max-w-none' : 'h-full w-full object-contain')} />
                                         </div>
@@ -103,11 +105,6 @@ export default function GalleryLightbox({ albums, album, onClose, audio }: Galle
                                     {isVideo ? 'Video' : `${slide.pi + 1} / ${count}`}
                                 </span>
                                 <span className="absolute right-3 top-3 flex gap-2">
-                                    {!isVideo && (
-                                        <button type="button" onClick={() => setZoom((z) => !z)} aria-label={zoom ? 'Perkecil' : 'Perbesar'} className={glassBtn}>
-                                            {zoom ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
-                                        </button>
-                                    )}
                                     <button type="button" onClick={fullscreen} aria-label="Layar penuh" className={glassBtn}><Expand className="h-4 w-4" /></button>
                                 </span>
 
