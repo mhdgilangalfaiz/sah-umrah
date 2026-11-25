@@ -80,6 +80,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifikasi/terbaru', [NotificationController::class, 'latest'])->name('notifications.latest');
     Route::post('/notifikasi/baca-semua', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::post('/notifikasi/{id}/baca', [NotificationController::class, 'read'])->name('notifications.read');
+    // Bukti pembayaran: pemilik pembayaran & admin
+    Route::get('/bukti-bayar/{payment}', [PaymentController::class, 'proof'])->name('payments.proof');
 });
 
 /*
@@ -106,6 +108,7 @@ Route::middleware(['auth', 'verified', 'customer'])->group(function () {
     Route::get('/bayar/{payment}/status', [PaymentController::class, 'status'])->name('payments.status');
     Route::post('/bayar/{payment}/batal', [PaymentController::class, 'cancel'])->name('payments.cancel');
     Route::post('/bayar/{payment}/simulasi', [PaymentController::class, 'simulate'])->name('payments.simulate');
+    Route::post('/bayar/{payment}/bukti', [PaymentController::class, 'uploadProof'])->middleware('throttle:10,1')->name('payments.proof.store');
 
     Route::prefix('akun')->name('customer.')->group(function () {
         Route::get('/umrah', [Customer\OrderController::class, 'bookings'])->name('bookings.index');

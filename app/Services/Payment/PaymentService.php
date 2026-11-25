@@ -189,7 +189,7 @@ class PaymentService
         return $result;
     }
 
-    /** Tandai lunas + terapkan ke pesanan + kwitansi + notifikasi. Harus dipanggil di dalam transaksi DB. */
+    /** Tandai lunas + terapkan ke pesanan + perbarui status invoice + notifikasi. Harus dipanggil di dalam transaksi DB. */
     public function markPaid(Payment $payment): void
     {
         $payment->update(['status' => 'dibayar', 'paid_at' => now()]);
@@ -214,16 +214,16 @@ class PaymentService
         }
 
         $payable->applyPayment($payment);
-        $receipt = $this->invoices->issueReceipt($payment, $payable);
+        $this->invoices->syncPaidStatus($payable);
 
         Audit::log('pembayaran.diterima', "Pembayaran {$payment->code} Rp".number_format($payment->amount, 0, ',', '.')." diterima untuk {$payable->code}", $payment, [], ['status' => 'dibayar'], null);
 
         $remaining = $payable->outstandingAmount();
         $payment->user->notify(new SystemNotification(
             'pembayaran', 'Pembayaran Diterima — '.$payable->code,
-            'Terima kasih, pembayaran Rp'.number_format($payment->amount, 0, ',', '.').' telah kami terima (kwitansi '.$receipt->number.').'.
+            'Terima kasih, pembayaran Rp'.number_format($payment->amount, 0, ',', '.').' via '.$payment->method_label.' telah kami terima dan tercatat di invoice. Langkah berikutnya: unggah bukti pembayaran (resi/struk) sebagai arsip.'.
             ($remaining > 0 ? ' Sisa tagihan: Rp'.number_format($remaining, 0, ',', '.').'.' : ' Tagihan Anda telah LUNAS.'),
-            $payable->customerUrl(), 'Lihat Pesanan'
+            route('payments.show', $payment->code), 'Unggah Bukti Bayar'
         ));
 
         \App\Support\AdminNotifier::notify('pembayaran', 'Pembayaran masuk '.$payable->code,

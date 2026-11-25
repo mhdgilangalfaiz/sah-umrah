@@ -61,7 +61,7 @@ class EndToEndIntegrationTest extends TestCase
         // 4) Dashboard jamaah: perjalanan aktif & kalender
         $this->actingAs($jamaah)->get('/dashboard')->assertInertia(fn (Assert $p) => $p
             ->where('activeTrip.code', $booking->code)->where('activeTrip.paid', 6000000)
-            ->where('calendarEvents', fn ($e) => collect($e)->contains('type', 'departure')));
+            ->where('calendarEvents', fn ($e) => collect($e)->contains('type', 'umrah')));
 
         // 5) Admin: dashboard, laporan, data jamaah, audit log, badge sidebar
         $this->actingAs($admin)->get('/admin')->assertInertia(fn (Assert $p) => $p->where('stats.orders.umrah', 1)->where('stats.revenue_month', 6000000));

@@ -91,7 +91,7 @@ class PaymentFlowTest extends TestCase
         $this->assertTrue($b->seats_confirmed);
         $this->assertSame(0, $dep->fresh()->held);
         $this->assertSame(1, $dep->fresh()->booked);
-        $this->assertTrue(Invoice::where('type', 'kwitansi')->where('payment_id', $p1->id)->exists());
+        $this->assertSame(0, Invoice::where('type', 'kwitansi')->count()); // tidak ada kwitansi terpisah
 
         // cicilan bebas 2jt (sisa 8jt dalam contoh user → di sini sisa 5jt)
         $p2 = $this->pay($u, $b, 2000000, 'qris');
@@ -107,7 +107,16 @@ class PaymentFlowTest extends TestCase
         $this->assertSame(0, $b->outstandingAmount());
         $this->assertTrue($b->installments()->where('status', '!=', 'lunas')->doesntExist());
         $this->assertSame('lunas', $b->invoices()->where('type', 'invoice')->first()->status);
-        $this->assertSame(3, Invoice::where('type', 'kwitansi')->where('invoiceable_id', $b->id)->count());
+        $this->assertSame(0, Invoice::where('type', 'kwitansi')->count());
+        $this->assertSame(1, $b->invoices()->count());
+
+        // riwayat pembayaran di invoice: tanggal, jenis, keterangan, nominal
+        $history = app(\App\Services\InvoiceService::class)->paymentHistory($b, (int) $b->total_amount);
+        $this->assertSame(['Deposit', 'Pembayaran Termin 1', 'Lunas'], array_column($history, 'info'));
+        $this->assertSame([3000000, 2000000, 5000000], array_column($history, 'amount'));
+        $this->assertSame('QRIS', $history[1]['type']);
+        $this->assertSame('Transfer Bank Muamalat (VA)', $history[2]['type']);
+        $this->actingAs($u)->get(route('invoices.pdf', $b->invoices()->first()))->assertOk();
     }
 
     public function test_webhook_idempotent_dan_signature_divalidasi(): void

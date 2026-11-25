@@ -3,6 +3,7 @@ import { Clock, CreditCard, Landmark, QrCode, ShieldCheck } from 'lucide-react';
 import { useMemo } from 'react';
 import { rupiah, dateTime, uuid } from '@/lib/format';
 import { cx } from './ui';
+import { MissingProofs } from './PaymentProof';
 
 const ICON = { qris: QrCode, va_mandiri: Landmark, va_bsi: Landmark, va_muamalat: Landmark };
 const BANK_COLOR = { va_mandiri: 'text-[#003d79]', va_bsi: 'text-[#00a39d]', va_muamalat: 'text-[#5b2a86]', qris: 'text-slate-800' };
@@ -21,20 +22,25 @@ export default function PayBox({ box, title = 'Pembayaran' }) {
         idempotency_key: idem,
     });
 
+    const missing = <MissingProofs items={box.missing_proofs} />;
+
     if (box.outstanding <= 0) {
         return (
-            <div className="card flex items-center gap-3 border-emerald-200 bg-emerald-50 p-5 text-emerald-800">
+            <>
+            {missing}
+            <div className={cx('card flex items-center gap-3 border-emerald-200 bg-emerald-50 p-5 text-emerald-800', box.missing_proofs?.length > 0 && 'mt-4')}>
                 <ShieldCheck className="h-6 w-6" />
                 <div>
                     <p className="font-semibold">Tagihan sudah lunas</p>
                     <p className="text-sm">Terima kasih, seluruh pembayaran telah kami terima.</p>
                 </div>
             </div>
+            </>
         );
     }
 
     if (!box.can_pay) {
-        return null;
+        return missing;
     }
 
     const amount = Number(data.amount || 0);
@@ -44,7 +50,9 @@ export default function PayBox({ box, title = 'Pembayaran' }) {
         : [];
 
     return (
-        <section className="card overflow-hidden">
+        <>
+        {missing}
+        <section className={cx('card overflow-hidden', box.missing_proofs?.length > 0 && 'mt-4')}>
             <div className="flex items-center gap-2 border-b border-slate-100 bg-brand-50/60 px-5 py-4">
                 <CreditCard className="h-5 w-5 text-brand-700" />
                 <h2 className="font-sans text-base font-semibold">{title}</h2>
@@ -133,5 +141,6 @@ export default function PayBox({ box, title = 'Pembayaran' }) {
                 </p>
             </form>
         </section>
+        </>
     );
 }

@@ -13,7 +13,7 @@ use App\Models\VisaApplication;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Model;
 
-/** Invoice (tagihan) dan kwitansi (bukti bayar) otomatis + render PDF. */
+/** Invoice (tagihan + riwayat pembayaran) otomatis + render PDF. Tidak ada kwitansi terpisah. */
 class InvoiceService
 {
     public function items(Model $payable): array
@@ -121,29 +121,56 @@ class InvoiceService
         return $invoice;
     }
 
-    public function issueReceipt(Payment $payment, Model&Payable $payable): Invoice
+    /**
+     * Setelah pembayaran diterima: tidak ada kwitansi terpisah — cukup tandai invoice berlaku "lunas" bila tagihan sudah terbayar penuh.
+     * Riwayat pembayaran tercetak di invoice (lihat paymentHistory()).
+     */
+    public function syncPaidStatus(Model&Payable $payable): void
     {
-        $receipt = Invoice::create([
-            'number' => Invoice::nextNumber('kwitansi'),
-            'type' => 'kwitansi',
-            'invoiceable_type' => $payable->getMorphClass(),
-            'invoiceable_id' => $payable->getKey(),
-            'user_id' => $payment->user_id,
-            'payment_id' => $payment->id,
-            'amount' => $payment->amount,
-            'items' => [[
-                'description' => 'Pembayaran '.($payment->installment?->label ?? 'pesanan').' — '.$payable->payableLabel().' via '.$payment->method_label,
-                'qty' => 1, 'price' => $payment->amount, 'total' => $payment->amount,
-            ]],
-            'status' => 'lunas',
-            'issued_at' => now(),
-        ]);
-
         if ($payable->outstandingAmount() <= 0) {
             $payable->invoices()->where('type', 'invoice')->where('status', 'belum_lunas')->update(['status' => 'lunas']);
         }
+    }
 
-        return $receipt;
+    /** Jenis pembayaran untuk dicetak di invoice */
+    public const PAYMENT_TYPES = [
+        'va_mandiri' => 'Transfer Bank Mandiri (VA)',
+        'va_bsi' => 'Transfer Bank BSI (VA)',
+        'va_muamalat' => 'Transfer Bank Muamalat (VA)',
+        'qris' => 'QRIS',
+    ];
+
+    /**
+     * Riwayat pembayaran sebuah pesanan: tanggal, jenis pembayaran, keterangan, nominal.
+     * Keterangan: pembayaran pertama "Deposit", berikutnya "Pembayaran Termin 1, 2, …", yang menutup tagihan "Lunas".
+     *
+     * @return array<int, array{date:string, type:string, info:string, amount:int}>
+     */
+    public function paymentHistory(?Model $payable, int $total): array
+    {
+        if (! $payable || ! method_exists($payable, 'payments')) return [];
+
+        $rows = [];
+        $sum = 0;
+        $term = 0;
+        $payments = $payable->payments()->reorder()->where('status', 'dibayar')->orderBy('paid_at')->orderBy('id')->get();
+        foreach ($payments as $i => $p) {
+            $sum += (int) $p->amount;
+            $info = match (true) {
+                $sum >= $total && $total > 0 => 'Lunas',
+                $i === 0 => 'Deposit',
+                default => 'Pembayaran Termin '.(++$term),
+            };
+            $rows[] = [
+                'date' => ($p->paid_at ?? $p->updated_at)->translatedFormat('d M Y H:i'),
+                'type' => self::PAYMENT_TYPES[$p->method] ?? $p->method_label,
+                'info' => $info,
+                'amount' => (int) $p->amount,
+                'code' => $p->code,
+            ];
+        }
+
+        return $rows;
     }
 
     public function pdf(Invoice $invoice)
@@ -157,6 +184,7 @@ class InvoiceService
             'company' => Setting::allCached(),
             'paid' => $payable?->paid_amount ?? 0,
             'outstanding' => $payable?->outstandingAmount() ?? 0,
+            'history' => $this->paymentHistory($payable, (int) $invoice->amount),
         ])->setPaper('a4');
     }
 }

@@ -4,14 +4,15 @@ import { useState } from 'react';
 import CustomerLayout from '@/Layouts/CustomerLayout';
 import { Card, Empty, PageHeader, Pagination, StatusBadge, cx } from '@/Components/ui';
 import { rupiah } from '@/lib/format';
+import { ProofLink } from '@/Components/PaymentProof';
 
 export default function Billing({ invoices, payments }) {
     const [tab, setTab] = useState('invoice');
     return (
         <CustomerLayout title="Tagihan & Pembayaran">
-            <PageHeader title="Tagihan & Pembayaran" subtitle="Unduh invoice dan kwitansi resmi kapan saja." />
+            <PageHeader title="Tagihan & Pembayaran" subtitle="Unduh invoice resmi (lengkap dengan riwayat pembayaran) kapan saja." />
             <div className="mb-4 inline-flex rounded-xl bg-white p-1 shadow-soft">
-                {[['invoice', 'Invoice & Kwitansi'], ['payment', 'Riwayat Transaksi']].map(([k, l]) => (
+                {[['invoice', 'Invoice'], ['payment', 'Riwayat Transaksi']].map(([k, l]) => (
                     <button key={k} onClick={() => setTab(k)} className={cx('rounded-lg px-4 py-2 text-sm font-medium', tab === k ? 'bg-brand-700 text-white' : 'text-slate-600')}>{l}</button>
                 ))}
             </div>
@@ -38,13 +39,13 @@ export default function Billing({ invoices, payments }) {
                 <Card pad={false}>
                     {payments.data.length === 0 ? <Empty title="Belum ada transaksi" /> : (
                         <div className="overflow-x-auto"><table className="table-app">
-                            <thead><tr><th>Kode</th><th>Pesanan</th><th>Metode</th><th className="!text-right">Nominal</th><th>Status</th><th>Dibuat</th><th>Dibayar</th></tr></thead>
+                            <thead><tr><th>Kode</th><th>Pesanan</th><th>Metode</th><th className="!text-right">Nominal</th><th>Status</th><th>Dibuat</th><th>Dibayar</th><th>Bukti bayar</th></tr></thead>
                             <tbody className="divide-y divide-slate-100">
                                 {payments.data.map((p) => (
                                     <tr key={p.code}>
                                         <td><Link href={route('payments.show', p.code)} className="font-medium text-brand-700 hover:underline">{p.code}</Link></td>
                                         <td>{p.order?.code}</td><td>{p.method_label}</td><td className="text-right">{rupiah(p.amount)}</td>
-                                        <td><StatusBadge status={p.status} /></td><td>{p.created_at}</td><td>{p.paid_at ?? '-'}</td>
+                                        <td><StatusBadge status={p.status} /></td><td>{p.created_at}</td><td>{p.paid_at ?? '-'}</td><td><ProofLink p={p} uploadable /></td>
                                     </tr>
                                 ))}
                             </tbody>

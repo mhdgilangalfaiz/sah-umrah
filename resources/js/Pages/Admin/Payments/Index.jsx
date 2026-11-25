@@ -1,5 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { CreditCard, RefreshCw, Scale } from 'lucide-react';
+import { ProofLink } from '@/Components/PaymentProof';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { NewDot, useUnread } from '@/lib/unread';
 import FilterBar from '@/Components/FilterBar';
@@ -30,7 +31,7 @@ export default function Index({ payments, filters, methods, summary }) {
             <Card pad={false}>
                 {payments.data.length === 0 ? <Empty title="Tidak ada transaksi" /> : (
                     <div className="overflow-x-auto"><table className="table-app">
-                        <thead><tr><th>Kode</th><th>Pelanggan</th><th>Pesanan</th><th>Metode</th><th className="!text-right">Nominal</th><th>Status</th><th>Dibuat</th><th>Dibayar</th><th></th></tr></thead>
+                        <thead><tr><th>Kode</th><th>Pelanggan</th><th>Pesanan</th><th>Metode</th><th className="!text-right">Nominal</th><th>Status</th><th>Dibuat</th><th>Dibayar</th><th>Bukti bayar</th><th></th></tr></thead>
                         <tbody className="divide-y divide-slate-100">
                             {payments.data.map((p) => (
                                 <tr key={p.code}>
@@ -40,7 +41,7 @@ export default function Index({ payments, filters, methods, summary }) {
                                     <td>{p.method_label}{p.va_number && <p className="font-mono text-xs text-slate-500">{p.va_number}</p>}</td>
                                     <td className="text-right font-semibold">{rupiah(p.amount)}</td>
                                     <td><StatusBadge status={p.status} /></td>
-                                    <td>{p.created_at}</td><td>{p.paid_at ?? '-'}</td>
+                                    <td>{p.created_at}</td><td>{p.paid_at ?? '-'}</td><td><ProofLink p={p} /></td>
                                     <td>{canCheck && p.status === 'menunggu_pembayaran' && p.gateway === 'xendit' && <button onClick={() => router.post(route('admin.payments.check', p.code), {}, { preserveScroll: true })} className="btn-ghost btn-sm" title="Cek status ke gateway"><RefreshCw className="h-4 w-4" /></button>}</td>
                                 </tr>
                             ))}

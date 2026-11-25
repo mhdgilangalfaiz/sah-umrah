@@ -89,8 +89,21 @@
     </tbody>
 </table>
 
-@if($invoice->type === 'kwitansi')
-    <p style="margin-top:14px">Terbilang: <i>{{ ucwords(\App\Support\Terbilang::make((int) $invoice->amount)) }} Rupiah</i></p>
+@if($invoice->type === 'invoice' && $payable)
+    <p style="margin:14px 0 4px"><b>Riwayat Pembayaran</b></p>
+    <table class="items">
+        <thead><tr><th style="width:24%">Tanggal Pembayaran</th><th style="width:30%">Jenis Pembayaran</th><th>Keterangan</th><th class="right" style="width:20%">Nominal</th></tr></thead>
+        <tbody>
+        @forelse($history as $h)
+            <tr><td>{{ $h['date'] }}</td><td>{{ $h['type'] }}</td><td>{{ $h['info'] }}</td><td class="right">{{ $rp($h['amount']) }}</td></tr>
+        @empty
+            <tr><td colspan="4" class="muted" style="text-align:center">Belum ada pembayaran.</td></tr>
+        @endforelse
+        @if(count($history))
+            <tr><td colspan="3" class="right"><b>Total dibayar</b></td><td class="right"><b>{{ $rp(array_sum(array_column($history, 'amount'))) }}</b></td></tr>
+        @endif
+        </tbody>
+    </table>
 @endif
 
 @if($payable instanceof \App\Models\Booking && $payable->installments->count() > 1)

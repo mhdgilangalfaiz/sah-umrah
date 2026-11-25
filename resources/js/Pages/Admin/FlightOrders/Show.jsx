@@ -1,6 +1,7 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { AlertTriangle, Download, FilePenLine, FileSpreadsheet, Minus, Plus, Ticket, Trash2, Upload, X } from 'lucide-react';
 import { useState } from 'react';
+import { ProofLink } from '@/Components/PaymentProof';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { FlightCard } from '@/Components/Cards';
 import { Card, DefList, Input, PageHeader, StatusBadge, Textarea } from '@/Components/ui';
@@ -42,7 +43,7 @@ export default function Show({ order: o, passengers, payments, documents, outsta
                         </table></div>
                     </Card>
                     <Card title="Transaksi" pad={false}>
-                        <div className="overflow-x-auto"><table className="table-app"><tbody className="divide-y divide-slate-100">{payments.map((p) => <tr key={p.id}><td>{p.code}</td><td>{p.method_label}</td><td>{rupiah(p.amount)}</td><td><StatusBadge status={p.status} /></td><td>{dateTime(p.paid_at ?? p.created_at)}</td></tr>)}</tbody></table></div>
+                        <div className="overflow-x-auto"><table className="table-app"><tbody className="divide-y divide-slate-100">{payments.map((p) => <tr key={p.id}><td>{p.code}</td><td>{p.method_label}</td><td>{rupiah(p.amount)}</td><td><StatusBadge status={p.status} /></td><td>{dateTime(p.paid_at ?? p.created_at)}</td><td><ProofLink p={p} /></td></tr>)}</tbody></table></div>
                     </Card>
                 </div>
                 <div className="grid content-start items-start gap-6 md:grid-cols-2 2xl:grid-cols-1">

@@ -104,11 +104,11 @@ export default function BookingShow({ booking: b, outstanding, overdue, deposit,
 
                 <div className="space-y-6">
                     <PayBox box={payBox} title={b.paid_amount === 0 && b.payment_scheme === 'cicilan' ? 'Bayar Deposit Awal' : 'Bayar Cicilan / Pelunasan'} />
-                    <Card title="Invoice & kwitansi">
+                    <Card title="Invoice">
                         <ul className="space-y-2">
                             {b.invoices.map((i) => (
                                 <li key={i.id} className="flex items-center justify-between gap-2 text-sm">
-                                    <div className="min-w-0"><p className="truncate font-medium">{i.number}</p><p className="text-xs text-slate-500">{i.type === 'kwitansi' ? 'Kwitansi' : 'Invoice'} · {rupiah(i.amount)}</p></div>
+                                    <div className="min-w-0"><p className="truncate font-medium">{i.number}</p><p className="text-xs text-slate-500">Invoice · {rupiah(i.amount)}</p></div>
                                     <a target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="btn-outline btn-sm"><Download className="h-3.5 w-3.5" />PDF</a>
                                 </li>
                             ))}

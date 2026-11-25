@@ -1,5 +1,6 @@
 import { ArrowUp, Bot, X } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { router } from '@inertiajs/react';
+import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import ChatWidget from '@/Components/ChatWidget';
 
@@ -11,7 +12,11 @@ import ChatWidget from '@/Components/ChatWidget';
 let entered = false;
 let chatOpen = false;
 
-/** Kanan bawah: tombol "Kembali ke atas" (setelah 600px) dan pill "Chat Bot" yang membuka chatbot internal. */
+/**
+ * Kanan bawah: tombol "Kembali ke atas" (setelah 600px) dan pill "Chat Bot" yang membuka chatbot internal.
+ * Bisa digeser (mouse/sentuh) ke mana saja di layar agar tidak menutupi isi halaman.
+ * Setiap pindah halaman kembali ke posisi awal di kanan bawah.
+ */
 export default function FloatingActions({ showTop, chat }: { showTop: boolean; chat: boolean }) {
     const reduce = useReducedMotion();
     const firstEntrance = useRef(!entered).current; // true hanya pada tampilan pertama
@@ -23,14 +28,33 @@ export default function FloatingActions({ showTop, chat }: { showTop: boolean; c
     });
 
     useEffect(() => { entered = true; }, []);
+
+    // geser: klik setelah menggeser tidak dianggap membuka chat
+    const bounds = useRef<HTMLDivElement>(null);
+    const x = useMotionValue(0);
+    const y = useMotionValue(0);
+
+    // pindah halaman → kembali ke kanan bawah
+    useEffect(() => router.on('navigate', () => {
+        if (reduce) { x.set(0); y.set(0); return; }
+        animate(x, 0, { duration: 0.3 });
+        animate(y, 0, { duration: 0.3 });
+    }), [x, y, reduce]);
+    const moved = useRef(false);
+    const guard = (fn: () => void) => () => { if (moved.current) return; fn(); };
     const toTop = () => window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
 
     return (
         <>
-            <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+            <div ref={bounds} className="pointer-events-none fixed inset-3 z-40 sm:inset-4" aria-hidden="true" />
+            <motion.div drag dragConstraints={bounds} dragMomentum={false} dragElastic={0.05} style={{ x, y, touchAction: 'none' }}
+                onDragStart={() => { moved.current = true; }}
+                onDragEnd={() => { setTimeout(() => { moved.current = false; }, 80); }}
+                title="Geser untuk memindahkan"
+                className="fixed bottom-4 right-4 z-50 flex cursor-grab flex-col items-end gap-3 active:cursor-grabbing sm:bottom-6 sm:right-6">
                 <AnimatePresence>
                     {showTop && !open && (
-                        <motion.button type="button" onClick={toTop} aria-label="Kembali ke atas"
+                        <motion.button type="button" onClick={guard(toTop)} aria-label="Kembali ke atas"
                             initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }} transition={{ duration: 0.25 }}
                             className="grid h-12 w-12 place-items-center rounded-full border border-primary-100 bg-white text-primary-700 shadow-lg transition-colors hover:bg-primary-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2">
                             <ArrowUp className="h-5 w-5" />
@@ -39,7 +63,7 @@ export default function FloatingActions({ showTop, chat }: { showTop: boolean; c
                 </AnimatePresence>
 
                 {chat && (
-                    <motion.button type="button" onClick={() => setOpen((o) => !o)} aria-label={open ? 'Tutup Chat Bot' : 'Buka Chat Bot'} aria-expanded={open}
+                    <motion.button type="button" onClick={guard(() => setOpen((o) => !o))} aria-label={open ? 'Tutup Chat Bot' : 'Buka Chat Bot'} aria-expanded={open}
                         initial={reduce || !firstEntrance ? false : { opacity: 0, y: 80, scale: 0.6 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={reduce || !firstEntrance ? undefined : { delay: 1, type: 'spring', stiffness: 420, damping: 14 }}
                         className="flex items-center gap-2.5 rounded-full bg-gradient-to-r from-primary-700 to-primary-900 py-3 pl-3.5 pr-5 text-sm font-bold text-white shadow-lg shadow-primary-900/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2">
@@ -55,7 +79,7 @@ export default function FloatingActions({ showTop, chat }: { showTop: boolean; c
                         {open ? 'Tutup' : 'Chat Bot'}
                     </motion.button>
                 )}
-            </div>
+            </motion.div>
             {chat && <ChatWidget open={open} onOpenChange={setOpen} launcher={false} />}
         </>
     );

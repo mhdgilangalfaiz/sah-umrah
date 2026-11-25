@@ -99,7 +99,7 @@ class SmokeTest extends TestCase
         $this->getJson('/bayar/'.$pay->code.'/status')->assertJson(['status' => 'menunggu_pembayaran']);
         $this->getJson('/notifikasi/terbaru')->assertOk();
 
-        // simulasi bayar lalu unduh invoice & kwitansi PDF
+        // simulasi bayar lalu unduh invoice PDF (berisi riwayat pembayaran)
         $this->post('/bayar/'.$pay->code.'/simulasi', ['status' => 'PAID'])->assertRedirect();
         $this->assertSame('dibayar', $pay->fresh()->status);
         foreach (Invoice::where('user_id', $u->id)->get() as $inv) {

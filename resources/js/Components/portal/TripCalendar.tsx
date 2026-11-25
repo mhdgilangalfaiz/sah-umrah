@@ -1,16 +1,20 @@
 import { Link } from '@inertiajs/react';
-import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Plane, TimerReset } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Landmark, Plane, Stamp, TimerReset } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { cn, formatDate, formatRupiah } from '@/Components/landing/lib';
 import PortalCard from './PortalCard';
 import type { CalendarEvent } from './types';
 
 const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+/** Penanda per jenis jadwal: warna titik di tanggal + ikon di rincian & legenda */
 const TYPE = {
-    departure: { dot: 'bg-primary-500', icon: Plane, tone: 'bg-primary-100 text-primary-700', label: 'Keberangkatan' },
+    umrah: { dot: 'bg-primary-700', icon: Landmark, tone: 'bg-primary-100 text-primary-700', label: 'Paket umrah' },
+    flight: { dot: 'bg-sky-500', icon: Plane, tone: 'bg-sky-100 text-sky-700', label: 'Tiket pesawat' },
+    visa: { dot: 'bg-violet-500', icon: Stamp, tone: 'bg-violet-100 text-violet-700', label: 'Visa' },
     installment: { dot: 'bg-red-500', icon: CircleDollarSign, tone: 'bg-red-100 text-red-600', label: 'Jatuh tempo cicilan' },
     deadline: { dot: 'bg-gold-500', icon: TimerReset, tone: 'bg-gold-100 text-amber-700', label: 'Batas pelunasan' },
 } as const;
+const TRAVEL = ['umrah', 'flight'] as const;
 
 /** "2026-11-24" menurut WIB */
 const todayIso = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
@@ -40,8 +44,8 @@ export default function TripCalendar({ events }: { events: CalendarEvent[] }) {
     }, [view]);
 
     const shift = (step: number) => setView(({ y, m }) => { const t = new Date(y, m + step, 1); return { y: t.getFullYear(), m: t.getMonth() }; });
-    const nextDeparture = upcoming.find((e) => e.type === 'departure');
-    const nextPayment = events.find((e) => e.type !== 'departure' && (e.date >= today || e.overdue));
+    const nextDeparture = upcoming.find((e) => (TRAVEL as readonly string[]).includes(e.type) && !/kembali|pulang/i.test(e.title));
+    const nextPayment = events.find((e) => (e.type === 'installment' || e.type === 'deadline') && (e.date >= today || e.overdue));
     const dayEvents = byDate[selected] ?? [];
 
     return (
@@ -51,7 +55,7 @@ export default function TripCalendar({ events }: { events: CalendarEvent[] }) {
                 <div className="rounded-2xl bg-primary-50 p-3">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-primary-700">Keberangkatan</p>
                     <p className="font-jakarta text-lg font-extrabold text-neutral-900">{nextDeparture ? `H-${daysBetween(today, nextDeparture.date)}` : '–'}</p>
-                    <p className="truncate text-xs text-neutral-600">{nextDeparture ? formatDate(nextDeparture.date) : 'Belum ada jadwal'}</p>
+                    <p className="truncate text-xs text-neutral-600">{nextDeparture ? `${formatDate(nextDeparture.date)} · ${TYPE[nextDeparture.type].label}` : 'Belum ada jadwal'}</p>
                 </div>
                 <div className={cn('rounded-2xl p-3', nextPayment?.overdue ? 'bg-red-50' : 'bg-gold-100/60')}>
                     <p className={cn('text-[11px] font-bold uppercase tracking-wide', nextPayment?.overdue ? 'text-red-600' : 'text-amber-700')}>{nextPayment?.overdue ? 'Terlambat bayar' : 'Bayar berikutnya'}</p>
@@ -79,8 +83,8 @@ export default function TripCalendar({ events }: { events: CalendarEvent[] }) {
                                 selected === date ? 'bg-gradient-to-r from-primary-700 to-primary-900 font-extrabold text-white shadow-md' : isToday ? 'font-extrabold text-primary-700 ring-2 ring-primary-500' : evs.length ? 'font-bold text-neutral-900 hover:bg-primary-50' : 'text-neutral-900/70 hover:bg-primary-50')}>
                             {Number(date.slice(8))}
                             {evs.length > 0 && (
-                                <span className="absolute bottom-0.5 left-1/2 flex -translate-x-1/2 gap-0.5" aria-hidden="true">
-                                    {[...new Set(evs.map((e) => e.type))].map((t) => <span key={t} className={cn('h-1.5 w-1.5 rounded-full ring-1 ring-white', TYPE[t].dot, evs.some((e) => e.type === t && e.overdue) && 'bg-red-700')} />)}
+                                <span className="absolute -bottom-0.5 left-1/2 flex -translate-x-1/2 gap-0.5" aria-hidden="true">
+                                    {[...new Set(evs.map((e) => e.type))].map((t) => <span key={t} className={cn('h-2 w-2 rounded-full ring-2 ring-white', TYPE[t].dot, evs.some((e) => e.type === t && e.overdue) && 'bg-red-700')} />)}
                                 </span>
                             )}
                         </button>
@@ -114,7 +118,7 @@ export default function TripCalendar({ events }: { events: CalendarEvent[] }) {
             </div>
 
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-neutral-600">
-                {Object.values(TYPE).map((t) => <span key={t.label} className="flex items-center gap-1.5"><span className={cn('h-2 w-2 rounded-full', t.dot)} />{t.label}</span>)}
+                {Object.values(TYPE).map((t) => <span key={t.label} className="flex items-center gap-1.5"><span className={cn('h-2.5 w-2.5 rounded-full', t.dot)} /><t.icon className="h-3 w-3 text-neutral-500" aria-hidden="true" />{t.label}</span>)}
             </div>
         </PortalCard>
     );

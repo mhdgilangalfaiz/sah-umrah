@@ -24,15 +24,16 @@ class Payment extends Model
     protected $fillable = [
         'code', 'user_id', 'payable_type', 'payable_id', 'payment_installment_id', 'amount', 'method', 'gateway',
         'gateway_id', 'va_number', 'qr_string', 'status', 'idempotency_key', 'expires_at', 'paid_at', 'gateway_response',
+        'proof_path', 'proof_name', 'proof_note', 'proof_uploaded_at',
     ];
 
-    protected $hidden = ['gateway_response'];
+    protected $hidden = ['gateway_response', 'proof_path'];
 
-    protected $appends = ['method_label'];
+    protected $appends = ['method_label', 'proof_url', 'needs_proof'];
 
     protected function casts(): array
     {
-        return ['expires_at' => 'datetime', 'paid_at' => 'datetime', 'gateway_response' => 'array', 'amount' => 'integer'];
+        return ['expires_at' => 'datetime', 'paid_at' => 'datetime', 'proof_uploaded_at' => 'datetime', 'gateway_response' => 'array', 'amount' => 'integer'];
     }
 
     public function getMethodLabelAttribute(): string
@@ -40,10 +41,21 @@ class Payment extends Model
         return self::METHODS[$this->method] ?? $this->method;
     }
 
+    /** Tautan melihat bukti pembayaran (pemilik & admin) */
+    public function getProofUrlAttribute(): ?string
+    {
+        return $this->proof_path ? route('payments.proof', $this->code) : null;
+    }
+
+    /** Pembayaran sukses yang belum dilengkapi bukti pembayaran */
+    public function getNeedsProofAttribute(): bool
+    {
+        return $this->status === 'dibayar' && ! $this->proof_path;
+    }
+
     public function payable() { return $this->morphTo(); }
     public function user() { return $this->belongsTo(User::class); }
     public function installment() { return $this->belongsTo(PaymentInstallment::class, 'payment_installment_id'); }
-    public function receipt() { return $this->hasOne(Invoice::class)->where('type', 'kwitansi'); }
 
     public function isPending(): bool
     {

@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 
-/** Laporan invoice & kwitansi semua pembelian (dapat dilihat Admin dan Super Admin). */
+/** Laporan invoice semua pembelian (dapat dilihat Admin dan Super Admin). */
 class InvoiceController extends Controller
 {
     private const SERVICES = [Booking::class => 'Paket Umrah', FlightOrder::class => 'Tiket Pesawat', VisaApplication::class => 'Visa'];
@@ -20,7 +20,6 @@ class InvoiceController extends Controller
     {
         $filters = $request->validate([
             'q' => 'nullable|string|max:100',
-            'jenis' => 'nullable|in:invoice,kwitansi',
             'status' => 'nullable|in:belum_lunas,lunas,batal,direvisi',
             'layanan' => 'nullable|in:umrah,tiket,visa',
             'dari' => 'nullable|date',
@@ -31,8 +30,8 @@ class InvoiceController extends Controller
         $serviceMap = ['umrah' => Booking::class, 'tiket' => FlightOrder::class, 'visa' => VisaApplication::class];
 
         $q = Invoice::with(['user:id,name,email', 'invoiceable'])
+            ->where('type', 'invoice')
             ->whereBetween('issued_at', [$from, $to])
-            ->when($filters['jenis'] ?? null, fn ($q, $v) => $q->where('type', $v))
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($filters['layanan'] ?? null, fn ($q, $v) => $q->where('invoiceable_type', (new $serviceMap[$v])->getMorphClass()))
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->where(fn ($w) => $w
@@ -42,6 +41,9 @@ class InvoiceController extends Controller
         $summary = (clone $q)->selectRaw('type, status, COUNT(*) as n, SUM(amount) as total')->groupBy('type', 'status')->get();
         $counted = $summary->reject(fn ($r) => $r->type === 'invoice' && in_array($r->status, Invoice::INACTIVE, true));
         $sum = fn ($type, $status = null) => (int) $counted->where('type', $type)->when($status, fn ($c) => $c->where('status', $status))->sum('total');
+
+        $received = \App\Models\Payment::where('status', 'dibayar')->whereBetween('paid_at', [$from, $to])
+            ->when($filters['layanan'] ?? null, fn ($q, $v) => $q->where('payable_type', (new $serviceMap[$v])->getMorphClass()));
 
         return Inertia::render('Admin/Invoices', [
             'invoices' => $q->latest('issued_at')->latest('id')->paginate(25)->withQueryString()->through(fn (Invoice $i) => [
@@ -63,8 +65,9 @@ class InvoiceController extends Controller
                 'invoice_count' => (int) $counted->where('type', 'invoice')->sum('n'),
                 'invoice_total' => $sum('invoice'),
                 'unpaid_total' => $sum('invoice', 'belum_lunas'),
-                'receipt_count' => (int) $summary->where('type', 'kwitansi')->sum('n'),
-                'receipt_total' => $sum('kwitansi'),
+                // uang diterima = pembayaran sukses pada periode (dicatat di riwayat pembayaran invoice)
+                'receipt_count' => (clone $received)->count(),
+                'receipt_total' => (int) (clone $received)->sum('amount'),
             ],
             'filters' => $filters + ['dari' => $from->format('Y-m-d'), 'sampai' => $to->format('Y-m-d')],
         ]);

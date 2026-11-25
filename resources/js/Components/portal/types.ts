@@ -43,7 +43,7 @@ export interface DashboardNotification {
 /** Tanggal penting di "Kalender Perjalanan Saya". */
 export interface CalendarEvent {
     date: string; // YYYY-MM-DD
-    type: 'departure' | 'installment' | 'deadline';
+    type: 'umrah' | 'flight' | 'visa' | 'installment' | 'deadline';
     title: string;
     detail: string;
     amount?: number;

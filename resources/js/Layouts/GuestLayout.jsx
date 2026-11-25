@@ -5,7 +5,7 @@ import { Flash } from '@/Components/ui';
 const PERKS = [
     'Pantau pesanan, cicilan & dokumen secara real-time',
     'Pembayaran aman via Virtual Account & QRIS',
-    'Invoice & kwitansi otomatis, siap diunduh',
+    'Invoice otomatis lengkap dengan riwayat pembayaran',
 ];
 
 /** Kembali ke halaman terakhir sebelum masuk halaman login/daftar (dicatat di app.jsx), atau ke beranda. */

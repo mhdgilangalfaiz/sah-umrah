@@ -74,19 +74,28 @@ class DashboardController extends Controller
     }
 
     /**
-     * Tanggal penting jamaah untuk "Kalender Perjalanan Saya":
-     * keberangkatan umrah & tiket (hijau), jatuh tempo cicilan (merah), batas pelunasan (emas).
+     * Tanggal penting jamaah untuk "Kalender Perjalanan Saya", masing-masing dengan penanda sendiri:
+     * umrah (berangkat & pulang), tiket pesawat (terbang & kembali), visa (terbit & rencana berangkat),
+     * jatuh tempo cicilan, dan batas pelunasan.
      */
     private function calendarEvents($u, $active): array
     {
         $events = [];
+        $rp = fn ($n) => 'Rp'.number_format((int) $n, 0, ',', '.');
+
+        // ---- Paket umrah
         foreach ($active as $b) {
             $url = route('customer.bookings.show', $b->code);
-            $events[] = ['date' => $b->departure->departure_date->toDateString(), 'type' => 'departure',
-                'title' => 'Berangkat umrah', 'detail' => $b->departure->package->name.' · '.$b->code, 'url' => $url];
+            $name = $b->departure->package->name;
+            $events[] = ['date' => $b->departure->departure_date->toDateString(), 'type' => 'umrah',
+                'title' => 'Berangkat umrah', 'detail' => $name.' · '.$b->code, 'url' => $url];
+            if ($b->departure->return_date) {
+                $events[] = ['date' => $b->departure->return_date->toDateString(), 'type' => 'umrah',
+                    'title' => 'Pulang umrah', 'detail' => $name.' · '.$b->code, 'url' => $url];
+            }
             if ($b->status !== 'lunas' && $b->payment_deadline) {
                 $events[] = ['date' => $b->payment_deadline->toDateString(), 'type' => 'deadline',
-                    'title' => 'Batas pelunasan', 'detail' => $b->code.' · sisa Rp'.number_format($b->outstandingAmount(), 0, ',', '.'),
+                    'title' => 'Batas pelunasan umrah', 'detail' => $b->code.' · sisa '.$rp($b->outstandingAmount()),
                     'overdue' => $b->payment_deadline->lt(today()), 'url' => $url];
             }
         }
@@ -101,12 +110,41 @@ class DashboardController extends Controller
                     'url' => route('customer.bookings.show', $i->booking->code)];
             });
 
+        // ---- Tiket pesawat
         $u->flightOrders()->with('flight')->whereNotIn('status', ['dibatalkan', 'kedaluwarsa'])->get()
             ->filter(fn ($o) => $o->flight?->depart_at)
-            ->each(function ($o) use (&$events) {
-                $events[] = ['date' => $o->flight->depart_at->toDateString(), 'type' => 'departure',
-                    'title' => 'Terbang '.$o->flight->origin_code.' → '.$o->flight->destination_code, 'detail' => $o->flight->airline.' · '.$o->code,
-                    'url' => route('customer.flight-orders.show', $o->code)];
+            ->each(function ($o) use (&$events, $rp) {
+                $f = $o->flight;
+                $url = route('customer.flight-orders.show', $o->code);
+                $seat = $o->pax_count.' seat';
+                $events[] = ['date' => $f->depart_at->toDateString(), 'type' => 'flight',
+                    'title' => 'Terbang '.$f->origin_code.' → '.$f->destination_code.' · '.$f->depart_at->format('H.i'),
+                    'detail' => $f->airline.' '.$f->flight_number.' · '.$seat.' · '.$o->code, 'url' => $url];
+                if ($f->return_depart_at) {
+                    $events[] = ['date' => $f->return_depart_at->toDateString(), 'type' => 'flight',
+                        'title' => 'Terbang kembali '.$f->destination_code.' → '.$f->origin_code.' · '.$f->return_depart_at->format('H.i'),
+                        'detail' => $f->airline.' · '.$seat.' · '.$o->code, 'url' => $url];
+                }
+                if ($o->settlement_due_at && $o->outstandingAmount() > 0 && in_array($o->status, ['menunggu_pembayaran', 'cicilan_berjalan'], true)) {
+                    $events[] = ['date' => $o->settlement_due_at->toDateString(), 'type' => 'deadline',
+                        'title' => 'Batas pelunasan tiket', 'detail' => $o->code.' · sisa '.$rp($o->outstandingAmount()),
+                        'overdue' => $o->settlement_due_at->isPast(), 'url' => $url];
+                }
+            });
+
+        // ---- Visa
+        $u->visaApplications()->with('service:id,name')->whereNotIn('status', ['ditolak', 'dibatalkan'])->get()
+            ->each(function ($v) use (&$events) {
+                $url = route('customer.visa.show', $v->code);
+                $name = $v->service?->name ?? 'Visa';
+                if ($v->issued_at) {
+                    $events[] = ['date' => $v->issued_at->toDateString(), 'type' => 'visa',
+                        'title' => 'Visa terbit', 'detail' => $name.' · '.$v->pax_count.' orang · '.$v->code, 'url' => $url];
+                }
+                if ($v->planned_departure) {
+                    $events[] = ['date' => $v->planned_departure->toDateString(), 'type' => 'visa',
+                        'title' => 'Rencana berangkat (visa)', 'detail' => $name.' · '.$v->code, 'url' => $url];
+                }
             });
 
         return collect($events)->sortBy('date')->values()->all();

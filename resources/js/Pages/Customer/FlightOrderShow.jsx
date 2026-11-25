@@ -74,7 +74,7 @@ export default function FlightOrderShow({ order: o, payments, documents, payBox,
                 </div>
                 <div className="space-y-6">
                     <PayBox box={payBox} title={Number(o.paid_amount) === 0 ? 'Bayar DP' : 'Cicilan / Pelunasan'} />
-                    <Card title="Invoice & kwitansi">
+                    <Card title="Invoice">
                         {o.invoices.map((i) => (
                             <div key={i.id} className="flex items-center justify-between gap-3 py-1.5 text-sm">
                                 <span className="min-w-0">{i.number}<br /><span className="flex items-center gap-2 text-xs text-slate-500">{rupiah(i.amount)} <StatusBadge status={i.status} /></span></span>

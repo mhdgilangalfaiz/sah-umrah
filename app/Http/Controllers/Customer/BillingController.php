@@ -8,7 +8,7 @@ use App\Models\Payment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-/** Tagihan & riwayat pembayaran + unduh invoice/kwitansi PDF */
+/** Tagihan & riwayat pembayaran + unduh invoice PDF */
 class BillingController extends Controller
 {
     public function index(Request $request)
@@ -17,7 +17,7 @@ class BillingController extends Controller
         $label = fn ($m) => $m ? ['code' => $m->code, 'url' => $m->customerUrl()] : null;
 
         return Inertia::render('Customer/Billing', [
-            'invoices' => Invoice::with('invoiceable')->where('user_id', $uid)->latest('issued_at')->paginate(15, ['*'], 'inv')
+            'invoices' => Invoice::with('invoiceable')->where('user_id', $uid)->where('type', 'invoice')->latest('issued_at')->paginate(15, ['*'], 'inv')
                 ->through(fn ($i) => [
                     'id' => $i->id, 'number' => $i->number, 'type' => $i->type, 'amount' => $i->amount, 'status' => $i->status,
                     'issued_at' => $i->issued_at->format('d/m/Y'), 'order' => $label($i->invoiceable),
@@ -27,6 +27,7 @@ class BillingController extends Controller
                     'code' => $p->code, 'amount' => $p->amount, 'method_label' => $p->method_label, 'status' => $p->status,
                     'created_at' => $p->created_at->format('d/m/Y H:i'), 'paid_at' => $p->paid_at?->format('d/m/Y H:i'),
                     'order' => $label($p->payable),
+                    'proof_url' => $p->proof_url, 'needs_proof' => $p->needs_proof,
                 ]),
         ]);
     }

@@ -1,5 +1,6 @@
 import { Link, useForm, usePage } from '@inertiajs/react';
 import { Ban, Download, History, Mail, MessageSquare, Repeat, UserMinus, XCircle } from 'lucide-react';
+import { ProofLink } from '@/Components/PaymentProof';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Card, DefList, PageHeader, Progress, StatusBadge } from '@/Components/ui';
@@ -49,8 +50,8 @@ export default function Show({ booking: b, customer, passengers, payments, outst
                     </Card>
                     <Card title="Transaksi" pad={false}>
                         <div className="overflow-x-auto"><table className="table-app">
-                            <thead><tr><th>Kode</th><th>Metode</th><th>VA</th><th className="!text-right">Nominal</th><th>Status</th><th>Waktu</th></tr></thead>
-                            <tbody className="divide-y divide-slate-100">{payments.map((p) => <tr key={p.id}><td className="font-medium">{p.code}</td><td>{p.method_label}</td><td className="font-mono text-xs">{p.va_number ?? '-'}</td><td className="text-right">{rupiah(p.amount)}</td><td><StatusBadge status={p.status} /></td><td>{dateTime(p.paid_at ?? p.created_at)}</td></tr>)}</tbody>
+                            <thead><tr><th>Kode</th><th>Metode</th><th>VA</th><th className="!text-right">Nominal</th><th>Status</th><th>Waktu</th><th>Bukti bayar</th></tr></thead>
+                            <tbody className="divide-y divide-slate-100">{payments.map((p) => <tr key={p.id}><td className="font-medium">{p.code}</td><td>{p.method_label}</td><td className="font-mono text-xs">{p.va_number ?? '-'}</td><td className="text-right">{rupiah(p.amount)}</td><td><StatusBadge status={p.status} /></td><td>{dateTime(p.paid_at ?? p.created_at)}</td><td><ProofLink p={p} /></td></tr>)}</tbody>
                         </table></div>
                     </Card>
                     <Card title={`Jamaah (${passengers.length})`} pad={false}>

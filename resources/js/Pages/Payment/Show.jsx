@@ -1,4 +1,5 @@
 import { Link, router } from '@inertiajs/react';
+import { ProofUpload } from '@/Components/PaymentProof';
 import axios from 'axios';
 import { CheckCircle2, Copy, Download, FlaskConical, Hourglass, QrCode, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -69,10 +70,11 @@ export default function PaymentShow({ payment, order, canSimulate }) {
                         <div className="p-6 text-center">
                             <CheckCircle2 className="mx-auto h-16 w-16 text-emerald-600" />
                             <h1 className="mt-3 text-2xl">Pembayaran berhasil</h1>
-                            <p className="mt-1 text-sm text-slate-600">Alhamdulillah, pembayaran Anda telah diterima. Kwitansi telah terbit otomatis.</p>
+                            <p className="mt-1 text-sm text-slate-600">Alhamdulillah, pembayaran Anda telah diterima dan sudah tercatat di invoice.</p>
                             <p className="mt-3 text-sm">Sisa tagihan: <b>{rupiah(order.outstanding)}</b></p>
+                            <div className="mt-5"><ProofUpload payment={payment} /></div>
                             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-                                {payment.receipt_id && <a target="_blank" rel="noopener" href={route('invoices.pdf', payment.receipt_id)} className="btn-outline"><Download className="h-4 w-4" />Unduh Kwitansi</a>}
+                                {payment.invoice_id && <a target="_blank" rel="noopener" href={route('invoices.pdf', payment.invoice_id)} className="btn-outline"><Download className="h-4 w-4" />Unduh Invoice</a>}
                                 <Link href={order.url} className="btn-primary">Lihat Pesanan</Link>
                             </div>
                         </div>

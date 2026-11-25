@@ -30,6 +30,7 @@ class PaymentController extends Controller
                     'order' => $p->payable?->code, 'amount' => $p->amount, 'method_label' => $p->method_label, 'va_number' => $p->va_number,
                     'gateway' => $p->gateway, 'status' => $p->status, 'created_at' => $p->created_at->format('d/m/Y H:i'),
                     'paid_at' => $p->paid_at?->format('d/m/Y H:i'), 'expires_at' => $p->expires_at?->format('d/m/Y H:i'),
+                    'proof_url' => $p->proof_url, 'needs_proof' => $p->needs_proof, 'proof_note' => $p->proof_note,
                 ]),
             'filters' => $request->only('status', 'method', 'q', 'dari', 'sampai'),
             'methods' => Payment::METHODS,

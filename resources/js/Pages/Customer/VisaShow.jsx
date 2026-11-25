@@ -71,7 +71,7 @@ export default function VisaShow({ application: v, statuses, payments, documents
                 <div className="space-y-6">
                     {v.status !== 'menunggu_invoice' && <PayBox box={payBox} />}
                     {v.invoices.length > 0 && (
-                        <Card title="Invoice & kwitansi">
+                        <Card title="Invoice">
                             {v.invoices.map((i) => (
                                 <div key={i.id} className="flex items-center justify-between py-1.5 text-sm">
                                     <span>{i.number}<br /><span className="text-xs text-slate-500">{i.type} · {rupiah(i.amount)} · <StatusBadge status={i.status} /></span></span>

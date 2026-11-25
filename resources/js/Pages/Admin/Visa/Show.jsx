@@ -1,6 +1,7 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { CheckCircle2, Download, ExternalLink, FileArchive, Plus, Receipt, Trash2, XCircle } from 'lucide-react';
+import { ProofLink } from '@/Components/PaymentProof';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Card, DefList, Input, PageHeader, Select, StatusBadge, Stepper, Textarea } from '@/Components/ui';
 import { VISA_STEPS, visaStep } from '@/lib/visa';
@@ -117,7 +118,7 @@ export default function Show({ application: v, customer, applicants, statuses, p
                         <DefList items={[['Rencana berangkat', v.planned_departure], ['Total', rupiah(v.total_amount)], ['Dibayar', rupiah(v.paid_amount)], ['Catatan', v.notes]]} />
                         {v.invoices.map((i) => <a key={i.id} target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="mt-3 flex items-center justify-between rounded-lg border border-slate-100 p-2 text-sm hover:bg-sand-50"><span>{i.number} <StatusBadge status={i.status} /></span><Download className="h-4 w-4" /></a>)}
                     </Card>
-                    <Card title="Transaksi">{payments.length === 0 ? <p className="text-sm text-slate-500">Belum ada.</p> : payments.map((p) => <div key={p.id} className="flex justify-between py-1 text-sm"><span>{p.code}</span><StatusBadge status={p.status} /></div>)}</Card>
+                    <Card title="Transaksi">{payments.length === 0 ? <p className="text-sm text-slate-500">Belum ada.</p> : payments.map((p) => <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-sm"><span>{p.code}</span><span className="flex items-center gap-3"><ProofLink p={p} /><StatusBadge status={p.status} /></span></div>)}</Card>
                 </div>
             </div>
         </AdminLayout>

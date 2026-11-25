@@ -29,6 +29,8 @@ class OrderController extends Controller
             'minimum' => $payable->canBePaid() ? $payable->minimumPayment() : 0,
             'custom_amount' => $payable->allowsCustomAmount(),
             'methods' => collect(config('payment.methods'))->map(fn ($m) => ['value' => $m, 'label' => Payment::METHODS[$m]])->values(),
+            'missing_proofs' => $payable->payments()->where('status', 'dibayar')->whereNull('proof_path')->get()
+                ->map(fn ($p) => ['code' => $p->code, 'amount' => $p->amount, 'paid_at' => $p->paid_at?->format('d/m/Y H:i')])->values(),
             'pending' => $pending ? ['code' => $pending->code, 'amount' => $pending->amount, 'method_label' => $pending->method_label, 'expires_at' => $pending->expires_at->toIso8601String()] : null,
         ];
     }
