@@ -6,7 +6,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { Card, DefList, Input, PageHeader, Select, StatusBadge, Stepper, Textarea } from '@/Components/ui';
 import { VISA_STEPS, visaStep } from '@/lib/visa';
 import BerkasResult from '@/Components/BerkasResult';
-import { dateTime, fileSize, rupiah } from '@/lib/format';
+import { date, dateTime, fileSize, rupiah } from '@/lib/format';
 
 export default function Show({ application: v, customer, applicants, statuses, payments, documents, usdRate, requirements = [] }) {
     const { auth } = usePage().props;
@@ -26,8 +26,8 @@ export default function Show({ application: v, customer, applicants, statuses, p
     const berkas = documents.filter((d) => d.type === 'berkas_visa');
 
     return (
-        <AdminLayout title={v.code}>
-            <PageHeader back={route('admin.visa.index')} title={`${v.code} — ${v.service.name}`} subtitle={`${customer.name} (${customer.customer_code}) · ${v.pax_count} pemohon`} actions={<StatusBadge status={v.status} label={statuses[v.status]} />} />
+        <AdminLayout title="Detail Pengajuan Visa">
+            <PageHeader back={route('admin.visa.index')} actions={<StatusBadge status={v.status} label={statuses[v.status]} />} />
             <div className="card mb-6 p-4"><Stepper steps={VISA_STEPS} current={visaStep(v.status)} failed={v.status === 'ditolak'} /></div>
 
             <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -101,24 +101,21 @@ export default function Show({ application: v, customer, applicants, statuses, p
                     )}
 
                     <Card title="Riwayat perubahan status">
-                        <ol className="space-y-3">
-                            {v.status_logs.map((l) => (
-                                <li key={l.id} className="flex gap-3 text-sm">
-                                    <span className="w-32 shrink-0 text-xs text-slate-400">{dateTime(l.created_at)}</span>
-                                    <div><StatusBadge status={l.to_status} label={statuses[l.to_status]} /> <span className="text-xs text-slate-500">oleh {l.changer?.name ?? 'Sistem'}</span>{l.note && <p className="mt-0.5 text-slate-600">{l.note}</p>}</div>
-                                </li>
-                            ))}
-                        </ol>
+                        <StatusTimeline v={v} statuses={statuses} />
                     </Card>
                 </div>
 
                 <div className="grid content-start items-start gap-6 md:grid-cols-2 2xl:grid-cols-1">
-                    <Card title="Pemohon"><DefList items={[['Nama', customer.name], ['Kode', customer.customer_code], ['Email', customer.email], ['HP', customer.phone]]} /></Card>
-                    <Card title="Ringkasan">
-                        <DefList items={[['Rencana berangkat', v.planned_departure], ['Total', rupiah(v.total_amount)], ['Dibayar', rupiah(v.paid_amount)], ['Catatan', v.notes]]} />
-                        {v.invoices.map((i) => <a key={i.id} target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="mt-3 flex items-center justify-between rounded-lg border border-slate-100 p-2 text-sm hover:bg-sand-50"><span>{i.number} <StatusBadge status={i.status} /></span><Download className="h-4 w-4" /></a>)}
-                    </Card>
-                    <Card title="Transaksi">{payments.length === 0 ? <p className="text-sm text-slate-500">Belum ada.</p> : payments.map((p) => <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-sm"><span>{p.code}</span><span className="flex items-center gap-3"><ProofLink p={p} /><StatusBadge status={p.status} /></span></div>)}</Card>
+                    <div className="min-w-0 space-y-6">
+                        <Card title="Pemohon"><DefList items={[['Nama', customer.name], ['Email', customer.email], ['HP', customer.phone], ['Jumlah pemohon', `${v.pax_count} orang`]]} /></Card>
+                        <Card title="Transaksi">{payments.length === 0 ? <p className="text-sm text-slate-500">Belum ada.</p> : payments.map((p) => <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-sm"><span>{p.code}</span><span className="flex items-center gap-3"><ProofLink p={p} /><StatusBadge status={p.status} /></span></div>)}</Card>
+                    </div>
+                    <div className="min-w-0">
+                        <Card title="Ringkasan">
+                            <DefList items={[['Layanan', v.service.name], ['Rencana berangkat', v.planned_departure ? date(v.planned_departure) : '-'], ['Total', rupiah(v.total_amount)], ['Dibayar', rupiah(v.paid_amount)], ['Catatan', v.notes]]} />
+                            {v.invoices.map((i) => <a key={i.id} target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="mt-3 flex items-center justify-between rounded-lg border border-slate-100 p-2 text-sm hover:bg-sand-50"><span>{i.number} <StatusBadge status={i.status} /></span><Download className="h-4 w-4" /></a>)}
+                        </Card>
+                    </div>
                 </div>
             </div>
         </AdminLayout>
@@ -208,5 +205,42 @@ function BerkasReview({ visa, doc, requirements, applicants }) {
                 </button>
             </div>
         </form>
+    );
+}
+
+/**
+ * Riwayat status sebagai timeline dari tahap pertama (Pengajuan) sampai terakhir (Terbit).
+ * Tahap yang sudah dilalui: titik & garis hijau. Tahap yang belum: abu-abu. Semua selesai → hijau semua.
+ */
+function StatusTimeline({ v, statuses }) {
+    const done = [...v.status_logs].sort((a, b) => (a.created_at === b.created_at ? a.id - b.id : a.created_at < b.created_at ? -1 : 1)).map((l) => ({ key: `l${l.id}`, done: true, failed: l.to_status === 'ditolak', log: l }));
+    const pending = v.status === 'ditolak' ? [] : VISA_STEPS.slice(visaStep(v.status) + 1).map((label) => ({ key: `p${label}`, done: false, label }));
+    const nodes = [...done, ...pending];
+
+    return (
+        <ol>
+            {nodes.map((n, i) => {
+                const next = nodes[i + 1];
+                return (
+                    <li key={n.key} className="relative flex gap-4 pb-5 last:pb-0">
+                        {next && <span className={`absolute left-[6px] top-5 h-full w-0.5 rounded ${next.done ? 'bg-brand-600' : 'bg-slate-300'}`} aria-hidden="true" />}
+                        <span className={`relative mt-1 grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full ring-4 ring-white ${n.failed ? 'bg-red-500' : n.done ? 'bg-brand-600' : 'border-2 border-slate-300 bg-white'}`} aria-hidden="true" />
+                        {n.done ? (
+                            <div className="min-w-0 flex-1 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    <StatusBadge status={n.log.to_status} label={statuses[n.log.to_status]} />
+                                    <span className="text-xs text-slate-500">{dateTime(n.log.created_at)} · oleh {n.log.changer?.name ?? 'Sistem'}</span>
+                                </div>
+                                {n.log.note && <p className="mt-2 text-sm leading-relaxed text-slate-700 [overflow-wrap:anywhere]">{n.log.note}</p>}
+                            </div>
+                        ) : (
+                            <div className="min-w-0 flex-1 rounded-xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400">
+                                <b className="font-semibold text-slate-500">{n.label}</b> · belum
+                            </div>
+                        )}
+                    </li>
+                );
+            })}
+        </ol>
     );
 }

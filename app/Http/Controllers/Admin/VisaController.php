@@ -21,8 +21,11 @@ class VisaController extends Controller
     {
         return Inertia::render('Admin/Visa/Index', [
             'applications' => VisaApplication::with('user:id,name,customer_code', 'service:id,name')
+                ->addSelect(['visa_applications.*', 'invoice_number' => \App\Models\Invoice::activeNumberQuery(VisaApplication::class, 'visa_applications')])
                 ->when($request->status, fn ($q, $s) => $q->where('status', $s))
-                ->when($request->q, fn ($q, $s) => $q->where('code', 'like', "%$s%"))
+                ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('code', 'like', "%$s%")
+                    ->orWhereHas('invoices', fn ($i) => $i->where('number', 'like', "%$s%"))
+                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%$s%"))))
                 ->latest()->paginate(20)->withQueryString(),
             'filters' => $request->only('status', 'q'),
             'statuses' => VisaApplication::STATUSES,

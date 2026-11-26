@@ -13,13 +13,32 @@ use Inertia\Inertia;
 
 class FlightOrderController extends Controller
 {
+    /**
+     * Daftar pesanan tiket berurutan No. Invoice (invoice berlaku, terbaru di atas).
+     * Kolom: No. Invoice · Pemesan · Jadwal (22JUL/30JUL) · Jumlah beli · Total tagihan · Status.
+     */
     public function index(Request $request)
     {
+        $invoiceNo = \App\Models\Invoice::activeNumberQuery(FlightOrder::class, 'flight_orders');
+        $day = fn ($d) => $d ? strtoupper($d->locale('en')->format('dM')) : null;
+
         return Inertia::render('Admin/FlightOrders/Index', [
             'orders' => FlightOrder::with('user:id,name,customer_code', 'flight')
+                ->addSelect(['flight_orders.*', 'invoice_number' => $invoiceNo])
                 ->when($request->status, fn ($q, $s) => $q->where('status', $s))
-                ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('code', 'like', "%$s%")->orWhere('bill_company', 'like', "%$s%")->orWhere('bill_name', 'like', "%$s%")))
-                ->latest()->paginate(20)->withQueryString(),
+                ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('code', 'like', "%$s%")->orWhere('bill_company', 'like', "%$s%")->orWhere('bill_name', 'like', "%$s%")
+                    ->orWhereHas('invoices', fn ($i) => $i->where('number', 'like', "%$s%"))))
+                ->orderByDesc('invoice_number')->latest('id')
+                ->paginate(20)->withQueryString()
+                ->through(fn (FlightOrder $o) => [
+                    'id' => $o->id, 'code' => $o->code, 'invoice_number' => $o->invoice_number,
+                    'buyer' => $o->bill_company ?: ($o->bill_name ?: $o->user->name),
+                    'buyer_sub' => $o->bill_company ? $o->bill_name : $o->user->customer_code,
+                    'airline' => $o->flight?->airline,
+                    'schedule' => implode('/', array_filter([$day($o->flight?->depart_at), $day($o->flight?->return_depart_at)])),
+                    'pax_count' => $o->pax_count, 'total_amount' => (int) $o->total_amount, 'outstanding' => $o->outstandingAmount(),
+                    'status' => $o->status,
+                ]),
             'filters' => $request->only('status', 'q'),
         ]);
     }
@@ -35,9 +54,13 @@ class FlightOrderController extends Controller
             'flightDetails' => $flightOrder->flightDetails(),
             // Baris tambahan (biaya/potongan) invoice yang berlaku → dipakai sebagai isian awal form revisi
             'extras' => array_values(array_slice($active?->items ?? [], 1)),
+            // Keterangan baris tiket (format lama "Tiket …" diganti format jadwal per segmen) & S&K yang berlaku
+            'ticketDescription' => ($d = $active?->items[0]['description'] ?? '') && ! str_starts_with($d, 'Tiket ') ? $d : $flightOrder->ticketDescription(),
+            'terms' => $flightOrder->invoiceTerms(),
+            'defaultTerms' => \App\Support\InvoiceTerms::FLIGHT_DEFAULT,
             'seatsAvailable' => (int) $flightOrder->flight->seats_available,
             'invoices' => $flightOrder->invoices->where('type', 'invoice')->values()->map(fn ($i) => [
-                'id' => $i->id, 'number' => $i->number, 'status' => $i->status, 'amount' => $i->amount,
+                'id' => $i->id, 'number' => $i->number, 'status' => $i->display_status, 'amount' => $i->amount,
                 'revision' => $i->revision, 'notes' => $i->notes, 'by' => $i->reviser?->name,
                 'issued_at' => $i->issued_at->format('d/m/Y H:i'),
                 'seats_before' => $i->details['seats_before'] ?? null, 'seats_after' => $i->details['seats_after'] ?? null,
@@ -55,6 +78,9 @@ class FlightOrderController extends Controller
             'manifest' => [
                 'uploaded_at' => $flightOrder->manifest_uploaded_at?->format('d/m/Y H:i'),
                 'warnings' => $flightOrder->manifest_warnings ?? [],
+                'accepted_at' => $flightOrder->manifest_accepted_at?->format('d/m/Y H:i'),
+                'accepted_by' => $flightOrder->manifest_accepted_by ? \App\Models\User::find($flightOrder->manifest_accepted_by)?->name : null,
+                'revision_note' => $flightOrder->manifest_revision_note,
             ],
         ]);
     }
@@ -69,7 +95,9 @@ class FlightOrderController extends Controller
             'seats' => 'required|integer|min:1|max:999',
             'unit_price' => 'required|integer|min:0|max:1000000000',
             'extras' => 'array|max:10',
-            'extras.*.description' => 'required|string|max:150',
+            'extras.*.description' => 'required|string|max:1000',
+            'ticket_description' => 'nullable|string|max:2000',
+            'terms' => 'nullable|string|max:15000',
             'extras.*.qty' => 'required|integer|min:1|max:999',
             'extras.*.price' => 'required|integer|min:-1000000000|max:1000000000',
             'flight' => 'array',
@@ -91,15 +119,33 @@ class FlightOrderController extends Controller
         return back()->with('success', "Invoice {$invoice->number} terbit dan dikirim ke pelanggan.");
     }
 
-    /** Admin mengunggah manifest atas nama pembeli (mis. dikirim agen lewat WhatsApp/email) */
-    public function uploadManifest(Request $request, FlightOrder $flightOrder, \App\Services\Flights\FlightManifest $manifest)
+    /** Admin menerima manifest dari pembeli → pembeli tidak bisa mengganti lagi; data diajukan ke maskapai di luar sistem */
+    public function acceptManifest(Request $request, FlightOrder $flightOrder)
     {
-        abort_if(in_array($flightOrder->status, FlightOrderRevisionService::CLOSED, true), 422, 'Pesanan sudah dibatalkan/kedaluwarsa.');
-        $request->validate(['file' => 'required|file|max:10240|mimes:xlsx,xls,csv'], [], ['file' => 'file manifest']);
+        abort_unless($flightOrder->manifest_uploaded_at && ! $flightOrder->manifest_accepted_at, 422, 'Belum ada manifest baru untuk diterima.');
+        $flightOrder->update(['manifest_accepted_at' => now(), 'manifest_accepted_by' => $request->user()->id, 'manifest_revision_note' => null]);
+        Audit::log('tiket.manifest_diterima', "Manifest {$flightOrder->code} diterima admin", $flightOrder);
 
-        $result = $manifest->store($flightOrder, $request->file('file'), $request->user());
+        $flightOrder->user->notify(new SystemNotification('pesanan', 'Manifest Diterima — '.$flightOrder->code,
+            'Manifest penumpang Anda sudah kami terima dan sedang kami ajukan ke maskapai. Kami kabari kembali setelah e-ticket terbit.',
+            $flightOrder->customerUrl(), 'Lihat Pesanan', true, false, 'success'));
 
-        return back()->with('success', "Manifest disimpan: {$result['count']} penumpang.");
+        return back()->with('success', 'Manifest diterima. Pembeli sudah diberi tahu.');
+    }
+
+    /** Admin meminta pembeli memperbaiki & mengunggah ulang manifest */
+    public function rejectManifest(Request $request, FlightOrder $flightOrder)
+    {
+        abort_unless($flightOrder->manifest_uploaded_at && $flightOrder->status === 'dibayar', 422, 'Manifest tidak dapat diminta perbaikan.');
+        $data = $request->validate(['note' => 'required|string|min:5|max:1000'], [], ['note' => 'catatan perbaikan']);
+        $flightOrder->update(['manifest_accepted_at' => null, 'manifest_accepted_by' => null, 'manifest_revision_note' => trim($data['note'])]);
+        Audit::log('tiket.manifest_perbaikan', "Manifest {$flightOrder->code} diminta perbaikan: {$data['note']}", $flightOrder);
+
+        $flightOrder->user->notify(new SystemNotification('pesanan', 'Perbaiki Manifest — '.$flightOrder->code,
+            'Manifest penumpang perlu diperbaiki: '.trim($data['note']).' Silakan unggah ulang file manifest.',
+            $flightOrder->customerUrl(), 'Unggah Ulang', true, false, 'warning'));
+
+        return back()->with('success', 'Permintaan perbaikan dikirim ke pembeli.');
     }
 
     /** Terbitkan e-ticket: unggah file + PNR → dikirim ke email & tersedia di dashboard */

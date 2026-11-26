@@ -136,6 +136,37 @@ class FlightGroupOrderTest extends TestCase
         $this->actingAs($admin)->get(route('admin.flight-orders.show', $order))->assertOk();
     }
 
+    public function test_admin_menerima_atau_meminta_perbaikan_manifest(): void
+    {
+        $this->order(['seats' => 2]);
+        $order = FlightOrder::firstOrFail();
+        $this->pay($order, $order->total_amount);
+        $admin = User::factory()->admin()->create();
+        $upload = fn () => $this->actingAs($this->agent)->post(route('customer.flight-orders.manifest', $order), ['file' => $this->manifestFile($order, 2)]);
+
+        // admin tidak bisa menerima sebelum ada manifest
+        $this->actingAs($admin)->post(route('admin.flight-orders.manifest.accept', $order))->assertStatus(422);
+
+        $upload()->assertSessionHasNoErrors();
+        // minta perbaikan → pembeli unggah ulang, catatan hilang
+        $this->actingAs($admin)->post(route('admin.flight-orders.manifest.reject', $order), ['note' => 'Nomor paspor no. 2 salah.'])->assertSessionHasNoErrors();
+        $this->assertSame('Nomor paspor no. 2 salah.', $order->fresh()->manifest_revision_note);
+        $this->assertTrue($order->fresh()->canUploadManifest());
+        $upload()->assertSessionHasNoErrors();
+        $this->assertNull($order->fresh()->manifest_revision_note);
+
+        // terima → pembeli tidak bisa mengganti manifest lagi
+        $this->actingAs($admin)->post(route('admin.flight-orders.manifest.accept', $order))->assertSessionHasNoErrors();
+        $this->assertNotNull($order->fresh()->manifest_accepted_at);
+        $this->assertFalse($order->fresh()->canUploadManifest());
+        $upload()->assertSessionHas('error');
+        $this->assertSame(1, \App\Models\AuditLog::where('action', 'tiket.manifest_diterima')->count());
+
+        // pelanggan lain / super admin tidak bisa menerima
+        $this->actingAs(User::factory()->admin('super_admin', true)->create())->post(route('admin.flight-orders.manifest.accept', $order))->assertForbidden();
+        $this->actingAs($admin)->get(route('admin.flight-orders.show', $order))->assertOk();
+    }
+
     public function test_manifest_format_agen_sendiri_tetap_terbaca(): void
     {
         $this->order(['seats' => 2]);

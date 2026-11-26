@@ -67,13 +67,13 @@ export default function Navbar({ scroll, account, onHome }: NavbarProps) {
                     </SectionLink>
 
                     <ul className="hidden items-center gap-1 lg:flex">
-                        {NAV_ITEMS.map(({ id, label, icon: Icon }) => id === 'layanan' ? (
+                        {NAV_ITEMS.map(({ id, label }) => id === 'layanan' ? (
                             <NavServices key={id} active={active === id} onHome={onHome} onSection={() => go('layanan')} />
                         ) : (
                             <li key={id} className="relative">
                                 {active === id && <motion.span layoutId="nav-active" className="absolute inset-0 rounded-full bg-primary-100" transition={{ type: 'spring', stiffness: 380, damping: 32 }} />}
                                 <SectionLink id={id} onHome={onHome} onNavigate={go} className={pill(id)}>
-                                    <Icon className="h-4 w-4" aria-hidden="true" /> {label}
+                                    {label}
                                 </SectionLink>
                             </li>
                         ))}

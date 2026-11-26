@@ -1,5 +1,5 @@
 import { Link, useForm, usePage } from '@inertiajs/react';
-import { Ban, Download, History, Mail, MessageSquare, Repeat, UserMinus, XCircle } from 'lucide-react';
+import { Ban, BedDouble, CalendarDays, Download, History, Hotel, Mail, MessageSquare, Plane, Repeat, Star, UserMinus, Users, XCircle } from 'lucide-react';
 import { ProofLink } from '@/Components/PaymentProof';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
@@ -8,18 +8,15 @@ import { date, dateTime, rupiah } from '@/lib/format';
 
 const CLOSED = ['dibatalkan', 'refund', 'selesai', 'kedaluwarsa'];
 
-export default function Show({ booking: b, customer, passengers, payments, outstanding, overdue, reminders, documents, changes = [], refundRequests = [], categories = {} }) {
+export default function Show({ booking: b, customer, passengers, payments, outstanding, overdue, reminders, documents, changes = [], refundRequests = [], categories = {}, invoiceNumber, roomLabel }) {
     const { auth } = usePage().props;
     const canOps = auth.user.role === 'admin';
     const editable = canOps && !CLOSED.includes(b.status);
     const pending = refundRequests.find((r) => r.status === 'diajukan');
 
     return (
-        <AdminLayout title={b.code}>
-            <PageHeader back={route('admin.bookings.index')} title={b.code} subtitle={`${b.departure.package.name} · berangkat ${date(b.departure.departure_date)}`}
-                actions={<>
-                    <StatusBadge status={b.status} />
-                </>} />
+        <AdminLayout title="Detail Pesanan Umrah">
+            <PageHeader back={route('admin.bookings.index')} actions={<StatusBadge status={b.status} />} />
             {['dibatalkan', 'refund'].includes(b.status) && (
                 <div className={`mb-6 rounded-2xl p-4 text-sm ring-1 ${b.status === 'refund' ? 'bg-violet-50 text-violet-900 ring-violet-200' : 'bg-red-50 text-red-800 ring-red-200'}`}>
                     <b>{b.status === 'refund' ? 'Dibatalkan dengan refund.' : 'Dibatalkan.'}</b> {b.cancel_reason}
@@ -36,6 +33,7 @@ export default function Show({ booking: b, customer, passengers, payments, outst
 
             <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="min-w-0 space-y-6">
+                    <BookingSummary b={b} customer={customer} passengers={passengers} categories={categories} invoiceNumber={invoiceNumber} roomLabel={roomLabel} />
                     <Card title="Pembayaran">
                         <div className="grid grid-cols-3 gap-3 text-center text-sm">
                             <div className="rounded-xl bg-sand-100 p-3"><p className="text-slate-500">Total</p><p className="font-bold">{rupiah(b.total_amount)}</p></div>
@@ -284,5 +282,73 @@ function CancelForm({ b, paid, pending }) {
             <p className="text-xs text-slate-500">Status setelah dibatalkan: <StatusBadge status={refund > 0 ? 'refund' : 'dibatalkan'} /></p>
             <button disabled={!form.data.reason || form.processing} className="btn btn-sm rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"><XCircle className="h-4 w-4" />Batalkan pesanan</button>
         </form>
+    );
+}
+
+/** H-xx menuju tanggal (berdasarkan tanggal saja) */
+const daysUntil = (iso) => {
+    if (!iso) return null;
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    return Math.round((new Date(`${String(iso).slice(0, 10)}T00:00:00`) - t) / 86400000);
+};
+
+const Stars = ({ n }) => n ? <span className="inline-flex text-gold-500">{Array.from({ length: n }, (_, i) => <Star key={i} className="h-3 w-3 fill-current" />)}</span> : null;
+
+/**
+ * Kartu ringkasan di paling atas: paket yang diambil, tanggal berangkat/pulang (H-xx), jumlah jamaah
+ * (per kategori & jenis kelamin), kamar, hotel, maskapai, pemesan & No. invoice.
+ */
+function BookingSummary({ b, customer, passengers, categories, invoiceNumber, roomLabel }) {
+    const p = b.departure.package;
+    const dep = b.departure;
+    const h = daysUntil(dep.departure_date);
+    const count = (key, val) => passengers.filter((x) => x[key] === val).length;
+    const byCategory = Object.entries(categories).map(([k, label]) => [label, count('category', k)]).filter(([, n]) => n > 0);
+    const male = count('gender', 'L');
+    const female = count('gender', 'P');
+
+    const Item = ({ icon: Icon, label, children }) => (
+        <div className="flex min-w-0 gap-3 rounded-xl bg-slate-50 p-3">
+            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-brand-700" />
+            <div className="min-w-0"><p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p><div className="mt-0.5 text-sm font-semibold text-slate-900 [overflow-wrap:anywhere]">{children}</div></div>
+        </div>
+    );
+
+    return (
+        <Card title="Ringkasan pesanan">
+            <div className="flex flex-col gap-5 sm:flex-row">
+                {p.cover_url && <img src={p.cover_url} alt="" className="h-40 w-full shrink-0 rounded-xl object-cover object-top sm:h-44 sm:w-36" />}
+                <div className="min-w-0 flex-1 space-y-4">
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Paket umrah{p.type ? ` · ${p.type}` : ''}</p>
+                        <h2 className="mt-0.5 font-sans text-xl font-bold text-slate-900">{p.name}</h2>
+                        <p className="mt-1 text-sm text-slate-500">
+                            {p.duration_days} hari{p.departure_city && ` · berangkat dari ${p.departure_city}`}
+                            {invoiceNumber && <> · <span className="font-medium text-slate-700">{invoiceNumber}</span></>}
+                        </p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        <Item icon={CalendarDays} label="Berangkat">
+                            {date(dep.departure_date)}
+                            {h !== null && !['dibatalkan', 'refund', 'kedaluwarsa'].includes(b.status) && (
+                                <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-bold ${h < 0 ? 'bg-slate-200 text-slate-600' : h <= 30 ? 'bg-amber-100 text-amber-800' : 'bg-brand-50 text-brand-700'}`}>{h < 0 ? 'sudah berangkat' : h === 0 ? 'hari ini' : `H-${h}`}</span>
+                            )}
+                        </Item>
+                        <Item icon={CalendarDays} label="Pulang">{dep.return_date ? date(dep.return_date) : '-'}</Item>
+                        <Item icon={Users} label="Jamaah berangkat">
+                            {b.pax_count} orang
+                            <p className="text-xs font-normal text-slate-500">
+                                {[...byCategory.map(([l, n]) => `${n} ${l.toLowerCase()}`), male && `${male} laki-laki`, female && `${female} perempuan`].filter(Boolean).join(' · ')}
+                            </p>
+                        </Item>
+                        <Item icon={BedDouble} label="Tipe kamar">{roomLabel}</Item>
+                        <Item icon={Hotel} label="Hotel Makkah">{p.hotel_makkah || '-'} <Stars n={p.hotel_makkah_star} /></Item>
+                        <Item icon={Hotel} label="Hotel Madinah">{p.hotel_madinah || '-'} <Stars n={p.hotel_madinah_star} /></Item>
+                        <Item icon={Plane} label="Maskapai">{p.airline || '-'}</Item>
+                        <Item icon={CalendarDays} label="Dipesan">{dateTime(b.created_at)}<p className="text-xs font-normal text-slate-500">Skema {b.payment_scheme === 'lunas' ? 'bayar lunas' : 'cicilan'}</p></Item>
+                    </div>
+                </div>
+            </div>
+        </Card>
     );
 }

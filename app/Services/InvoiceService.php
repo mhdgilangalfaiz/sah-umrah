@@ -21,7 +21,7 @@ class InvoiceService
         return match (true) {
             $payable instanceof Booking => $this->bookingItems($payable),
             $payable instanceof FlightOrder => [[
-                'description' => 'Tiket '.$payable->flight->airline.' '.$payable->flight->flight_number.' '.$payable->flight->route_label.' ('.$payable->flight->depart_at->translatedFormat('d M Y H:i').($payable->flight->return_depart_at ? ' – kembali '.$payable->flight->return_depart_at->translatedFormat('d M Y H:i') : '').')',
+                'description' => $payable->ticketDescription(),
                 'qty' => $payable->pax_count, 'price' => $payable->unit_price, 'total' => $payable->total_amount,
             ]],
             $payable instanceof VisaApplication => array_values(array_filter([
@@ -134,9 +134,9 @@ class InvoiceService
 
     /** Jenis pembayaran untuk dicetak di invoice */
     public const PAYMENT_TYPES = [
-        'va_mandiri' => 'Transfer Bank Mandiri (VA)',
-        'va_bsi' => 'Transfer Bank BSI (VA)',
-        'va_muamalat' => 'Transfer Bank Muamalat (VA)',
+        'va_mandiri' => 'Transfer Mandiri',
+        'va_bsi' => 'Transfer BSI',
+        'va_muamalat' => 'Transfer Muamalat',
         'qris' => 'QRIS',
     ];
 
@@ -162,7 +162,7 @@ class InvoiceService
                 default => 'Pembayaran Termin '.(++$term),
             };
             $rows[] = [
-                'date' => ($p->paid_at ?? $p->updated_at)->translatedFormat('d M Y H:i'),
+                'date' => ($p->paid_at ?? $p->updated_at)->format('d-m-Y'),
                 'type' => self::PAYMENT_TYPES[$p->method] ?? $p->method_label,
                 'info' => $info,
                 'amount' => (int) $p->amount,
@@ -185,6 +185,10 @@ class InvoiceService
             'paid' => $payable?->paid_amount ?? 0,
             'outstanding' => $payable?->outstandingAmount() ?? 0,
             'history' => $this->paymentHistory($payable, (int) $invoice->amount),
+            // Syarat & ketentuan (tiket pesawat): versi invoice ini bila pernah direvisi, selain itu teks bawaan
+            'terms' => $payable instanceof FlightOrder
+                ? \App\Support\InvoiceTerms::lines(array_key_exists('terms', $invoice->details ?? []) ? $invoice->details['terms'] : \App\Support\InvoiceTerms::FLIGHT_DEFAULT)
+                : [],
         ])->setPaper('a4');
     }
 }

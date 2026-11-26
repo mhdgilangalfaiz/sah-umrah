@@ -115,6 +115,8 @@ class OrderController extends Controller
             'manifest' => [
                 'can_upload' => $flightOrder->canUploadManifest(),
                 'uploaded_at' => $flightOrder->manifest_uploaded_at?->format('d/m/Y H:i'),
+                'accepted_at' => $flightOrder->manifest_accepted_at?->format('d/m/Y H:i'),
+                'revision_note' => $flightOrder->manifest_revision_note,
                 'warnings' => $flightOrder->manifest_warnings ?? [],
                 'count' => $flightOrder->passengers->count(),
             ],
@@ -134,9 +136,11 @@ class OrderController extends Controller
     {
         $this->ensureOwner($flightOrder);
         if (! $flightOrder->canUploadManifest()) {
-            return back()->with('error', $flightOrder->status === 'tiket_terbit'
-                ? 'E-ticket sudah terbit. Hubungi admin bila ada perubahan data penumpang.'
-                : 'Manifest dapat diunggah setelah tagihan lunas.');
+            return back()->with('error', match (true) {
+                $flightOrder->status === 'tiket_terbit' => 'E-ticket sudah terbit. Hubungi admin bila ada perubahan data penumpang.',
+                (bool) $flightOrder->manifest_accepted_at => 'Manifest sudah diterima admin. Hubungi admin bila ada perubahan data penumpang.',
+                default => 'Manifest dapat diunggah setelah tagihan lunas.',
+            });
         }
         $request->validate(['file' => 'required|file|max:10240|mimes:xlsx,xls,csv'], [], ['file' => 'file manifest']);
 

@@ -121,7 +121,7 @@ export function FlightCard({ f, pax = 1, action, footer, booked = false }) {
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+                <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 lg:justify-center lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
                     {booked ? (
                         <div className="rounded-xl bg-brand-50 p-3 ring-1 ring-brand-100">
                             <span className="text-[11px] font-bold uppercase tracking-wide text-brand-800">Seat dipesan</span>

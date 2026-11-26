@@ -77,7 +77,7 @@ export default function FlightOrderShow({ order: o, payments, documents, payBox,
                     <Card title="Invoice">
                         {o.invoices.map((i) => (
                             <div key={i.id} className="flex items-center justify-between gap-3 py-1.5 text-sm">
-                                <span className="min-w-0">{i.number}<br /><span className="flex items-center gap-2 text-xs text-slate-500">{rupiah(i.amount)} <StatusBadge status={i.status} /></span></span>
+                                <span className="min-w-0">{i.number}<br /><span className="flex items-center gap-2 text-xs text-slate-500">{rupiah(i.amount)} <StatusBadge status={i.display_status ?? i.status} /></span></span>
                                 <a target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="btn-outline btn-sm shrink-0"><Download className="h-3.5 w-3.5" />PDF</a>
                             </div>
                         ))}
@@ -102,8 +102,14 @@ function StatusNote({ o, deposit, manifest }) {
     if (o.status === 'dibayar' && !manifest.uploaded_at) {
         return box('bg-emerald-50 text-emerald-900 ring-emerald-200', FileSpreadsheet, <><b>Tagihan lunas.</b> Langkah berikutnya: unduh template, isi data penumpang sesuai paspor, lalu unggah manifest di bawah.</>);
     }
+    if (o.status === 'dibayar' && manifest.revision_note) {
+        return box('bg-amber-50 text-amber-900 ring-amber-200', AlertTriangle, <><b>Manifest perlu diperbaiki.</b> {manifest.revision_note} Silakan unggah ulang file manifest di bawah.</>);
+    }
+    if (o.status === 'dibayar' && manifest.accepted_at) {
+        return box('bg-emerald-50 text-emerald-900 ring-emerald-200', CheckCircle2, <><b>Manifest diterima admin ({manifest.accepted_at}).</b> Data penumpang sedang kami ajukan ke maskapai — Anda akan menerima notifikasi setelah e-ticket terbit.</>);
+    }
     if (o.status === 'dibayar') {
-        return box('bg-sky-50 text-sky-900 ring-sky-200', CheckCircle2, <><b>Manifest diterima.</b> Tim kami sedang menerbitkan e-ticket — Anda akan menerima notifikasi setelah terbit. Manifest masih bisa diganti sebelum tiket terbit.</>);
+        return box('bg-sky-50 text-sky-900 ring-sky-200', CheckCircle2, <><b>Manifest terkirim.</b> Admin sedang memeriksa data penumpang. Manifest masih bisa diganti selama belum diterima admin.</>);
     }
     return null;
 }
@@ -139,7 +145,7 @@ function ManifestCard({ o, manifest, files }) {
                     </div>
                     {form.errors.file && <p className="error">{form.errors.file}</p>}
                 </form>
-            ) : o.status !== 'tiket_terbit' && (
+            ) : !['dibayar', 'tiket_terbit'].includes(o.status) && (
                 <p className="mt-4 flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-600"><Lock className="h-4 w-4 shrink-0" />Unggah manifest terbuka setelah tagihan lunas.</p>
             )}
         </Card>

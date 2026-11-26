@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { ChevronDown, Landmark, Layers, Plane, Stamp, type LucideIcon } from 'lucide-react';
+import { ChevronDown, Landmark, Plane, Stamp, type LucideIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from './lib';
@@ -38,7 +38,7 @@ export default function NavServices({ active, onHome, onSection }: NavServicesPr
             <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="true"
                 className={cn('relative flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 xl:px-4',
                     active || open ? 'text-primary-900' : 'text-neutral-600 hover:text-primary-700')}>
-                <Layers className="h-4 w-4" aria-hidden="true" /> Layanan Kami
+                Layanan Kami
                 <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} aria-hidden="true" />
             </button>
             <AnimatePresence>

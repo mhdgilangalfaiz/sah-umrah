@@ -51,7 +51,7 @@ class InvoiceController extends Controller
                 'number' => $i->number,
                 'type' => $i->type,
                 'revision' => $i->revision,
-                'status' => $i->status,
+                'status' => $i->display_status,
                 'amount' => $i->amount,
                 'issued_at' => $i->issued_at?->format('Y-m-d H:i'),
                 'customer' => $i->user?->name,

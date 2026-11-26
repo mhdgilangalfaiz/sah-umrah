@@ -17,8 +17,10 @@ class BookingController extends Controller
     private function query(Request $request)
     {
         return Booking::with(['user:id,name,email,phone,customer_code', 'departure.package:id,name'])
+            ->addSelect(['bookings.*', 'invoice_number' => \App\Models\Invoice::activeNumberQuery(Booking::class, 'bookings')])
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
             ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('code', 'like', "%$s%")
+                ->orWhereHas('invoices', fn ($i) => $i->where('number', 'like', "%$s%"))
                 ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%$s%")->orWhere('customer_code', 'like', "%$s%"))))
             ->when($request->boolean('terlambat'), fn ($q) => $q->where('status', 'cicilan_berjalan')->where('payment_deadline', '<', today()))
             ->when($request->dari, fn ($q, $d) => $q->whereDate('created_at', '>=', $d))
@@ -30,7 +32,7 @@ class BookingController extends Controller
     {
         return Inertia::render('Admin/Bookings/Index', [
             'bookings' => $this->query($request)->paginate(20)->withQueryString()->through(fn ($b) => [
-                'code' => $b->code, 'user' => $b->user->name, 'customer_code' => $b->user->customer_code,
+                'code' => $b->code, 'invoice_number' => $b->invoice_number, 'user' => $b->user->name,
                 'package' => $b->departure->package->name, 'departure_date' => $b->departure->departure_date->format('Y-m-d'),
                 'pax' => $b->pax_count, 'total' => $b->total_amount, 'paid' => $b->paid_amount, 'status' => $b->status,
                 'scheme' => $b->payment_scheme, 'overdue' => $b->isOverdue(), 'created_at' => $b->created_at->format('d/m/Y'),
@@ -69,6 +71,9 @@ class BookingController extends Controller
                 'created_at' => $r->created_at->format('d/m/Y H:i'),
             ]),
             'categories' => \App\Models\BookingPassenger::CATEGORIES,
+            // Kartu ringkasan pesanan
+            'invoiceNumber' => $booking->invoices->where('type', 'invoice')->whereNotIn('status', \App\Models\Invoice::INACTIVE)->sortByDesc('issued_at')->first()?->number,
+            'roomLabel' => \App\Models\Package::ROOM_TYPES[$booking->room_type] ?? $booking->room_type,
             'documents' => $booking->user->documents()->whereIn('jamaah_id', $booking->passengers->pluck('jamaah_id')->filter())->get()
                 ->map(fn ($d) => ['id' => $d->id, 'type_label' => $d->type_label, 'file_name' => $d->file_name, 'status' => $d->status, 'url' => $d->signedUrl()]),
         ]);

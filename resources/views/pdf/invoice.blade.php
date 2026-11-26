@@ -22,19 +22,12 @@
                 <div class="muted" style="font-size:9px">DITAGIHKAN KEPADA</div>
                 @php($bill = $payable && method_exists($payable, 'billTo') ? $payable->billTo() : null)
                 @if($bill)
-                    @if($bill['company'])
-                        <b>{{ $bill['company'] }}</b><br>
-                        u.p. {{ $bill['name'] }}<br>
-                    @else
-                        <b>{{ $bill['name'] }}</b><br>
-                    @endif
+                    <b>{{ $bill['company'] ?: $bill['name'] }}</b><br>
                     @if($bill['address']){{ $bill['address'] }}<br>@endif
-                    Kode Pelanggan: {{ $invoice->user->customer_code }}<br>
                     {{ $bill['email'] }}<br>
                     {{ $bill['phone'] }}
                 @else
                     <b>{{ $invoice->user->name }}</b><br>
-                    Kode Pelanggan: {{ $invoice->user->customer_code }}<br>
                     {{ $invoice->user->email }}<br>
                     {{ $invoice->user->phone }}
                 @endif
@@ -43,8 +36,51 @@
     </tr>
 </table>
 
+<table class="items">
+    <thead><tr><th class="center" style="width:5%">No</th><th class="center">Keterangan</th><th class="center" style="width:8%">Qty</th><th class="center" style="width:18%">Harga</th><th class="center" style="width:18%">Jumlah</th></tr></thead>
+    <tbody>
+    @foreach($invoice->items ?? [] as $i => $item)
+        <tr>
+            <td>{{ $i + 1 }}</td>
+            <td style="line-height:1.45">{!! nl2br(e($item['description'])) !!}</td>
+            <td class="right">{{ $item['qty'] }}</td>
+            <td class="right">{{ $rp($item['price']) }}</td>
+            <td class="right">{{ $rp($item['total']) }}</td>
+        </tr>
+    @endforeach
+    <tr><td colspan="4" class="right"><b>{{ $invoice->type === 'kwitansi' ? 'TELAH DITERIMA' : 'TOTAL TAGIHAN' }}</b></td><td class="right"><b>{{ $rp($invoice->amount) }}</b></td></tr>
+    </tbody>
+</table>
+
+@if($invoice->type === 'invoice' && $payable)
+    @php($received = array_sum(array_column($history, 'amount')))
+    @php($percent = $invoice->amount > 0 ? min(100, (int) round($received / $invoice->amount * 100)) : 0)
+    @php($num = fn ($n) => number_format((int) $n, 0, ',', '.'))
+    <p style="margin:16px 0 4px"><b>RIWAYAT PEMBAYARAN</b></p>
+    <table class="grid">
+        <thead><tr><th style="width:20%">Tanggal Pembayaran</th><th style="width:27%">Jenis Pembayaran</th><th>Keterangan</th><th colspan="2" style="width:24%">Total Pembayaran</th></tr></thead>
+        <tbody>
+        @forelse($history as $h)
+            <tr><td class="center">{{ $h['date'] }}</td><td class="center">{{ mb_strtoupper($h['type']) }}</td><td class="center">{{ mb_strtoupper($h['info']) }}</td><td class="rp">Rp</td><td class="right">{{ $num($h['amount']) }}</td></tr>
+        @empty
+            <tr><td colspan="5" class="center muted">Belum ada pembayaran.</td></tr>
+        @endforelse
+        </tbody>
+    </table>
+    <table style="width:100%; margin-top:6px">
+        <tr><td class="right" style="width:76%"><b>TOTAL :</b></td><td class="rp" style="border:0"><b>Rp</b></td><td class="right" style="width:18%"><b>{{ $num($received) }}</b></td></tr>
+        <tr><td class="right"><b>PERSENTASE :</b></td><td></td><td class="right"><b>{{ $percent }}%</b></td></tr>
+    </table>
+
+    <table class="grid summary">
+        <tr><td class="label">TOTAL TAGIHAN</td><td class="rp">Rp</td><td class="right">{{ $num($invoice->amount) }}</td></tr>
+        <tr><td class="label">TOTAL DIBAYAR</td><td class="rp">Rp</td><td class="right">{{ $num($received) }}</td></tr>
+        <tr class="due"><td class="label">SISA TAGIHAN</td><td class="rp"><b>Rp</b></td><td class="right"><b>{{ $num(max(0, $invoice->amount - $received)) }}</b></td></tr>
+    </table>
+@endif
+
 @if($invoice->type === 'invoice' && ($invoice->revision > 0 || $invoice->notes))
-    <div class="box" style="margin-top:10px; border-color:#C9A24B; background:#FFFBEB">
+    <div class="box" style="margin-top:12px; border-color:#C9A24B; background:#FFFBEB">
         <b>{{ $invoice->revision > 0 ? 'INVOICE REVISI KE-'.$invoice->revision : 'CATATAN INVOICE' }}</b>
         @if($invoice->replaces) — menggantikan invoice No. {{ $invoice->replaces->number }} @endif
         @if($invoice->notes)<br>Keterangan: {{ $invoice->notes }}@endif
@@ -55,55 +91,6 @@
             <br>Kelebihan bayar dikembalikan: <b>{{ $rp($invoice->details['refund']) }}</b>
         @endif
     </div>
-@endif
-
-@if(! empty($invoice->details['flight']))
-    @php($fl = $invoice->details['flight'])
-    <p style="margin:12px 0 4px"><b>Detail Penerbangan</b></p>
-    <table class="items">
-        <thead><tr><th>Maskapai</th><th>No. Flight</th><th>Rute</th><th>Berangkat</th><th>Kembali</th><th>PNR</th></tr></thead>
-        <tr>
-            <td>{{ $fl['airline'] ?? '-' }}</td><td>{{ $fl['flight_number'] ?? '-' }}</td><td>{{ $fl['route'] ?? '-' }}</td>
-            <td>{{ $fl['depart'] ?? '-' }}</td><td>{{ $fl['return'] ?? '-' }}</td><td>{{ $fl['pnr'] ?? '-' }}</td>
-        </tr>
-    </table>
-@endif
-
-<table class="items">
-    <thead><tr><th style="width:5%">No</th><th>Keterangan</th><th class="right" style="width:8%">Qty</th><th class="right" style="width:18%">Harga</th><th class="right" style="width:18%">Jumlah</th></tr></thead>
-    <tbody>
-    @foreach($invoice->items ?? [] as $i => $item)
-        <tr>
-            <td>{{ $i + 1 }}</td>
-            <td>{{ $item['description'] }}</td>
-            <td class="right">{{ $item['qty'] }}</td>
-            <td class="right">{{ $rp($item['price']) }}</td>
-            <td class="right">{{ $rp($item['total']) }}</td>
-        </tr>
-    @endforeach
-    <tr><td colspan="4" class="right"><b>{{ $invoice->type === 'kwitansi' ? 'TELAH DITERIMA' : 'TOTAL TAGIHAN' }}</b></td><td class="right"><b>{{ $rp($invoice->amount) }}</b></td></tr>
-    @if($invoice->type === 'invoice' && $payable)
-        <tr><td colspan="4" class="right">Total dibayar</td><td class="right">{{ $rp($paid) }}</td></tr>
-        <tr><td colspan="4" class="right gold"><b>Sisa tagihan</b></td><td class="right gold"><b>{{ $rp($outstanding) }}</b></td></tr>
-    @endif
-    </tbody>
-</table>
-
-@if($invoice->type === 'invoice' && $payable)
-    <p style="margin:14px 0 4px"><b>Riwayat Pembayaran</b></p>
-    <table class="items">
-        <thead><tr><th style="width:24%">Tanggal Pembayaran</th><th style="width:30%">Jenis Pembayaran</th><th>Keterangan</th><th class="right" style="width:20%">Nominal</th></tr></thead>
-        <tbody>
-        @forelse($history as $h)
-            <tr><td>{{ $h['date'] }}</td><td>{{ $h['type'] }}</td><td>{{ $h['info'] }}</td><td class="right">{{ $rp($h['amount']) }}</td></tr>
-        @empty
-            <tr><td colspan="4" class="muted" style="text-align:center">Belum ada pembayaran.</td></tr>
-        @endforelse
-        @if(count($history))
-            <tr><td colspan="3" class="right"><b>Total dibayar</b></td><td class="right"><b>{{ $rp(array_sum(array_column($history, 'amount'))) }}</b></td></tr>
-        @endif
-        </tbody>
-    </table>
 @endif
 
 @if($payable instanceof \App\Models\Booking && $payable->installments->count() > 1)
@@ -118,19 +105,25 @@
 
 <table style="width:100%; margin-top:26px">
     <tr>
-        <td style="width:60%; font-size:9px" class="muted">
-            Pembayaran hanya melalui sistem resmi (Virtual Account Mandiri/BSI/Muamalat atau QRIS) yang diterbitkan di akun Anda.
-            PT. Sumatera Andalan Haramain tidak pernah meminta transfer ke rekening pribadi.
-        </td>
+        <td style="width:60%"></td>
         <td style="text-align:center">
-            @if($invoice->status === 'lunas')<span class="stamp paid">LUNAS</span>
-            @elseif($invoice->status === 'batal')<span class="stamp void">BATAL</span>
-            @elseif($invoice->status === 'direvisi')<span class="stamp void">DIREVISI</span>
+            @if($invoice->display_status === 'lunas')<span class="stamp paid">LUNAS</span>
+            @elseif($invoice->display_status === 'batal')<span class="stamp void">BATAL</span>
             @else<span class="stamp unpaid">BELUM LUNAS</span>@endif
         </td>
     </tr>
 </table>
 
-<div class="foot">Dokumen ini dibuat otomatis oleh sistem {{ $company['company_name'] }} dan sah tanpa tanda tangan basah.</div>
+@if($invoice->type === 'invoice' && count($terms ?? []))
+    <div class="terms">
+        @foreach($terms as $t)
+            @if($t['kind'] === 'blank')<div style="height:5px"></div>
+            @elseif($t['kind'] === 'heading')<div class="terms-h">{{ $t['text'] }}</div>
+            @elseif($t['kind'] === 'bullet')<div class="terms-b">&bull; {{ $t['text'] }}</div>
+            @else<div>{{ $t['text'] }}</div>@endif
+        @endforeach
+    </div>
+@endif
+
 </body>
 </html>

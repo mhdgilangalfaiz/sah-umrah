@@ -1,5 +1,5 @@
-import { useForm, usePage } from '@inertiajs/react';
-import { AlertTriangle, Download, FilePenLine, FileSpreadsheet, Minus, Plus, Ticket, Trash2, Upload, X } from 'lucide-react';
+import { router, useForm, usePage } from '@inertiajs/react';
+import { AlertTriangle, CheckCircle2, Download, FilePenLine, FileSpreadsheet, Minus, Plus, Ticket, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { ProofLink } from '@/Components/PaymentProof';
 import AdminLayout from '@/Layouts/AdminLayout';
@@ -7,7 +7,7 @@ import { FlightCard } from '@/Components/Cards';
 import { Card, DefList, Input, PageHeader, StatusBadge, Textarea } from '@/Components/ui';
 import { dateTime, rupiah } from '@/lib/format';
 
-export default function Show({ order: o, passengers, payments, documents, outstanding, flightDetails, extras, seatsAvailable, invoices, closed, billTo, manifest }) {
+export default function Show({ order: o, passengers, payments, documents, outstanding, flightDetails, extras, seatsAvailable, invoices, closed, billTo, manifest, ticketDescription, terms, defaultTerms }) {
     const { auth } = usePage().props;
     const isAdmin = auth.user.role === 'admin';
     const issue = useForm({ pnr: o.pnr ?? '', file: null });
@@ -15,8 +15,8 @@ export default function Show({ order: o, passengers, payments, documents, outsta
     const [revising, setRevising] = useState(false);
 
     return (
-        <AdminLayout title={o.code}>
-            <PageHeader back={route('admin.flight-orders.index')} title={o.code} subtitle={`${o.user.name} · ${o.user.customer_code}`} actions={<StatusBadge status={o.status} />} />
+        <AdminLayout title="Detail Pesanan Tiket">
+            <PageHeader back={route('admin.flight-orders.index')} actions={<StatusBadge status={o.status} />} />
             <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="min-w-0 space-y-6">
                     <FlightCard f={o.flight} pax={o.pax_count} />
@@ -29,19 +29,11 @@ export default function Show({ order: o, passengers, payments, documents, outsta
                             <div className="rounded-xl bg-emerald-50 p-3"><p className="text-slate-500">Dibayar</p><p className="font-bold text-emerald-700">{rupiah(o.paid_amount)}</p></div>
                             <div className="rounded-xl bg-amber-50 p-3"><p className="text-slate-500">Sisa</p><p className="font-bold text-amber-700">{rupiah(outstanding)}</p></div>
                         </div>
-                        {revising && <RevisionForm o={o} flightDetails={flightDetails} extras={extras} seatsAvailable={seatsAvailable} onClose={() => setRevising(false)} />}
+                        {revising && <RevisionForm o={o} flightDetails={flightDetails} extras={extras} seatsAvailable={seatsAvailable} ticketDescription={ticketDescription} terms={terms} defaultTerms={defaultTerms} onClose={() => setRevising(false)} />}
                         <InvoiceHistory invoices={invoices} />
                     </Card>
 
-                    <ManifestCard o={o} manifest={manifest} count={passengers.length} files={documents.filter((d) => d.type === 'manifest')} canUpload={isAdmin && !closed} />
-
-                    <Card title={`Penumpang (manifest) · ${passengers.length}/${o.pax_count}`} pad={false}>
-                        {passengers.length === 0 && <p className="px-5 py-4 text-sm text-slate-500">Belum ada data penumpang. Pembeli mengunggah manifest setelah tagihan lunas.</p>}
-                        <div className="overflow-x-auto"><table className="table-app">
-                            {passengers.length > 0 && <thead><tr><th>No</th><th>Nama</th><th>L/P</th><th>Lahir</th><th>Paspor</th><th>Exp</th><th>Negara</th></tr></thead>}
-                            <tbody className="divide-y divide-slate-100">{passengers.map((p, i) => <tr key={p.id}><td className="text-slate-500">{i + 1}</td><td className="font-medium">{p.title} {p.full_name}</td><td>{p.gender}</td><td>{p.birth_date}</td><td className="font-mono">{p.passport_number}</td><td>{p.passport_expiry}</td><td>{p.nationality}</td></tr>)}</tbody>
-                        </table></div>
-                    </Card>
+                    <ManifestCard o={o} manifest={manifest} passengers={passengers} files={documents.filter((d) => d.type === 'manifest')} canReview={isAdmin && o.status === 'dibayar'} />
                     <Card title="Transaksi" pad={false}>
                         <div className="overflow-x-auto"><table className="table-app"><tbody className="divide-y divide-slate-100">{payments.map((p) => <tr key={p.id}><td>{p.code}</td><td>{p.method_label}</td><td>{rupiah(p.amount)}</td><td><StatusBadge status={p.status} /></td><td>{dateTime(p.paid_at ?? p.created_at)}</td><td><ProofLink p={p} /></td></tr>)}</tbody></table></div>
                     </Card>
@@ -79,39 +71,73 @@ export default function Show({ order: o, passengers, payments, documents, outsta
     );
 }
 
-/** Manifest Excel dari pembeli: file asli (bisa diunduh) + catatan pemeriksaan; admin juga bisa mengunggah atas nama pembeli */
-function ManifestCard({ o, manifest, count, files, canUpload }) {
-    const form = useForm({ file: null });
+/**
+ * Manifest dari pembeli (hanya pembeli yang mengunggah). Admin memeriksa file & data penumpang,
+ * lalu "Terima manifest" (diajukan ke maskapai di luar sistem) atau "Minta perbaikan" dengan catatan.
+ */
+function ManifestCard({ o, manifest, passengers, files, canReview }) {
+    const [fixing, setFixing] = useState(false);
+    const fix = useForm({ note: '' });
+    const latest = files[0];
+    const accept = () => {
+        if (confirm('Terima manifest ini? Pembeli tidak dapat mengganti manifest lagi setelah diterima.')) {
+            router.post(route('admin.flight-orders.manifest.accept', o.code), {}, { preserveScroll: true });
+        }
+    };
+
     return (
-        <Card title="Manifest penumpang">
-            {manifest.uploaded_at ? (
-                <p className="text-sm text-slate-700">Diunggah <b>{manifest.uploaded_at}</b> · terbaca <b>{count}</b> penumpang dari <b>{o.pax_count}</b> seat.</p>
-            ) : (
-                <p className="text-sm text-slate-500">{['dibayar', 'tiket_terbit'].includes(o.status) ? 'Tagihan sudah lunas, menunggu pembeli mengunggah manifest.' : 'Manifest diunggah pembeli setelah tagihan lunas.'}</p>
+        <Card title={`Manifest dari pembeli · ${passengers.length}/${o.pax_count} penumpang`} pad={false}>
+            <div className="space-y-3 px-5 pb-4 pt-1">
+                {!manifest.uploaded_at ? (
+                    <p className="text-sm text-slate-500">{o.status === 'dibayar' ? 'Tagihan sudah lunas — menunggu pembeli mengunggah manifest.' : 'Pembeli mengunggah manifest setelah tagihan lunas.'}</p>
+                ) : (
+                    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-100 p-3 text-sm">
+                        <FileSpreadsheet className="h-6 w-6 shrink-0 text-emerald-600" />
+                        <span className="min-w-0 flex-1">
+                            <b className="block truncate">{latest?.original_name || latest?.file_name || 'Manifest'}</b>
+                            <span className="text-xs text-slate-500">Diunggah {manifest.uploaded_at} · terbaca {passengers.length} penumpang dari {o.pax_count} seat{files.length > 1 && ` · ${files.length - 1} versi sebelumnya`}</span>
+                        </span>
+                        {manifest.accepted_at
+                            ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200"><CheckCircle2 className="h-3.5 w-3.5" />Diterima {manifest.accepted_at}{manifest.accepted_by && ` · ${manifest.accepted_by}`}</span>
+                            : manifest.revision_note
+                                ? <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">Menunggu perbaikan</span>
+                                : <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-800 ring-1 ring-sky-200">Perlu diperiksa</span>}
+                        {latest && <a href={latest.url} className="btn-outline btn-sm"><Download className="h-4 w-4" />Unduh Excel</a>}
+                    </div>
+                )}
+
+                {manifest.revision_note && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900 [overflow-wrap:anywhere]"><b>Catatan perbaikan ke pembeli:</b> {manifest.revision_note}</p>}
+                {manifest.warnings.length > 0 && (
+                    <ul className="space-y-1 rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
+                        {manifest.warnings.map((w, i) => <li key={i} className="flex gap-2 [overflow-wrap:anywhere]"><AlertTriangle className="h-3.5 w-3.5 shrink-0" />{w}</li>)}
+                    </ul>
+                )}
+
+                {canReview && manifest.uploaded_at && !manifest.accepted_at && !manifest.revision_note && (
+                    fixing ? (
+                        <form onSubmit={(e) => { e.preventDefault(); fix.post(route('admin.flight-orders.manifest.reject', o.code), { preserveScroll: true, onSuccess: () => { fix.reset(); setFixing(false); } }); }} className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/50 p-3">
+                            <Textarea label="Catatan perbaikan untuk pembeli" rows={2} value={fix.data.note} onChange={(e) => fix.setData('note', e.target.value)} error={fix.errors.note}
+                                placeholder="Mis. Nomor paspor penumpang no. 5 dan 12 masih kosong." />
+                            <div className="flex flex-wrap gap-2">
+                                <button disabled={fix.processing} className="btn-gold btn-sm">Kirim permintaan perbaikan</button>
+                                <button type="button" onClick={() => setFixing(false)} className="btn-ghost btn-sm">Batal</button>
+                            </div>
+                        </form>
+                    ) : (
+                        <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={accept} className="btn-primary btn-sm"><CheckCircle2 className="h-4 w-4" />Terima manifest</button>
+                            <button type="button" onClick={() => setFixing(true)} className="btn-outline btn-sm">Minta perbaikan</button>
+                        </div>
+                    )
+                )}
+            </div>
+
+            {passengers.length > 0 && (
+                <div className="overflow-x-auto border-t border-slate-100"><table className="table-app">
+                    <thead><tr><th>No</th><th>Nama</th><th>L/P</th><th>Lahir</th><th>Paspor</th><th>Exp</th><th>Negara</th></tr></thead>
+                    <tbody className="divide-y divide-slate-100">{passengers.map((p, i) => <tr key={p.id}><td className="text-slate-500">{i + 1}</td><td className="font-medium">{p.title} {p.full_name}</td><td>{p.gender}</td><td>{p.birth_date}</td><td className="font-mono">{p.passport_number}</td><td>{p.passport_expiry}</td><td>{p.nationality}</td></tr>)}</tbody>
+                </table></div>
             )}
-            {manifest.warnings.length > 0 && (
-                <ul className="mt-3 space-y-1 rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
-                    {manifest.warnings.map((w, i) => <li key={i} className="flex gap-2 [overflow-wrap:anywhere]"><AlertTriangle className="h-3.5 w-3.5 shrink-0" />{w}</li>)}
-                </ul>
-            )}
-            {files.length > 0 && (
-                <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-100">
-                    {files.map((d, i) => (
-                        <li key={d.id} className="flex items-center gap-3 p-3 text-sm">
-                            <FileSpreadsheet className="h-5 w-5 shrink-0 text-emerald-600" />
-                            <span className="min-w-0 flex-1 truncate">{d.original_name || d.file_name}<span className="block text-xs text-slate-500">{d.created_at}{i === 0 ? ' · terbaru' : ''}</span></span>
-                            <a href={d.url} className="btn-ghost btn-sm"><Download className="h-4 w-4" />Unduh</a>
-                        </li>
-                    ))}
-                </ul>
-            )}
-            {canUpload && (
-                <form onSubmit={(e) => { e.preventDefault(); form.post(route('admin.flight-orders.manifest', o.code), { forceFormData: true, preserveScroll: true, onSuccess: () => form.reset() }); }} className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
-                    <input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => form.setData('file', e.target.files[0])} className="min-w-0 flex-1 text-sm" />
-                    <button disabled={form.processing || !form.data.file} className="btn-outline btn-sm shrink-0"><Upload className="h-4 w-4" />Unggah atas nama pembeli</button>
-                </form>
-            )}
-            {form.errors.file && <p className="error">{form.errors.file}</p>}
         </Card>
     );
 }
@@ -148,7 +174,7 @@ function InvoiceHistory({ invoices }) {
  * Form revisi invoice: seat terpakai, harga per seat, biaya/potongan, detail penerbangan, alasan.
  * Ringkasan di bawah menghitung total baru dan apakah ada dana dikembalikan atau sisa tagihan.
  */
-function RevisionForm({ o, flightDetails, extras, seatsAvailable, onClose }) {
+function RevisionForm({ o, flightDetails, extras, seatsAvailable, ticketDescription, terms, defaultTerms, onClose }) {
     const form = useForm({
         seats: o.pax_count,
         unit_price: Number(o.unit_price),
@@ -158,6 +184,8 @@ function RevisionForm({ o, flightDetails, extras, seatsAvailable, onClose }) {
             depart: flightDetails.depart ?? '', return: flightDetails.return ?? '', pnr: flightDetails.pnr ?? o.pnr ?? '',
         },
         reason: '',
+        ticket_description: ticketDescription ?? '',
+        terms: terms ?? '',
         adjust_stock: true,
     });
     const d = form.data;
@@ -212,7 +240,15 @@ function RevisionForm({ o, flightDetails, extras, seatsAvailable, onClose }) {
             </fieldset>
 
             <fieldset>
-                <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">Detail penerbangan</legend>
+                <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">Keterangan tiket (kolom Keterangan di invoice)</legend>
+                <textarea rows={6} className="input font-mono text-[13px] leading-relaxed" value={d.ticket_description} onChange={(e) => form.setData('ticket_description', e.target.value)}
+                    placeholder={'OD323 04AUG KNOKUL 1025 1235\nOD705 04AUG KULJED 1820 2315\nPNR : YWQLLY / 17 PAX'} />
+                <p className="hint">Satu baris per segmen penerbangan, lalu PNR. Dicetak apa adanya (termasuk baris baru) di invoice. Untuk grup kedua dengan jadwal/harga berbeda, tambahkan di <b>Biaya tambahan / baris lain</b> di bawah.</p>
+                {err('ticket_description') && <p className="error">{err('ticket_description')}</p>}
+            </fieldset>
+
+            <fieldset>
+                <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">Detail penerbangan (halaman pelanggan & PNR)</legend>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     <Input label="Maskapai" value={d.flight.airline} onChange={(e) => setFlight('airline', e.target.value)} error={err('flight.airline')} />
                     <Input label="No. flight" value={d.flight.flight_number} onChange={(e) => setFlight('flight_number', e.target.value)} error={err('flight.flight_number')} />
@@ -224,12 +260,12 @@ function RevisionForm({ o, flightDetails, extras, seatsAvailable, onClose }) {
             </fieldset>
 
             <fieldset>
-                <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">Biaya tambahan / potongan</legend>
+                <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">Biaya tambahan / baris lain / potongan</legend>
                 {d.extras.length === 0 && <p className="mb-2 text-sm text-slate-500">Tidak ada. Isi harga negatif untuk potongan (mis. -500000).</p>}
                 <div className="space-y-2">
                     {d.extras.map((x, i) => (
                         <div key={i} className="grid grid-cols-[minmax(0,1fr)_70px_minmax(0,140px)_auto] items-start gap-2">
-                            <div><input className="input" placeholder="Keterangan, mis. Biaya reissue" value={x.description} onChange={(e) => setExtra(i, 'description', e.target.value)} />{err(`extras.${i}.description`) && <p className="error">{err(`extras.${i}.description`)}</p>}</div>
+                            <div><textarea rows={Math.min(6, Math.max(1, String(x.description ?? '').split('\n').length))} className="input text-[13px]" placeholder="Keterangan, mis. Biaya reissue — atau jadwal grup lain (boleh beberapa baris)" value={x.description} onChange={(e) => setExtra(i, 'description', e.target.value)} />{err(`extras.${i}.description`) && <p className="error">{err(`extras.${i}.description`)}</p>}</div>
                             <input type="number" min={1} className="input" aria-label="Qty" value={x.qty} onChange={(e) => setExtra(i, 'qty', e.target.value)} />
                             <input type="number" className="input" aria-label="Harga" placeholder="Harga" value={x.price} onChange={(e) => setExtra(i, 'price', e.target.value)} />
                             <button type="button" onClick={() => form.setData('extras', d.extras.filter((_, j) => j !== i))} className="btn-ghost btn-sm mt-1" aria-label="Hapus baris"><Trash2 className="h-4 w-4 text-red-600" /></button>
@@ -240,6 +276,19 @@ function RevisionForm({ o, flightDetails, extras, seatsAvailable, onClose }) {
                     <button type="button" onClick={() => form.setData('extras', [...d.extras, { description: '', qty: 1, price: '' }])} className="btn-ghost btn-sm mt-2"><Plus className="h-4 w-4" />Tambah baris</button>
                 )}
                 {err('extras') && <p className="error">{err('extras')}</p>}
+            </fieldset>
+
+            <fieldset className="rounded-xl bg-white p-3 ring-1 ring-slate-200">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <legend className="text-xs font-bold uppercase tracking-wide text-brand-800">Syarat & ketentuan (dicetak di bawah invoice)</legend>
+                    <div className="flex gap-2">
+                        <button type="button" onClick={() => form.setData('terms', defaultTerms)} className="btn-ghost btn-sm">Pakai teks bawaan</button>
+                        <button type="button" onClick={() => form.setData('terms', '')} className="btn-ghost btn-sm text-red-600">Kosongkan</button>
+                    </div>
+                </div>
+                <textarea rows={14} className="input text-[13px] leading-relaxed" value={d.terms} onChange={(e) => form.setData('terms', e.target.value)} placeholder="Kosongkan bila invoice ini tidak memakai syarat & ketentuan." />
+                <p className="hint">Baris berawalan huruf + titik (mis. <b>A. Ketentuan Booking</b>) atau huruf kapital semua dicetak tebal sebagai judul; baris berawalan <b>- </b> dicetak sebagai butir.</p>
+                {err('terms') && <p className="error">{err('terms')}</p>}
             </fieldset>
 
             <Textarea label="Alasan revisi (tampil di invoice & dikirim ke pelanggan)" rows={2} value={d.reason} onChange={(e) => form.setData('reason', e.target.value)} error={err('reason')} required

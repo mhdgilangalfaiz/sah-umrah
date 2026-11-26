@@ -115,7 +115,7 @@ class PaymentFlowTest extends TestCase
         $this->assertSame(['Deposit', 'Pembayaran Termin 1', 'Lunas'], array_column($history, 'info'));
         $this->assertSame([3000000, 2000000, 5000000], array_column($history, 'amount'));
         $this->assertSame('QRIS', $history[1]['type']);
-        $this->assertSame('Transfer Bank Muamalat (VA)', $history[2]['type']);
+        $this->assertSame('Transfer Muamalat', $history[2]['type']);
         $this->actingAs($u)->get(route('invoices.pdf', $b->invoices()->first()))->assertOk();
     }
 

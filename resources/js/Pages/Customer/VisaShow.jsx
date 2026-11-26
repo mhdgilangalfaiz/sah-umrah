@@ -74,7 +74,7 @@ export default function VisaShow({ application: v, statuses, payments, documents
                         <Card title="Invoice">
                             {v.invoices.map((i) => (
                                 <div key={i.id} className="flex items-center justify-between py-1.5 text-sm">
-                                    <span>{i.number}<br /><span className="text-xs text-slate-500">{i.type} · {rupiah(i.amount)} · <StatusBadge status={i.status} /></span></span>
+                                    <span>{i.number}<br /><span className="text-xs text-slate-500">{i.type} · {rupiah(i.amount)} · <StatusBadge status={i.display_status ?? i.status} /></span></span>
                                     <a target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="btn-outline btn-sm"><Download className="h-3.5 w-3.5" />PDF</a>
                                 </div>
                             ))}

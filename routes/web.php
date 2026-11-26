@@ -193,7 +193,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::post('/pesanan-umrah/{booking}/ubah-jamaah', [Admin\BookingController::class, 'change'])->name('bookings.change');
         Route::post('/pesanan-tiket/{flightOrder}/terbitkan', [Admin\FlightOrderController::class, 'issue'])->name('flight-orders.issue');
         Route::post('/pesanan-tiket/{flightOrder}/revisi-invoice', [Admin\FlightOrderController::class, 'revise'])->name('flight-orders.revise');
-        Route::post('/pesanan-tiket/{flightOrder}/manifest', [Admin\FlightOrderController::class, 'uploadManifest'])->name('flight-orders.manifest');
+        Route::post('/pesanan-tiket/{flightOrder}/manifest/terima', [Admin\FlightOrderController::class, 'acceptManifest'])->name('flight-orders.manifest.accept');
+        Route::post('/pesanan-tiket/{flightOrder}/manifest/perbaikan', [Admin\FlightOrderController::class, 'rejectManifest'])->name('flight-orders.manifest.reject');
         Route::post('/visa/{visaApplication}/invoice', [Admin\VisaController::class, 'invoice'])->name('visa.invoice');
         Route::post('/visa/{visaApplication}/status', [Admin\VisaController::class, 'status'])->name('visa.status');
         Route::get('/visa/{visaApplication}/berkas/{document}/file', [Admin\VisaController::class, 'berkasFile'])->name('visa.berkas.file');

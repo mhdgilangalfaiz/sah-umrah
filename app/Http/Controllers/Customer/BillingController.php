@@ -19,7 +19,7 @@ class BillingController extends Controller
         return Inertia::render('Customer/Billing', [
             'invoices' => Invoice::with('invoiceable')->where('user_id', $uid)->where('type', 'invoice')->latest('issued_at')->paginate(15, ['*'], 'inv')
                 ->through(fn ($i) => [
-                    'id' => $i->id, 'number' => $i->number, 'type' => $i->type, 'amount' => $i->amount, 'status' => $i->status,
+                    'id' => $i->id, 'number' => $i->number, 'type' => $i->type, 'amount' => $i->amount, 'status' => $i->display_status,
                     'issued_at' => $i->issued_at->format('d/m/Y'), 'order' => $label($i->invoiceable),
                 ]),
             'payments' => Payment::with('payable')->where('user_id', $uid)->latest()->paginate(15, ['*'], 'pay')

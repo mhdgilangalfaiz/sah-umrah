@@ -132,6 +132,35 @@ class FlightInvoiceRevisionTest extends TestCase
         $this->actingAs($this->admin)->get(route('admin.flight-orders.show', $order))->assertOk();
     }
 
+    public function test_keterangan_tiket_dan_syarat_ketentuan_bisa_diubah(): void
+    {
+        $order = $this->paidOrder();
+
+        // invoice awal: keterangan format jadwal tiket & S&K bawaan
+        $first = $order->activeInvoice();
+        $this->assertMatchesRegularExpression('/^OD361 \d{2}[A-Z]{3} KNOJED \d{4} \d{4}$/', $first->items[0]['description']);
+        $this->assertStringContainsString('Ketentuan Booking', $order->invoiceTerms());
+
+        $this->actingAs($this->admin)->post(route('admin.flight-orders.revise', $order), $this->payload([
+            'seats' => 30,
+            'ticket_description' => "OD323 04AUG KNOKUL 1025 1235\nOD705 04AUG KULJED 1820 2315\nPNR : YWQLLY / 17 PAX",
+            'extras' => [['description' => "OD357 04AUG BTHKUL 1100 1310\nPNR : QFNCBN / 09 PAX", 'qty' => 10, 'price' => 1000000]],
+            'terms' => "SYARAT & KETENTUAN\nA. Ketentuan Uji\n1. Contoh ketentuan.\n- butir",
+            'reason' => 'Tambah grup kedua & ubah S&K.',
+        ]))->assertSessionHasNoErrors();
+
+        $inv = $order->fresh()->activeInvoice();
+        $this->assertStringStartsWith('OD323 04AUG', $inv->items[0]['description']);
+        $this->assertStringContainsString("\nPNR : QFNCBN", $inv->items[1]['description']);
+        $this->assertSame("SYARAT & KETENTUAN\nA. Ketentuan Uji\n1. Contoh ketentuan.\n- butir", $inv->details['terms']);
+        $this->assertSame(['heading', 'heading', 'text', 'bullet'], array_column(\App\Support\InvoiceTerms::lines($inv->details['terms']), 'kind'));
+        $this->actingAs($this->admin)->get(route('invoices.pdf', $inv))->assertOk();
+
+        // revisi berikutnya tanpa mengirim S&K → S&K terakhir tetap dipakai
+        $this->actingAs($this->admin)->post(route('admin.flight-orders.revise', $order), array_diff_key($this->payload(['seats' => 30]), ['terms' => 1]))->assertSessionHasNoErrors();
+        $this->assertStringContainsString('Ketentuan Uji', $order->fresh()->invoiceTerms());
+    }
+
     public function test_validasi_dan_hak_akses(): void
     {
         $order = $this->paidOrder();

@@ -160,6 +160,27 @@ class Flight extends Model
         ];
     }
 
+    /**
+     * Baris jadwal format tiket/GDS untuk keterangan invoice, satu baris per segmen (pergi lalu pulang), mis.
+     * "OD361 29NOV KNOKUL 0810 1025".
+     *
+     * @return string[]
+     */
+    public function ticketLines(): array
+    {
+        $legs = array_merge($this->outboundLegs(), $this->trip_type === 'pp' ? ($this->return_segments ?? []) : []);
+
+        return collect($legs)->map(function ($l) {
+            $dep = Carbon::parse($l['depart_at']);
+            $arr = $l['arrive_at'] ? Carbon::parse($l['arrive_at']) : null;
+
+            return trim(str_replace(' ', '', (string) ($l['flight_number'] ?: $this->flight_number)).' '
+                .strtoupper($dep->locale('en')->format('dM')).' '
+                .$l['origin_code'].$l['destination_code'].' '
+                .$dep->format('Hi').($arr ? ' '.$arr->format('Hi') : ''));
+        })->all();
+    }
+
     /** Contoh: "KNO → KUL → JED (PP)" */
     public function getRouteLabelAttribute(): string
     {

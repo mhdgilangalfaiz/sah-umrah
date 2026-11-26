@@ -64,14 +64,14 @@ export function Textarea({ label, error, hint, className = '', rows = 4, require
 
 export function PageHeader({ title, subtitle, actions, back }) {
     return (
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className={cx('mb-6 flex flex-col gap-3 sm:flex-row sm:justify-between', title ? 'sm:items-end' : 'sm:items-center')}>
             <div className="min-w-0">
                 {back && (
-                    <Link href={back} className="mb-1 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-700">
+                    <Link href={back} className={cx('inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-white px-3.5 py-1.5 text-sm font-semibold text-brand-700 shadow-sm transition hover:border-brand-600 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600', title && 'mb-2')}>
                         <ChevronLeft className="h-4 w-4" /> Kembali
                     </Link>
                 )}
-                <h1 className="text-2xl sm:text-3xl">{title}</h1>
+                {title && <h1 className="text-2xl sm:text-3xl">{title}</h1>}
                 {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
             </div>
             {actions && <div className="flex flex-wrap gap-2">{actions}</div>}

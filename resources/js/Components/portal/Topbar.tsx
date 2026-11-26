@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Bell, ChevronDown, House, LogOut, Menu, User } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Menu, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/Components/landing/lib';
@@ -9,10 +9,14 @@ import type { SharedProps } from '@/Components/landing/types';
 
 type Props = SharedProps & { unreadNotifications: number; auth: { user: { name: string; email: string; is_admin: boolean; avatar: string | null } } };
 
-const SITE_LINKS: Array<[string, string]> = [['Tentang Kami', 'tentang'], ['Galeri', 'galeri'], ['Testimoni', 'testimoni'], ['Kontak', 'kontak']];
-const linkCls = 'rounded-full px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500';
+/** Sama dengan menu halaman utama (Navbar landing), tanpa ikon */
+const SITE_LINKS: Array<[string, string]> = [['Beranda', ''], ['Layanan Kami', 'layanan'], ['Galeri', 'galeri'], ['Tentang Kami', 'tentang'], ['Kontak', 'kontak']];
+const linkCls = 'block whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-neutral-600 transition hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500';
 
-/** Bar atas portal: tautan ke situs (≥1280px), lonceng notifikasi, menu akun. */
+/**
+ * Bar atas portal: pill menu situs (≥1280px) selebar sisa ruang — ikut melebar saat sidebar dilipat,
+ * menu dibagi rata dengan jarak sama (termasuk ke tepi pill). Lonceng notifikasi & menu akun di luar pill.
+ */
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
     const { auth, unreadNotifications } = usePage<Props>().props;
 
@@ -24,18 +28,16 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
             </button>
             <Link href={route('home')} className="lg:hidden"><img src="/images/logo-sah.png" alt="SAH" className="h-10 w-auto" /></Link>
 
-            <nav aria-label="Tautan situs" className="hidden flex-1 xl:block">
-                <ul className="flex w-fit items-center gap-1 rounded-full border border-white bg-white/85 p-1 shadow-[0_8px_24px_-14px_rgba(11,77,42,0.3),inset_0_1px_0_#fff]">
-                    <li>
-                        <Link href={route('home')} className="flex items-center gap-2 rounded-full bg-primary-100 px-4 py-2 text-sm font-bold text-primary-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
-                            <House className="h-4 w-4" aria-hidden="true" /> Beranda
-                        </Link>
-                    </li>
-                    <li><Link href={`${route('home')}#tentang`} className={linkCls}>Tentang Kami</Link></li>
-                    <NavServices active={false} onHome={false} onSection={() => undefined} />
-                    {SITE_LINKS.slice(1).map(([label, id]) => (
-                        <li key={id}><Link href={`${route('home')}#${id}`} className={linkCls}>{label}</Link></li>
-                    ))}
+            <nav aria-label="Tautan situs" className="hidden min-w-0 flex-1 rounded-full border border-white bg-white/85 p-1.5 shadow-[0_8px_24px_-14px_rgba(11,77,42,0.3),inset_0_1px_0_#fff] xl:block">
+                <ul className="flex w-full items-center justify-evenly gap-1">
+                    {SITE_LINKS.map(([label, id]) => id === 'layanan'
+                        ? <NavServices key={id} active={false} onHome={false} onSection={() => undefined} />
+                        : (
+                            <li key={label}>
+                                <Link href={id ? `${route('home')}#${id}` : route('home')}
+                                    className={cn(linkCls, !id && 'bg-primary-100 font-bold text-primary-900')}>{label}</Link>
+                            </li>
+                        ))}
                 </ul>
             </nav>
 

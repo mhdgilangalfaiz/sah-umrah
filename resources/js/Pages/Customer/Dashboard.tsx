@@ -21,7 +21,7 @@ export default function Dashboard({ stats, activeTrip, calendarEvents = [], noti
                 <UserAvatar name={name} src={auth.user.avatar} className="h-12 w-12 text-lg shadow-lg shadow-primary-900/20 sm:h-14 sm:w-14" />
                 <div className="min-w-0">
                     <h1 className="font-jakarta text-lg leading-snug font-extrabold tracking-tight text-neutral-900 sm:text-xl lg:text-2xl">
-                        Assalamu'alaikum, {name} <span aria-hidden="true">👋</span>
+                        Assalamu'alaikum, {name}
                     </h1>
                     <p className="text-sm text-neutral-600">Selamat datang di portal jamaah SAH.</p>
                 </div>

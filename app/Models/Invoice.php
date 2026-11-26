@@ -15,9 +15,24 @@ class Invoice extends Model
         'revision', 'replaces_id', 'revised_by', 'notes', 'details',
     ];
 
+    /** Label yang ditampilkan (stempel PDF & daftar invoice) */
+    protected $appends = ['display_status'];
+
     protected function casts(): array
     {
         return ['items' => 'array', 'details' => 'array', 'issued_at' => 'datetime', 'amount' => 'integer', 'revision' => 'integer'];
+    }
+
+    /**
+     * Invoice yang sudah diganti revisi tetap ditampilkan "lunas" / "belum lunas" (bukan "direvisi"):
+     * lunas bila total pembayaran pesanan sudah menutup nominal invoice tersebut.
+     */
+    public function getDisplayStatusAttribute(): string
+    {
+        if ($this->status !== 'direvisi') return (string) $this->status;
+        $paid = (int) ($this->invoiceable?->paid_amount ?? 0);
+
+        return $paid >= (int) $this->amount ? 'lunas' : 'belum_lunas';
     }
 
     public function invoiceable() { return $this->morphTo(); }
@@ -31,6 +46,17 @@ class Invoice extends Model
     public function scopeActive(Builder $q): Builder
     {
         return $q->whereNotIn('status', self::INACTIVE);
+    }
+
+    /**
+     * Subquery "nomor invoice berlaku" untuk daftar pesanan, mis.
+     * Booking::addSelect(['bookings.*', 'invoice_number' => Invoice::activeNumberQuery(Booking::class, 'bookings')]).
+     */
+    public static function activeNumberQuery(string $model, string $table)
+    {
+        return static::select('number')
+            ->whereColumn('invoiceable_id', $table.'.id')->where('invoiceable_type', (new $model)->getMorphClass())
+            ->where('type', 'invoice')->whereNotIn('status', self::INACTIVE)->latest('issued_at')->limit(1);
     }
 
     /** INV/SAH/2026/11/0001 atau KWT/SAH/2026/11/0001 */

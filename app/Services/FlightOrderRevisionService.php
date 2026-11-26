@@ -46,9 +46,11 @@ class FlightOrderRevisionService
             $unit = (int) $data['unit_price'];
             $flight = $this->cleanFlight($data['flight'] ?? [], $order);
 
+            if ($flight['pnr']) $order->pnr = $flight['pnr'];
+            $order->pax_count = $seats;
+            $ticket = trim((string) ($data['ticket_description'] ?? '')) ?: $order->ticketDescription();
             $items = [[
-                'description' => 'Tiket '.trim($flight['airline'].' '.$flight['flight_number']).' '.$flight['route']
-                    .($flight['depart'] ? ' ('.$flight['depart'].($flight['return'] ? ' – kembali '.$flight['return'] : '').')' : ''),
+                'description' => $ticket,
                 'qty' => $seats, 'price' => $unit, 'total' => $seats * $unit,
             ]];
             foreach ($data['extras'] ?? [] as $x) {
@@ -94,6 +96,7 @@ class FlightOrderRevisionService
                 'flight' => $flight,
                 'seats_before' => $oldSeats, 'seats_after' => $seats,
                 'total_before' => $oldTotal, 'refund' => $refund,
+                'terms' => array_key_exists('terms', $data) ? trim((string) $data['terms']) : $order->invoiceTerms(),
             ], $by);
 
             if ($refund > 0) {

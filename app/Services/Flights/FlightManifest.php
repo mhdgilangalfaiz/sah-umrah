@@ -105,7 +105,7 @@ class FlightManifest
             FileStorage::storeDocument($file, $order->user, 'manifest', [
                 'documentable_type' => $order->getMorphClass(), 'documentable_id' => $order->id,
             ], $by);
-            $order->update(['manifest_uploaded_at' => now(), 'manifest_warnings' => $warnings ?: null]);
+            $order->update(['manifest_uploaded_at' => now(), 'manifest_warnings' => $warnings ?: null, 'manifest_accepted_at' => null, 'manifest_accepted_by' => null, 'manifest_revision_note' => null]);
             Audit::log('tiket.manifest', "Manifest {$order->code} diunggah: ".count($rows)." penumpang", $order);
         });
 

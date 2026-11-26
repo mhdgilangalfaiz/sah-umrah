@@ -17,6 +17,7 @@ class FlightOrder extends Model implements Payable
         'code', 'user_id', 'flight_id', 'pax_count', 'unit_price', 'total_amount', 'paid_amount', 'status',
         'contact_email', 'contact_phone', 'pnr', 'issued_at', 'expires_at',
         'buyer_type', 'bill_company', 'bill_name', 'bill_address', 'settlement_due_at', 'manifest_uploaded_at', 'manifest_warnings',
+        'manifest_accepted_at', 'manifest_accepted_by', 'manifest_revision_note',
     ];
 
     public const BUYER_TYPES = ['agen' => 'Agen / Travel', 'perorangan' => 'Perorangan / Keluarga'];
@@ -24,7 +25,7 @@ class FlightOrder extends Model implements Payable
     protected function casts(): array
     {
         return [
-            'issued_at' => 'datetime', 'expires_at' => 'datetime', 'settlement_due_at' => 'datetime', 'manifest_uploaded_at' => 'datetime',
+            'issued_at' => 'datetime', 'expires_at' => 'datetime', 'settlement_due_at' => 'datetime', 'manifest_uploaded_at' => 'datetime', 'manifest_accepted_at' => 'datetime',
             'manifest_warnings' => 'array',
             'unit_price' => 'integer', 'total_amount' => 'integer', 'paid_amount' => 'integer', 'pax_count' => 'integer',
         ];
@@ -121,6 +122,23 @@ class FlightOrder extends Model implements Payable
         ];
     }
 
+    /** Keterangan baris tiket di invoice: jadwal per segmen + PNR, mis. "OD361 29NOV KNOKUL 0810 1025\nPNR : ABC123 / 30 PAX" */
+    public function ticketDescription(): string
+    {
+        $lines = $this->flight?->ticketLines() ?: ['Tiket '.$this->flight?->airline.' '.$this->flight?->route_label];
+        if ($this->pnr) $lines[] = 'PNR : '.$this->pnr.' / '.str_pad((string) $this->pax_count, 2, '0', STR_PAD_LEFT).' PAX';
+
+        return implode("\n", $lines);
+    }
+
+    /** Syarat & ketentuan invoice yang berlaku: hasil revisi terakhir, selain itu teks bawaan */
+    public function invoiceTerms(): string
+    {
+        $details = $this->activeInvoice()?->details ?? [];
+
+        return array_key_exists('terms', $details) ? (string) $details['terms'] : \App\Support\InvoiceTerms::FLIGHT_DEFAULT;
+    }
+
     /** Penerima invoice: nama travel/perusahaan & penanggung jawab (null → pakai data akun) */
     public function billTo(): ?array
     {
@@ -135,10 +153,10 @@ class FlightOrder extends Model implements Payable
         ];
     }
 
-    /** Manifest boleh diunggah/diganti setelah lunas dan sebelum e-ticket terbit */
+    /** Manifest diunggah/diganti pembeli setelah lunas, selama belum diterima admin dan e-ticket belum terbit */
     public function canUploadManifest(): bool
     {
-        return $this->status === 'dibayar';
+        return $this->status === 'dibayar' && ! $this->manifest_accepted_at;
     }
 
     public function payableLabel(): string
