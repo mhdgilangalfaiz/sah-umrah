@@ -1,18 +1,19 @@
-import { Link, useForm, usePage } from '@inertiajs/react';
-import { Ban, BedDouble, CalendarDays, Download, History, Hotel, Mail, MessageSquare, Plane, Repeat, Star, UserMinus, Users, XCircle } from 'lucide-react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { Ban, BedDouble, CalendarDays, CheckCircle2, Download, FileCheck2, FilePenLine, History, Hotel, Mail, MessageSquare, Plane, Plus, Repeat, Star, Trash2, UserMinus, Users, X, XCircle } from 'lucide-react';
 import { ProofLink } from '@/Components/PaymentProof';
 import { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Card, DefList, PageHeader, Progress, StatusBadge } from '@/Components/ui';
+import { Card, DefList, PageHeader, Progress, StatusBadge, Textarea } from '@/Components/ui';
 import { date, dateTime, rupiah } from '@/lib/format';
 
 const CLOSED = ['dibatalkan', 'refund', 'selesai', 'kedaluwarsa'];
 
-export default function Show({ booking: b, customer, passengers, payments, outstanding, overdue, reminders, documents, changes = [], refundRequests = [], categories = {}, invoiceNumber, roomLabel }) {
+export default function Show({ booking: b, customer, passengers, payments, outstanding, overdue, reminders, documents, changes = [], refundRequests = [], categories = {}, invoiceNumber, roomLabel, invoiceLines = [], invoiceExtras = [], terms = '', defaultTerms = '', invoiceHistory = [], cashPending = [] }) {
     const { auth } = usePage().props;
     const canOps = auth.user.role === 'admin';
     const editable = canOps && !CLOSED.includes(b.status);
     const pending = refundRequests.find((r) => r.status === 'diajukan');
+    const [revising, setRevising] = useState(false);
 
     return (
         <AdminLayout title="Detail Pesanan Umrah">
@@ -34,17 +35,35 @@ export default function Show({ booking: b, customer, passengers, payments, outst
             <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="min-w-0 space-y-6">
                     <BookingSummary b={b} customer={customer} passengers={passengers} categories={categories} invoiceNumber={invoiceNumber} roomLabel={roomLabel} />
-                    <Card title="Pembayaran">
+                    {cashPending.length > 0 && <CashPendingCard items={cashPending} canOps={canOps} />}
+                    <Card title="Tagihan & invoice" actions={editable && !revising && (
+                        <button type="button" onClick={() => setRevising(true)} className="btn-outline btn-sm"><FilePenLine className="h-4 w-4" />Revisi invoice</button>
+                    )}>
                         <div className="grid grid-cols-3 gap-3 text-center text-sm">
                             <div className="rounded-xl bg-sand-100 p-3"><p className="text-slate-500">Total</p><p className="font-bold">{rupiah(b.total_amount)}</p></div>
                             <div className="rounded-xl bg-emerald-50 p-3"><p className="text-slate-500">Dibayar</p><p className="font-bold text-emerald-700">{rupiah(b.paid_amount)}</p></div>
                             <div className="rounded-xl bg-amber-50 p-3"><p className="text-slate-500">Sisa</p><p className="font-bold text-amber-700">{rupiah(outstanding)}</p></div>
                         </div>
                         <Progress className="mt-3" value={(b.paid_amount / b.total_amount) * 100} />
-                        <div className="mt-4 overflow-x-auto"><table className="table-app">
-                            <thead><tr><th>Termin</th><th>Jatuh tempo</th><th className="!text-right">Nominal</th><th className="!text-right">Dibayar</th><th>Status</th><th>Pengingat</th></tr></thead>
-                            <tbody className="divide-y divide-slate-100">{b.installments.map((i) => <tr key={i.id}><td>{i.label}</td><td>{date(i.due_date)}</td><td className="text-right">{rupiah(i.amount)}</td><td className="text-right">{rupiah(i.paid_amount)}</td><td><StatusBadge status={i.status} /></td><td>{i.reminder_count}×</td></tr>)}</tbody>
-                        </table></div>
+                        <p className="mt-3 text-sm text-slate-600">
+                            {b.payment_scheme === 'cicilan'
+                                ? <>Cicilan bebas — jamaah membayar kapan saja & berapa kali saja. <b>Batas pelunasan {date(b.payment_deadline)}</b> (H-40 keberangkatan).</>
+                                : <>Skema bayar lunas.</>}
+                        </p>
+                        {revising && <BookingRevisionForm b={b} lines={invoiceLines} extras={invoiceExtras} terms={terms} defaultTerms={defaultTerms} onClose={() => setRevising(false)} />}
+                        <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-100">
+                            {invoiceHistory.map((i) => (
+                                <li key={i.id} className="flex flex-wrap items-start gap-3 p-3 text-sm">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="flex flex-wrap items-center gap-2"><span className="font-semibold text-slate-900">{i.number}</span><StatusBadge status={i.status} />{i.revision > 0 && <span className="text-xs text-slate-500">Revisi ke-{i.revision}</span>}</p>
+                                        <p className="text-xs text-slate-500">{i.issued_at}{i.refund > 0 && ` · dikembalikan ${rupiah(i.refund)}`}</p>
+                                        {i.notes && <p className="mt-1 text-slate-600 [overflow-wrap:anywhere]">{i.notes}</p>}
+                                    </div>
+                                    <span className="font-bold text-slate-900">{rupiah(i.amount)}</span>
+                                    <a href={route('invoices.pdf', i.id)} target="_blank" rel="noopener" className="btn-ghost btn-sm"><Download className="h-4 w-4 text-red-600" />PDF</a>
+                                </li>
+                            ))}
+                        </ul>
                     </Card>
                     <Card title="Transaksi" pad={false}>
                         <div className="overflow-x-auto"><table className="table-app">
@@ -95,9 +114,6 @@ export default function Show({ booking: b, customer, passengers, payments, outst
                     </Card>
                     <Card title="Detail">
                         <DefList items={[['Kamar', b.room_type.toUpperCase()], ['Harga/pax', rupiah(b.unit_price)], ['Skema', b.payment_scheme], ['Batas lunas', date(b.payment_deadline)], ['Kursi', b.seats_confirmed ? 'Terkonfirmasi' : 'Ditahan'], ['Catatan', b.notes]]} />
-                    </Card>
-                    <Card title="Invoice">
-                        {b.invoices.map((i) => <div key={i.id} className="flex items-center justify-between py-1 text-sm"><span>{i.number}</span><a target="_blank" rel="noopener" href={route('invoices.pdf', i.id)} className="btn-ghost btn-sm"><Download className="h-4 w-4" /></a></div>)}
                     </Card>
                     <Card title="Log pengingat otomatis">
                         {reminders.length === 0 ? <p className="text-sm text-slate-500">Belum ada pengingat terkirim.</p> : (
@@ -350,5 +366,147 @@ function BookingSummary({ b, customer, passengers, categories, invoiceNumber, ro
                 </div>
             </div>
         </Card>
+    );
+}
+
+/** Kwitansi pembayaran tunai dari jamaah yang menunggu verifikasi admin */
+function CashPendingCard({ items, canOps }) {
+    const [rejecting, setRejecting] = useState(null);
+    const form = useForm({ note: '' });
+    const approve = (p) => {
+        if (confirm(`Verifikasi pembayaran tunai ${rupiah(p.amount)}? Nominal akan tercatat sebagai pembayaran di invoice.`)) {
+            router.post(route('admin.payments.cash.approve', p.code), {}, { preserveScroll: true });
+        }
+    };
+
+    return (
+        <Card title={`Pembayaran tunai menunggu verifikasi (${items.length})`} className="ring-2 ring-amber-300">
+            <ul className="space-y-3">
+                {items.map((p) => (
+                    <li key={p.code} className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-sm">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="min-w-0 flex-1">
+                                <b className="text-base text-slate-900">{rupiah(p.amount)}</b>
+                                <span className="block text-xs text-slate-600">Dibayar di kantor {p.paid_at} · diunggah {p.submitted_at} · {p.code}</span>
+                                {p.note && <span className="mt-1 block text-slate-700 [overflow-wrap:anywhere]">“{p.note}”</span>}
+                            </span>
+                            <a href={p.proof_url} target="_blank" rel="noopener" className="btn-outline btn-sm"><FileCheck2 className="h-4 w-4" />Lihat kwitansi</a>
+                            {canOps && rejecting !== p.code && (
+                                <>
+                                    <button type="button" onClick={() => approve(p)} className="btn-primary btn-sm"><CheckCircle2 className="h-4 w-4" />Verifikasi</button>
+                                    <button type="button" onClick={() => { setRejecting(p.code); form.reset(); }} className="btn-ghost btn-sm text-red-600">Tolak</button>
+                                </>
+                            )}
+                        </div>
+                        {rejecting === p.code && (
+                            <form onSubmit={(e) => { e.preventDefault(); form.post(route('admin.payments.cash.reject', p.code), { preserveScroll: true, onSuccess: () => setRejecting(null) }); }} className="mt-3 space-y-2">
+                                <Textarea label="Alasan penolakan (dikirim ke jamaah)" rows={2} value={form.data.note} onChange={(e) => form.setData('note', e.target.value)} error={form.errors.note}
+                                    placeholder="Mis. Nominal di kwitansi tidak sesuai / foto kwitansi tidak terbaca." />
+                                <div className="flex gap-2">
+                                    <button disabled={form.processing} className="btn-gold btn-sm">Kirim penolakan</button>
+                                    <button type="button" onClick={() => setRejecting(null)} className="btn-ghost btn-sm">Batal</button>
+                                </div>
+                            </form>
+                        )}
+                    </li>
+                ))}
+            </ul>
+        </Card>
+    );
+}
+
+/**
+ * Revisi invoice umrah: keterangan baris paket, biaya tambahan/potongan, syarat & ketentuan.
+ * Jumlah jamaah & harga per jamaah tetap mengikuti data jamaah (diubah lewat "Ubah pesanan").
+ */
+function BookingRevisionForm({ b, lines, extras, terms, defaultTerms, onClose }) {
+    const form = useForm({
+        descriptions: Object.fromEntries(lines.map((l) => [l.key, l.description])),
+        extras: extras.map((x) => ({ description: x.description, qty: x.qty, price: x.price })),
+        terms: terms ?? '',
+        reason: '',
+    });
+    const d = form.data;
+    const err = (k) => form.errors[k];
+    const setExtra = (i, k, v) => form.setData('extras', d.extras.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+
+    const base = lines.reduce((s, l) => s + l.qty * l.price, 0);
+    const extraTotal = d.extras.reduce((s, x) => s + (Number(x.qty) || 0) * (Number(x.price) || 0), 0);
+    const total = base + extraTotal;
+    const paid = Number(b.paid_amount);
+    const refund = Math.max(0, paid - total);
+    const due = Math.max(0, total - paid);
+
+    const submit = (e) => {
+        e.preventDefault();
+        if (!confirm(`Terbitkan invoice revisi?\n\nTotal baru ${rupiah(total)}${refund > 0 ? `\nKelebihan bayar ${rupiah(refund)} dicatat sebagai refund.` : ''}`)) return;
+        form.post(route('admin.bookings.revise', b.code), { preserveScroll: true, onSuccess: onClose });
+    };
+
+    return (
+        <form onSubmit={submit} className="mt-5 space-y-5 rounded-2xl border-2 border-brand-200 bg-brand-50/30 p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold text-slate-900">Revisi invoice</p>
+                <button type="button" onClick={onClose} className="btn-ghost btn-sm" aria-label="Tutup"><X className="h-4 w-4" /></button>
+            </div>
+
+            <fieldset>
+                <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">Keterangan baris paket</legend>
+                <div className="space-y-3">
+                    {lines.map((l) => (
+                        <div key={l.key} className="rounded-xl bg-white p-3 ring-1 ring-slate-200">
+                            <textarea rows={2} className="input text-[13px]" value={d.descriptions[l.key] ?? ''} onChange={(e) => form.setData('descriptions', { ...d.descriptions, [l.key]: e.target.value })} placeholder={l.default} />
+                            <p className="mt-1.5 text-xs text-slate-500">{l.qty} jamaah × {rupiah(l.price)} = <b className="text-slate-700">{rupiah(l.qty * l.price)}</b> · jumlah & harga per jamaah diubah lewat <b>Ubah pesanan</b></p>
+                        </div>
+                    ))}
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-800">Biaya tambahan / potongan</legend>
+                {d.extras.length === 0 && <p className="mb-2 text-sm text-slate-500">Tidak ada. Isi harga negatif untuk potongan (mis. -500000).</p>}
+                <div className="space-y-2">
+                    {d.extras.map((x, i) => (
+                        <div key={i} className="grid grid-cols-[minmax(0,1fr)_70px_minmax(0,140px)_auto] items-start gap-2">
+                            <div><textarea rows={1} className="input text-[13px]" placeholder="Keterangan, mis. Upgrade kamar double" value={x.description} onChange={(e) => setExtra(i, 'description', e.target.value)} />{err(`extras.${i}.description`) && <p className="error">{err(`extras.${i}.description`)}</p>}</div>
+                            <input type="number" min={1} className="input" aria-label="Qty" value={x.qty} onChange={(e) => setExtra(i, 'qty', e.target.value)} />
+                            <input type="number" className="input" aria-label="Harga" placeholder="Harga" value={x.price} onChange={(e) => setExtra(i, 'price', e.target.value)} />
+                            <button type="button" onClick={() => form.setData('extras', d.extras.filter((_, j) => j !== i))} className="btn-ghost btn-sm mt-1" aria-label="Hapus baris"><Trash2 className="h-4 w-4 text-red-600" /></button>
+                        </div>
+                    ))}
+                </div>
+                {d.extras.length < 10 && <button type="button" onClick={() => form.setData('extras', [...d.extras, { description: '', qty: 1, price: '' }])} className="btn-ghost btn-sm mt-2"><Plus className="h-4 w-4" />Tambah baris</button>}
+                {err('extras') && <p className="error">{err('extras')}</p>}
+            </fieldset>
+
+            <fieldset className="rounded-xl bg-white p-3 ring-1 ring-slate-200">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <legend className="text-xs font-bold uppercase tracking-wide text-brand-800">Syarat & ketentuan (halaman 2 invoice)</legend>
+                    <div className="flex gap-2">
+                        <button type="button" onClick={() => form.setData('terms', defaultTerms)} className="btn-ghost btn-sm">Pakai teks bawaan</button>
+                        <button type="button" onClick={() => form.setData('terms', '')} className="btn-ghost btn-sm text-red-600">Kosongkan</button>
+                    </div>
+                </div>
+                <textarea rows={12} className="input text-[13px] leading-relaxed" value={d.terms} onChange={(e) => form.setData('terms', e.target.value)} placeholder="Kosongkan bila invoice ini tidak memakai syarat & ketentuan." />
+                <p className="hint">Baris berawalan huruf + titik (mis. <b>A. Pembayaran</b>) atau huruf kapital semua dicetak tebal sebagai judul; baris berawalan <b>- </b> dicetak sebagai butir.</p>
+            </fieldset>
+
+            <Textarea label="Alasan revisi (tampil di invoice & dikirim ke jamaah)" rows={2} value={d.reason} onChange={(e) => form.setData('reason', e.target.value)} error={err('reason')} required
+                placeholder="Mis. Tambah biaya upgrade kamar & pembaruan syarat ketentuan." />
+
+            <dl className="grid grid-cols-2 gap-3 rounded-xl bg-white p-3 text-sm ring-1 ring-slate-200 sm:grid-cols-4">
+                <div><dt className="text-xs text-slate-500">Total lama</dt><dd className="font-semibold">{rupiah(b.total_amount)}</dd></div>
+                <div><dt className="text-xs text-slate-500">Total baru</dt><dd className="font-bold text-brand-800">{rupiah(total)}</dd></div>
+                <div><dt className="text-xs text-slate-500">Sudah dibayar</dt><dd className="font-semibold">{rupiah(paid)}</dd></div>
+                {refund > 0
+                    ? <div><dt className="text-xs text-slate-500">Dikembalikan (refund)</dt><dd className="font-bold text-violet-700">{rupiah(refund)}</dd></div>
+                    : <div><dt className="text-xs text-slate-500">Sisa tagihan</dt><dd className="font-bold text-amber-700">{rupiah(due)}</dd></div>}
+            </dl>
+
+            <div className="flex flex-wrap justify-end gap-2">
+                <button type="button" onClick={onClose} className="btn-outline">Batal</button>
+                <button disabled={form.processing} className="btn-primary"><FilePenLine className="h-4 w-4" />Terbitkan invoice revisi</button>
+            </div>
+        </form>
     );
 }

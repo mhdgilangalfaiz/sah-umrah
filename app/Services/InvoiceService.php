@@ -33,22 +33,40 @@ class InvoiceService
         };
     }
 
-    /** Baris invoice umrah dikelompokkan per kategori & harga jamaah (mis. 1 Dewasa + 1 Anak) */
-    private function bookingItems(Booking $b): array
+    /**
+     * Baris invoice umrah: dikelompokkan per kategori & harga jamaah (mis. 1 Dewasa + 1 Anak),
+     * keterangan bisa diganti admin lewat revisi (invoice_meta.descriptions, kunci "kategori|harga"),
+     * ditambah baris biaya/potongan (invoice_meta.extras).
+     */
+    public function bookingLines(Booking $b): array
     {
         $label = 'Paket Umrah '.$b->departure->package->name.' — berangkat '.$b->departure->departure_date->translatedFormat('d M Y').' (kamar '.ucfirst($b->room_type).')';
         $groups = $b->passengers()->get(['category', 'price'])->groupBy(fn ($p) => ($p->category ?: 'dewasa').'|'.($p->price ?? $b->unit_price));
         if ($groups->isEmpty()) {
-            return [['description' => $label, 'qty' => $b->pax_count, 'price' => $b->unit_price, 'total' => $b->unit_price * $b->pax_count]];
+            return [['key' => 'dewasa|'.$b->unit_price, 'default' => $label, 'qty' => $b->pax_count, 'price' => (int) $b->unit_price]];
         }
         $single = $groups->count() === 1;
 
         return $groups->map(function ($rows, $key) use ($label, $single) {
             [$cat, $price] = explode('|', $key);
 
-            return ['description' => $label.($single && $cat === 'dewasa' ? '' : ' — '.(\App\Models\BookingPassenger::CATEGORIES[$cat] ?? ucfirst($cat))),
-                'qty' => $rows->count(), 'price' => (int) $price, 'total' => (int) $price * $rows->count()];
+            return ['key' => $key, 'default' => $label.($single && $cat === 'dewasa' ? '' : ' — '.(\App\Models\BookingPassenger::CATEGORIES[$cat] ?? ucfirst($cat))),
+                'qty' => $rows->count(), 'price' => (int) $price];
         })->values()->all();
+    }
+
+    private function bookingItems(Booking $b): array
+    {
+        $custom = $b->invoice_meta['descriptions'] ?? [];
+        $items = array_map(fn ($l) => [
+            'description' => trim((string) ($custom[$l['key']] ?? '')) ?: $l['default'],
+            'qty' => $l['qty'], 'price' => $l['price'], 'total' => $l['qty'] * $l['price'],
+        ], $this->bookingLines($b));
+        foreach ($b->invoiceExtras() as $x) {
+            $items[] = ['description' => $x['description'], 'qty' => (int) $x['qty'], 'price' => (int) $x['price'], 'total' => (int) $x['qty'] * (int) $x['price']];
+        }
+
+        return $items;
     }
 
     /** Pesanan berubah (jamaah dikurangi/diubah) → invoice tagihan ikut diperbarui meski sudah ada pembayaran */
@@ -138,6 +156,7 @@ class InvoiceService
         'va_bsi' => 'Transfer BSI',
         'va_muamalat' => 'Transfer Muamalat',
         'qris' => 'QRIS',
+        'tunai' => 'Tunai (Kantor)',
     ];
 
     /**
@@ -185,10 +204,8 @@ class InvoiceService
             'paid' => $payable?->paid_amount ?? 0,
             'outstanding' => $payable?->outstandingAmount() ?? 0,
             'history' => $this->paymentHistory($payable, (int) $invoice->amount),
-            // Syarat & ketentuan (tiket pesawat): versi invoice ini bila pernah direvisi, selain itu teks bawaan
-            'terms' => $payable instanceof FlightOrder
-                ? \App\Support\InvoiceTerms::lines(array_key_exists('terms', $invoice->details ?? []) ? $invoice->details['terms'] : \App\Support\InvoiceTerms::FLIGHT_DEFAULT)
-                : [],
+            // Syarat & ketentuan: versi invoice ini bila pernah direvisi, selain itu teks bawaan (tiket / umrah)
+            'terms' => \App\Support\InvoiceTerms::lines(\App\Support\InvoiceTerms::forInvoice($invoice, $payable)),
         ])->setPaper('a4');
     }
 }

@@ -63,6 +63,38 @@ Booking Confirmation
 Dengan melakukan pembayaran, agen/travel dianggap telah MENYETUJUI seluruh peraturan dan kebijakan yang tercantum di atas.
 TXT;
 
+    /** S&K bawaan invoice paket umrah (dapat diubah admin per invoice lewat Revisi invoice) */
+    public const UMRAH_DEFAULT = <<<'TXT'
+SYARAT & KETENTUAN
+
+A. Pembayaran
+1. Pemesanan paket dikonfirmasi setelah pembayaran deposit awal sesuai ketentuan paket.
+2. Sisa tagihan dapat dicicil kapan saja dan berapa kali saja, tanpa jadwal termin bulanan.
+3. Pelunasan wajib dilakukan paling lambat H-40 sebelum tanggal keberangkatan.
+4. Pembayaran dapat dilakukan melalui Virtual Account (Mandiri, BSI, Muamalat), QRIS, atau tunai di kantor.
+5. Pembayaran tunai di kantor wajib disertai kwitansi resmi dari kantor. Kwitansi diunggah sebagai bukti pembayaran dan tercatat di invoice setelah diverifikasi admin.
+
+B. Ketentuan Umum
+6. Setiap pembayaran tercatat pada riwayat pembayaran di invoice ini.
+7. Perubahan jumlah jamaah, kategori, atau biaya tambahan akan diterbitkan dalam invoice revisi.
+
+Booking Confirmation
+Dengan melakukan pembayaran, jamaah dianggap telah MENYETUJUI seluruh ketentuan yang tercantum di atas.
+TXT;
+
+    /** S&K yang dicetak: hasil revisi invoice ini bila ada, selain itu teks bawaan sesuai jenis pesanan */
+    public static function forInvoice(\App\Models\Invoice $invoice, $payable): ?string
+    {
+        $details = $invoice->details ?? [];
+        if (array_key_exists('terms', $details)) return (string) $details['terms'];
+
+        return match (true) {
+            $payable instanceof \App\Models\FlightOrder => self::FLIGHT_DEFAULT,
+            $payable instanceof \App\Models\Booking => self::UMRAH_DEFAULT,
+            default => null,
+        };
+    }
+
     /**
      * Pecah teks menjadi baris siap cetak: ['text' => ..., 'kind' => heading|bullet|text|blank].
      *
@@ -70,6 +102,8 @@ TXT;
      */
     public static function lines(?string $text): array
     {
+        if (trim((string) $text) === '') return [];
+
         return collect(preg_split('/\r\n|\r|\n/', (string) $text))->map(function ($raw) {
             $t = trim($raw);
             $kind = match (true) {

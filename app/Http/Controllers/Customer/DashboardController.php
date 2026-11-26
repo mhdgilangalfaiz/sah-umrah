@@ -100,15 +100,7 @@ class DashboardController extends Controller
             }
         }
 
-        PaymentInstallment::with('booking:id,code')
-            ->whereHas('booking', fn ($q) => $q->where('user_id', $u->id)->whereIn('status', ['menunggu_pembayaran', 'cicilan_berjalan']))
-            ->where('status', '!=', 'lunas')->whereNotNull('due_date')->orderBy('due_date')->get()
-            ->each(function (PaymentInstallment $i) use (&$events) {
-                $events[] = ['date' => $i->due_date->toDateString(), 'type' => 'installment',
-                    'title' => ($i->label ?: 'Termin '.$i->sequence).' jatuh tempo', 'detail' => $i->booking->code,
-                    'amount' => (int) ($i->amount - $i->paid_amount), 'overdue' => $i->due_date->lt(today()),
-                    'url' => route('customer.bookings.show', $i->booking->code)];
-            });
+        // Cicilan umrah bebas (tanpa termin) → yang ditandai cukup batas pelunasan H-40 di atas
 
         // ---- Tiket pesawat
         $u->flightOrders()->with('flight')->whereNotIn('status', ['dibatalkan', 'kedaluwarsa'])->get()

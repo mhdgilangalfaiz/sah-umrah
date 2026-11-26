@@ -57,6 +57,7 @@ class PaymentController extends Controller
         $webhookCodes = $webhookPaid->map(fn ($e) => $e->payload['external_id'] ?? $e->payload['data']['reference_id'] ?? null)->filter()->all();
 
         $paid = Payment::where('status', 'dibayar')->whereBetween('paid_at', [$from, $to])->get();
+        $gatewayPaid = $paid->where('gateway', '!=', 'manual'); // tunai di kantor tidak melewati gateway/webhook
 
         return Inertia::render('Admin/Payments/Reconcile', [
             'period' => ['dari' => $from->format('Y-m-d'), 'sampai' => $to->format('Y-m-d')],
@@ -65,7 +66,7 @@ class PaymentController extends Controller
                 'system_count' => $paid->count(),
                 'webhook_count' => $webhookPaid->count(),
             ],
-            'missingWebhook' => $paid->reject(fn ($p) => in_array($p->code, $webhookCodes, true))->values()
+            'missingWebhook' => $gatewayPaid->reject(fn ($p) => in_array($p->code, $webhookCodes, true))->values()
                 ->map(fn ($p) => ['code' => $p->code, 'amount' => $p->amount, 'paid_at' => $p->paid_at->format('d/m/Y H:i'), 'gateway' => $p->gateway]),
             'problems' => WebhookEvent::whereNotIn('result', ['dibayar', 'duplikat', 'sudah_dibayar', 'diabaikan'])
                 ->orWhere('signature_valid', false)->latest()->take(50)->get()

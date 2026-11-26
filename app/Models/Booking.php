@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
  * Skema cicilan kustom:
  *  - Pembayaran pertama WAJIB minimal deposit awal (default Rp3.000.000 per jamaah, diatur per paket).
  *  - Selanjutnya pelanggan bebas membayar nominal berapa pun (≥ minimal termin) sampai lunas.
- *  - Sisa tagihan = total − total dibayar. Batas pelunasan H-30 keberangkatan.
+ *  - Sisa tagihan = total − total dibayar. Batas pelunasan H-40 keberangkatan (cicilan bebas, tanpa termin bulanan).
  *  - Lewat batas → pengingat email + WhatsApp otomatis terus-menerus sampai lunas.
  */
 class Booking extends Model implements Payable
@@ -23,12 +23,12 @@ class Booking extends Model implements Payable
     protected $fillable = [
         'code', 'user_id', 'package_departure_id', 'room_type', 'pax_count', 'unit_price', 'total_amount',
         'paid_amount', 'payment_scheme', 'status', 'seats_confirmed', 'hold_expires_at', 'payment_deadline',
-        'notes', 'cancelled_at', 'cancel_reason',
+        'notes', 'cancelled_at', 'cancel_reason', 'invoice_meta',
     ];
 
     protected function casts(): array
     {
-        return [
+        return ['invoice_meta' => 'array', 
             'hold_expires_at' => 'datetime', 'payment_deadline' => 'date:Y-m-d', 'cancelled_at' => 'datetime',
             'seats_confirmed' => 'boolean', 'unit_price' => 'integer', 'total_amount' => 'integer',
             'paid_amount' => 'integer', 'pax_count' => 'integer',
@@ -105,6 +105,17 @@ class Booking extends Model implements Payable
 
         $this->status = $this->outstandingAmount() <= 0 ? 'lunas' : 'cicilan_berjalan';
         $this->save();
+    }
+
+    /** Baris tambahan invoice (biaya/potongan) hasil revisi admin: [{description, qty, price}] */
+    public function invoiceExtras(): array
+    {
+        return array_values($this->invoice_meta['extras'] ?? []);
+    }
+
+    public function extrasTotal(): int
+    {
+        return (int) collect($this->invoiceExtras())->sum(fn ($x) => (int) $x['qty'] * (int) $x['price']);
     }
 
     public function payableLabel(): string

@@ -36,6 +36,7 @@ export const STATUS = {
     terlambat: ['Terlambat', C.red],
     // dokumen
     menunggu: ['Menunggu Verifikasi', C.amber],
+    menunggu_verifikasi: ['Menunggu Verifikasi', C.amber],
     // refund
     diajukan: ['Diajukan', C.amber],
     disetujui: ['Disetujui', C.blue],

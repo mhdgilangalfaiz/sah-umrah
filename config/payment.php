@@ -50,8 +50,8 @@ return [
     // Minimal nominal tiap pembayaran cicilan setelah deposit
     'min_installment_amount' => (int) env('MIN_INSTALLMENT_AMOUNT', 500000),
 
-    // Batas pelunasan: H-30 sebelum keberangkatan
-    'settlement_days_before_departure' => (int) env('SETTLEMENT_DAYS_BEFORE_DEPARTURE', 30),
+    // Paket umrah: cicilan bebas (kapan saja, berapa kali saja) — wajib lunas paling lambat H-40 sebelum keberangkatan
+    'settlement_days_before_departure' => (int) env('SETTLEMENT_DAYS_BEFORE_DEPARTURE', 40),
 
     // Maksimal jumlah termin (di luar deposit) pada jadwal cicilan yang disarankan
     'max_terms' => 6,

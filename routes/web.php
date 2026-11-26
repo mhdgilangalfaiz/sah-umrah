@@ -114,6 +114,7 @@ Route::middleware(['auth', 'verified', 'customer'])->group(function () {
         Route::get('/umrah', [Customer\OrderController::class, 'bookings'])->name('bookings.index');
         Route::get('/umrah/{booking}', [Customer\OrderController::class, 'booking'])->name('bookings.show');
         Route::post('/umrah/{booking}/batal', [Customer\OrderController::class, 'cancelBooking'])->name('bookings.cancel');
+        Route::post('/umrah/{booking}/bayar-tunai', [Customer\OrderController::class, 'payCash'])->middleware('throttle:10,1')->name('bookings.cash');
         Route::get('/tiket', [Customer\OrderController::class, 'flightOrders'])->name('flight-orders.index');
         Route::get('/tiket/{flightOrder}', [Customer\OrderController::class, 'flightOrder'])->name('flight-orders.show');
         Route::get('/tiket/{flightOrder}/manifest/template', [Customer\OrderController::class, 'manifestTemplate'])->name('flight-orders.manifest.template');
@@ -191,6 +192,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::post('/pesanan-umrah/{booking}/batal', [Admin\BookingController::class, 'cancel'])->name('bookings.cancel');
         Route::post('/pesanan-umrah/{booking}/kurangi', [Admin\BookingController::class, 'reduce'])->name('bookings.reduce');
         Route::post('/pesanan-umrah/{booking}/ubah-jamaah', [Admin\BookingController::class, 'change'])->name('bookings.change');
+        Route::post('/pesanan-umrah/{booking}/revisi-invoice', [Admin\BookingController::class, 'reviseInvoice'])->name('bookings.revise');
+        Route::post('/pembayaran/{payment}/tunai/verifikasi', [Admin\BookingController::class, 'approveCash'])->name('payments.cash.approve');
+        Route::post('/pembayaran/{payment}/tunai/tolak', [Admin\BookingController::class, 'rejectCash'])->name('payments.cash.reject');
         Route::post('/pesanan-tiket/{flightOrder}/terbitkan', [Admin\FlightOrderController::class, 'issue'])->name('flight-orders.issue');
         Route::post('/pesanan-tiket/{flightOrder}/revisi-invoice', [Admin\FlightOrderController::class, 'revise'])->name('flight-orders.revise');
         Route::post('/pesanan-tiket/{flightOrder}/manifest/terima', [Admin\FlightOrderController::class, 'acceptManifest'])->name('flight-orders.manifest.accept');

@@ -127,7 +127,7 @@ export default function CheckoutPackage({ package: p, selectedDeparture, selecte
                             <div className="card card-pad space-y-4">
                                 <h2 className="font-sans text-lg font-semibold">Periksa kembali pesanan Anda</h2>
                                 <dl className="divide-y divide-slate-100 text-sm">
-                                    {[['Paket', p.name], ['Keberangkatan', dep && `${date(dep.departure_date)} – ${date(dep.return_date)}`], ['Kamar', roomTypes[data.room_type]], ['Jamaah', data.passengers.map((x) => x.full_name || jamaah.find((j) => String(j.id) === String(x.jamaah_id))?.full_name).join(', ')], ['Skema', data.scheme === 'cicilan' ? 'Cicilan (deposit + termin fleksibel)' : 'Lunas']].map(([k, v]) => (
+                                    {[['Paket', p.name], ['Keberangkatan', dep && `${date(dep.departure_date)} – ${date(dep.return_date)}`], ['Kamar', roomTypes[data.room_type]], ['Jamaah', data.passengers.map((x) => x.full_name || jamaah.find((j) => String(j.id) === String(x.jamaah_id))?.full_name).join(', ')], ['Skema', data.scheme === 'cicilan' ? 'Cicilan bebas (deposit, lalu cicil kapan saja — lunas H-40)' : 'Lunas']].map(([k, v]) => (
                                         <div key={k} className="flex justify-between gap-4 py-2.5"><dt className="text-slate-500">{k}</dt><dd className="text-right font-medium">{v}</dd></div>
                                     ))}
                                 </dl>

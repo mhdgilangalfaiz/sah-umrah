@@ -1,11 +1,11 @@
-import { Link, router } from '@inertiajs/react';
-import { AlertTriangle, Ban, Clock, Download, FileText, History, UserMinus } from 'lucide-react';
+import { Link, router, useForm } from '@inertiajs/react';
+import { AlertTriangle, Ban, Clock, Download, FileCheck2, FileText, History, Receipt, Upload, UserMinus } from 'lucide-react';
 import CustomerLayout from '@/Layouts/CustomerLayout';
 import PayBox from '@/Components/PayBox';
-import { Card, DefList, PageHeader, Progress, StatusBadge, Stepper } from '@/Components/ui';
+import { Card, DefList, Input, PageHeader, Progress, StatusBadge, Stepper, Textarea } from '@/Components/ui';
 import { date, dateTime, rupiah } from '@/lib/format';
 
-export default function BookingShow({ booking: b, outstanding, overdue, deposit, payments, payBox, canCancel, canRequest, requests = [], changes = [], categories = {} }) {
+export default function BookingShow({ booking: b, outstanding, overdue, deposit, payments, payBox, canCancel, canRequest, requests = [], changes = [], categories = {}, canPayCash = false, cashPayments = [], settlementDays = 40 }) {
     const pkg = b.departure.package;
     const stepIdx = { menunggu_pembayaran: 1, cicilan_berjalan: 2, lunas: 3, selesai: 4 }[b.status] ?? 1;
 
@@ -48,21 +48,12 @@ export default function BookingShow({ booking: b, outstanding, overdue, deposit,
                             <div className="rounded-xl bg-amber-50 p-3"><p className="text-xs text-slate-500">Sisa</p><p className="font-bold text-amber-700">{rupiah(outstanding)}</p></div>
                         </div>
                         <Progress className="mt-4" value={(b.paid_amount / b.total_amount) * 100} />
-                        {b.payment_scheme === 'cicilan' && <p className="mt-2 text-xs text-slate-500">Batas pelunasan: <b>{date(b.payment_deadline)}</b> (H-30 keberangkatan)</p>}
-                    </Card>
-
-                    <Card title="Jadwal cicilan" pad={false}>
-                        <div className="overflow-x-auto">
-                            <table className="table-app">
-                                <thead><tr><th>Termin</th><th>Jatuh tempo</th><th className="!text-right">Nominal</th><th className="!text-right">Dibayar</th><th>Status</th></tr></thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {b.installments.map((i) => (
-                                        <tr key={i.id}><td className="font-medium">{i.label}</td><td>{date(i.due_date)}</td><td className="text-right">{rupiah(i.amount)}</td><td className="text-right">{rupiah(i.paid_amount)}</td><td><StatusBadge status={i.status} /></td></tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">Jadwal di atas adalah saran. Anda bebas membayar nominal berapa pun — setiap pembayaran otomatis mengurangi sisa tagihan & dialokasikan ke termin berurutan.</p>
+                        {b.payment_scheme === 'cicilan' && (
+                            <p className="mt-3 rounded-xl bg-brand-50 p-3 text-sm text-brand-900">
+                                <b>Cicilan bebas</b> — bayar kapan saja dan berapa kali saja (minimal Rp500.000 per pembayaran), tanpa jadwal bulanan.
+                                Wajib lunas paling lambat <b>{date(b.payment_deadline)}</b> (H-{settlementDays} keberangkatan).
+                            </p>
+                        )}
                     </Card>
 
                     <Card title="Riwayat transaksi" pad={false}>
@@ -104,6 +95,7 @@ export default function BookingShow({ booking: b, outstanding, overdue, deposit,
 
                 <div className="space-y-6">
                     <PayBox box={payBox} title={b.paid_amount === 0 && b.payment_scheme === 'cicilan' ? 'Bayar Deposit Awal' : 'Bayar Cicilan / Pelunasan'} />
+                    {(canPayCash || cashPayments.length > 0) && <CashPaymentCard b={b} outstanding={outstanding} canPay={canPayCash} items={cashPayments} />}
                     <Card title="Invoice">
                         <ul className="space-y-2">
                             {b.invoices.map((i) => (
@@ -158,5 +150,52 @@ export default function BookingShow({ booking: b, outstanding, overdue, deposit,
                 </div>
             </div>
         </CustomerLayout>
+    );
+}
+
+/**
+ * Bayar tunai di kantor: jamaah mengunggah kwitansi resmi dari kantor.
+ * Setelah diverifikasi admin, nominal tercatat sebagai pembayaran di invoice.
+ */
+function CashPaymentCard({ b, outstanding, canPay, items }) {
+    const today = new Date().toISOString().slice(0, 10);
+    const form = useForm({ amount: '', paid_date: today, receipt: null, note: '' });
+    const submit = (e) => {
+        e.preventDefault();
+        form.post(route('customer.bookings.cash', b.code), { forceFormData: true, preserveScroll: true, onSuccess: () => form.reset() });
+    };
+
+    return (
+        <Card title="Bayar tunai di kantor">
+            {items.length > 0 && (
+                <ul className="mb-4 space-y-2">
+                    {items.map((p) => (
+                        <li key={p.code} className={`rounded-xl p-3 text-sm ring-1 ${p.status === 'ditolak' ? 'bg-red-50 ring-red-200' : 'bg-amber-50 ring-amber-200'}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <b>{rupiah(p.amount)}</b>
+                                <StatusBadge status={p.status} />
+                            </div>
+                            <p className="text-xs text-slate-600">Dibayar {p.paid_at} · <a href={p.proof_url} target="_blank" rel="noopener" className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline"><FileCheck2 className="h-3.5 w-3.5" />kwitansi</a></p>
+                            {p.status === 'ditolak' && p.review_note && <p className="mt-1 text-xs text-red-700"><b>Alasan ditolak:</b> {p.review_note}</p>}
+                            {p.status === 'menunggu_verifikasi' && <p className="mt-1 text-xs text-amber-800">Sedang diperiksa admin. Setelah diverifikasi, pembayaran tercatat di invoice.</p>}
+                        </li>
+                    ))}
+                </ul>
+            )}
+            {canPay && (
+                <form onSubmit={submit} className="space-y-3">
+                    <p className="flex gap-2 text-xs text-slate-600"><Receipt className="h-4 w-4 shrink-0 text-brand-700" />Sudah membayar tunai di kantor? Unggah kwitansi dari kantor agar pembayaran tercatat di invoice.</p>
+                    <Input label="Nominal yang dibayar (Rp)" type="number" min={10000} max={outstanding} value={form.data.amount} onChange={(e) => form.setData('amount', e.target.value)} error={form.errors.amount} required />
+                    <Input label="Tanggal bayar" type="date" max={today} value={form.data.paid_date} onChange={(e) => form.setData('paid_date', e.target.value)} error={form.errors.paid_date} required />
+                    <div>
+                        <label className="label">Foto / scan kwitansi (JPG, PNG, PDF · maks. 5 MB)</label>
+                        <input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" onChange={(e) => form.setData('receipt', e.target.files[0])} className="text-sm" />
+                        {form.errors.receipt && <p className="error">{form.errors.receipt}</p>}
+                    </div>
+                    <Textarea label="Catatan (opsional)" rows={2} value={form.data.note} onChange={(e) => form.setData('note', e.target.value)} error={form.errors.note} placeholder="Mis. No. kwitansi 0123, diterima oleh Ibu Sari" />
+                    <button disabled={form.processing || !form.data.receipt || !form.data.amount} className="btn-primary w-full"><Upload className="h-4 w-4" />{form.processing ? 'Mengunggah…' : 'Kirim kwitansi'}</button>
+                </form>
+            )}
+        </Card>
     );
 }

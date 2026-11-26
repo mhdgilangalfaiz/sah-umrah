@@ -71,6 +71,23 @@ class BookingController extends Controller
                 'created_at' => $r->created_at->format('d/m/Y H:i'),
             ]),
             'categories' => \App\Models\BookingPassenger::CATEGORIES,
+            // Revisi invoice: baris paket (keterangan bisa diganti), baris tambahan, S&K, riwayat invoice
+            'invoiceLines' => collect(app(\App\Services\InvoiceService::class)->bookingLines($booking))->map(fn ($l) => $l + [
+                'description' => $booking->invoice_meta['descriptions'][$l['key']] ?? $l['default'],
+            ])->values(),
+            'invoiceExtras' => $booking->invoiceExtras(),
+            'terms' => app(\App\Services\BookingInvoiceRevisionService::class)->currentTerms($booking),
+            'defaultTerms' => \App\Support\InvoiceTerms::UMRAH_DEFAULT,
+            'invoiceHistory' => $booking->invoices->where('type', 'invoice')->sortByDesc('issued_at')->values()->map(fn ($i) => [
+                'id' => $i->id, 'number' => $i->number, 'status' => $i->display_status, 'amount' => (int) $i->amount, 'revision' => $i->revision,
+                'notes' => $i->notes, 'issued_at' => $i->issued_at->format('d/m/Y H:i'), 'refund' => $i->details['refund'] ?? 0,
+            ]),
+            // kwitansi pembayaran tunai yang menunggu verifikasi
+            'cashPending' => $booking->payments()->where('status', 'menunggu_verifikasi')->get()->map(fn ($p) => [
+                'code' => $p->code, 'amount' => (int) $p->amount, 'paid_at' => $p->paid_at?->format('d/m/Y'),
+                'note' => $p->proof_note, 'proof_url' => $p->proof_url, 'proof_name' => $p->proof_name,
+                'submitted_at' => $p->created_at->format('d/m/Y H:i'),
+            ]),
             // Kartu ringkasan pesanan
             'invoiceNumber' => $booking->invoices->where('type', 'invoice')->whereNotIn('status', \App\Models\Invoice::INACTIVE)->sortByDesc('issued_at')->first()?->number,
             'roomLabel' => \App\Models\Package::ROOM_TYPES[$booking->room_type] ?? $booking->room_type,
@@ -178,5 +195,40 @@ class BookingController extends Controller
 
         return Excel::download(new ArrayExport(['Kode', 'Tanggal', 'Pemesan', 'Kode Pelanggan', 'HP', 'Paket', 'Berangkat', 'Pax', 'Kamar', 'Skema', 'Total', 'Dibayar', 'Sisa', 'Status'], $rows),
             'pesanan-umrah-'.now()->format('d-m-y').'.xlsx');
+    }
+
+    /** Revisi invoice umrah: keterangan baris, biaya/potongan tambahan, S&K → invoice baru -R{n} */
+    public function reviseInvoice(Request $request, Booking $booking, \App\Services\BookingInvoiceRevisionService $service)
+    {
+        $data = $request->validate([
+            'descriptions' => 'array',
+            'descriptions.*' => 'nullable|string|max:2000',
+            'extras' => 'array|max:10',
+            'extras.*.description' => 'required|string|max:1000',
+            'extras.*.qty' => 'required|integer|min:1|max:999',
+            'extras.*.price' => 'required|integer|min:-1000000000|max:1000000000',
+            'terms' => 'nullable|string|max:15000',
+            'reason' => 'required|string|min:5|max:500',
+        ], [], ['extras.*.description' => 'keterangan', 'extras.*.qty' => 'qty', 'extras.*.price' => 'harga', 'reason' => 'alasan revisi', 'terms' => 'syarat & ketentuan']);
+
+        $invoice = $service->revise($booking, $data, $request->user());
+
+        return back()->with('success', "Invoice {$invoice->number} terbit dan dikirim ke jamaah.");
+    }
+
+    /** Verifikasi kwitansi pembayaran tunai → tercatat sebagai pembayaran */
+    public function approveCash(Request $request, \App\Models\Payment $payment, \App\Services\Payment\CashPaymentService $cash)
+    {
+        $cash->approve($payment, $request->user());
+
+        return back()->with('success', 'Pembayaran tunai diverifikasi dan tercatat di invoice.');
+    }
+
+    public function rejectCash(Request $request, \App\Models\Payment $payment, \App\Services\Payment\CashPaymentService $cash)
+    {
+        $data = $request->validate(['note' => 'required|string|min:5|max:500'], [], ['note' => 'alasan penolakan']);
+        $cash->reject($payment, $request->user(), trim($data['note']));
+
+        return back()->with('success', 'Kwitansi ditolak. Jamaah diberi tahu untuk mengunggah ulang.');
     }
 }

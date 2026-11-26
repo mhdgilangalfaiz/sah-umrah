@@ -190,9 +190,9 @@ class PaymentService
     }
 
     /** Tandai lunas + terapkan ke pesanan + perbarui status invoice + notifikasi. Harus dipanggil di dalam transaksi DB. */
-    public function markPaid(Payment $payment): void
+    public function markPaid(Payment $payment, ?\Carbon\CarbonInterface $paidAt = null): void
     {
-        $payment->update(['status' => 'dibayar', 'paid_at' => now()]);
+        $payment->update(['status' => 'dibayar', 'paid_at' => $paidAt ?? now()]);
 
         /** @var Model&Payable $payable */
         $payable = $payment->payable()->lockForUpdate()->first();
@@ -221,9 +221,9 @@ class PaymentService
         $remaining = $payable->outstandingAmount();
         $payment->user->notify(new SystemNotification(
             'pembayaran', 'Pembayaran Diterima — '.$payable->code,
-            'Terima kasih, pembayaran Rp'.number_format($payment->amount, 0, ',', '.').' via '.$payment->method_label.' telah kami terima dan tercatat di invoice. Langkah berikutnya: unggah bukti pembayaran (resi/struk) sebagai arsip.'.
+            'Terima kasih, pembayaran Rp'.number_format($payment->amount, 0, ',', '.').' via '.$payment->method_label.' telah kami terima dan tercatat di invoice.'.($payment->proof_path ? '' : ' Langkah berikutnya: unggah bukti pembayaran (resi/struk) sebagai arsip.').
             ($remaining > 0 ? ' Sisa tagihan: Rp'.number_format($remaining, 0, ',', '.').'.' : ' Tagihan Anda telah LUNAS.'),
-            route('payments.show', $payment->code), 'Unggah Bukti Bayar'
+            $payment->proof_path ? $payable->customerUrl() : route('payments.show', $payment->code), $payment->proof_path ? 'Lihat Pesanan' : 'Unggah Bukti Bayar'
         ));
 
         \App\Support\AdminNotifier::notify('pembayaran', 'Pembayaran masuk '.$payable->code,

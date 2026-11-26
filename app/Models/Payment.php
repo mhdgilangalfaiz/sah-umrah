@@ -11,6 +11,7 @@ class Payment extends Model
         'va_bsi' => 'Virtual Account BSI',
         'va_muamalat' => 'Virtual Account Muamalat',
         'qris' => 'QRIS',
+        'tunai' => 'Tunai (Kantor)',
     ];
 
     public const STATUSES = [
@@ -19,12 +20,14 @@ class Payment extends Model
         'kedaluwarsa' => 'Kedaluwarsa',
         'gagal' => 'Gagal',
         'refund' => 'Refund',
+        'menunggu_verifikasi' => 'Menunggu Verifikasi',
+        'ditolak' => 'Ditolak',
     ];
 
     protected $fillable = [
         'code', 'user_id', 'payable_type', 'payable_id', 'payment_installment_id', 'amount', 'method', 'gateway',
         'gateway_id', 'va_number', 'qr_string', 'status', 'idempotency_key', 'expires_at', 'paid_at', 'gateway_response',
-        'proof_path', 'proof_name', 'proof_note', 'proof_uploaded_at',
+        'proof_path', 'proof_name', 'proof_note', 'proof_uploaded_at', 'review_note', 'reviewed_by', 'reviewed_at',
     ];
 
     protected $hidden = ['gateway_response', 'proof_path'];
@@ -33,7 +36,7 @@ class Payment extends Model
 
     protected function casts(): array
     {
-        return ['expires_at' => 'datetime', 'paid_at' => 'datetime', 'proof_uploaded_at' => 'datetime', 'gateway_response' => 'array', 'amount' => 'integer'];
+        return ['expires_at' => 'datetime', 'paid_at' => 'datetime', 'proof_uploaded_at' => 'datetime', 'reviewed_at' => 'datetime', 'gateway_response' => 'array', 'amount' => 'integer'];
     }
 
     public function getMethodLabelAttribute(): string

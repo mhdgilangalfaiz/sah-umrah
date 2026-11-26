@@ -75,7 +75,30 @@ class OrderController extends Controller
             'changes' => $booking->changes()->get(['id', 'type', 'description', 'old_total', 'new_total', 'refund_amount', 'created_at'])
                 ->map(fn ($c) => $c->only('id', 'description', 'old_total', 'new_total', 'refund_amount') + ['type_label' => \App\Models\BookingChange::TYPES[$c->type] ?? $c->type, 'at' => $c->created_at->format('d/m/Y H:i')]),
             'categories' => \App\Models\BookingPassenger::CATEGORIES,
+            // pembayaran tunai di kantor (kwitansi diunggah, menunggu verifikasi / ditolak)
+            'canPayCash' => $booking->canBePaid(),
+            'cashPayments' => $booking->payments()->where('method', 'tunai')->whereIn('status', ['menunggu_verifikasi', 'ditolak'])->get()
+                ->map(fn ($p) => ['code' => $p->code, 'amount' => (int) $p->amount, 'status' => $p->status, 'review_note' => $p->review_note,
+                    'paid_at' => $p->paid_at?->format('d/m/Y'), 'proof_url' => $p->proof_url]),
+            'settlementDays' => (int) config('payment.settlement_days_before_departure', 40),
         ]);
+    }
+
+    /** Pembayaran tunai di kantor: unggah kwitansi resmi kantor → menunggu verifikasi admin */
+    public function payCash(Request $request, Booking $booking, \App\Services\Payment\CashPaymentService $cash)
+    {
+        $this->ensureOwner($booking);
+        abort_unless($booking->canBePaid(), 422, 'Pesanan ini tidak dapat dibayar.');
+        $data = $request->validate([
+            'amount' => 'required|integer|min:10000',
+            'paid_date' => 'required|date|before_or_equal:today|after_or_equal:'.$booking->created_at->toDateString(),
+            'receipt' => 'required|file|max:5120|mimes:jpg,jpeg,png,webp,pdf',
+            'note' => 'nullable|string|max:500',
+        ], [], ['amount' => 'nominal', 'paid_date' => 'tanggal bayar', 'receipt' => 'kwitansi', 'note' => 'catatan']);
+
+        $cash->submit($booking, $request->user(), (int) $data['amount'], \Carbon\Carbon::parse($data['paid_date'])->setTimeFrom(now()), $request->file('receipt'), $data['note'] ?? null);
+
+        return back()->with('success', 'Kwitansi terkirim. Pembayaran akan tercatat di invoice setelah diverifikasi admin.');
     }
 
     public function cancelBooking(Request $request, Booking $booking, BookingService $service)

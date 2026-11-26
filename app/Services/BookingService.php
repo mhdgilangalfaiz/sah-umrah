@@ -85,7 +85,10 @@ class BookingService
         return $booking;
     }
 
-    /** Jadwal cicilan: Deposit Awal + termin bulanan merata hingga batas pelunasan (H-30). */
+    /**
+     * Tagihan umrah: Deposit Awal (saat kursi ditahan) lalu "Pelunasan" dengan batas H-40.
+     * Tidak ada termin bulanan — jamaah bebas mencicil kapan saja & berapa kali saja sampai lunas.
+     */
     public function buildSchedule(Booking $booking, Carbon $holdUntil, Carbon $deadline): void
     {
         $total = (int) $booking->total_amount;
@@ -98,20 +101,8 @@ class BookingService
 
         $deposit = $booking->requiredDeposit();
         $booking->installments()->create(['sequence' => 1, 'label' => 'Deposit Awal', 'amount' => $deposit, 'due_date' => $holdUntil->toDateString()]);
-
-        $rest = $total - $deposit;
-        if ($rest <= 0) return;
-
-        $months = (int) floor($holdUntil->copy()->startOfDay()->diffInMonths($deadline));
-        $terms = max(1, min((int) config('payment.max_terms', 6), $months));
-        $per = (int) (floor($rest / $terms / 1000) * 1000);
-
-        for ($i = 1; $i <= $terms; $i++) {
-            $amount = $i === $terms ? $rest - $per * ($terms - 1) : $per;
-            $due = $i === $terms ? $deadline->copy() : $deadline->copy()->subMonths($terms - $i);
-            $booking->installments()->create([
-                'sequence' => $i + 1, 'label' => 'Termin '.$i, 'amount' => $amount, 'due_date' => $due->toDateString(),
-            ]);
+        if ($total - $deposit > 0) {
+            $booking->installments()->create(['sequence' => 2, 'label' => 'Pelunasan', 'amount' => $total - $deposit, 'due_date' => $deadline->toDateString()]);
         }
     }
 
@@ -120,7 +111,9 @@ class BookingService
     {
         $count = 0;
         Booking::where('status', 'menunggu_pembayaran')->where('seats_confirmed', false)
-            ->where('hold_expires_at', '<', now())->each(function (Booking $b) use (&$count) {
+            ->where('hold_expires_at', '<', now())
+            ->whereDoesntHave('payments', fn ($q) => $q->where('status', 'menunggu_verifikasi')) // kwitansi tunai sedang diverifikasi
+            ->each(function (Booking $b) use (&$count) {
                 DB::transaction(function () use ($b) {
                     $dep = PackageDeparture::lockForUpdate()->find($b->package_departure_id);
                     $dep->held = max(0, $dep->held - $b->pax_count);
@@ -229,7 +222,7 @@ class BookingService
     {
         $passengers = $booking->passengers()->get();
         $booking->pax_count = $passengers->count();
-        $booking->total_amount = (int) $passengers->sum(fn ($p) => $p->price ?? $booking->unit_price);
+        $booking->total_amount = (int) $passengers->sum(fn ($p) => $p->price ?? $booking->unit_price) + $booking->extrasTotal();
         $booking->paid_amount = (int) $booking->paid_amount - $refund;
         $booking->status = $this->statusAfterChange($booking);
         $booking->save();
@@ -300,7 +293,7 @@ class BookingService
             $rest->each->delete();
         } elseif ($rest->isEmpty() || $oldSum <= 0) {
             $rest->each->delete();
-            $booking->installments()->create(['sequence' => ($list->max('sequence') ?? 0) + 1, 'label' => 'Sisa tagihan', 'amount' => $target,
+            $booking->installments()->create(['sequence' => ($list->max('sequence') ?? 0) + 1, 'label' => 'Pelunasan', 'amount' => $target,
                 'due_date' => ($booking->payment_deadline ?? today())->toDateString()]);
         } else {
             $amounts = [];

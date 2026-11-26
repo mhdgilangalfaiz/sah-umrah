@@ -26,10 +26,10 @@ class PackageDeparture extends Model
         return max(0, (int) $this->quota - (int) $this->booked - (int) $this->held);
     }
 
-    /** Batas pelunasan: H-30 (dapat diatur di config/payment.php) */
+    /** Batas pelunasan: H-40 (dapat diatur di config/payment.php) */
     public function paymentDeadline()
     {
-        return $this->departure_date->copy()->subDays((int) config('payment.settlement_days_before_departure', 30));
+        return $this->departure_date->copy()->subDays((int) config('payment.settlement_days_before_departure', 40));
     }
 
     public function package() { return $this->belongsTo(Package::class)->withTrashed(); }

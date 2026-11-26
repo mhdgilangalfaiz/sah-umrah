@@ -93,14 +93,9 @@
     </div>
 @endif
 
-@if($payable instanceof \App\Models\Booking && $payable->installments->count() > 1)
-    <p style="margin-top:14px"><b>Jadwal Cicilan</b> (batas pelunasan {{ $payable->payment_deadline?->translatedFormat('d F Y') }})</p>
-    <table class="items">
-        <thead><tr><th>Termin</th><th>Jatuh Tempo</th><th class="right">Nominal</th><th class="right">Dibayar</th><th>Status</th></tr></thead>
-        @foreach($payable->installments as $inst)
-            <tr><td>{{ $inst->label }}</td><td>{{ $inst->due_date->translatedFormat('d M Y') }}</td><td class="right">{{ $rp($inst->amount) }}</td><td class="right">{{ $rp($inst->paid_amount) }}</td><td>{{ ucwords(str_replace('_', ' ', $inst->status)) }}</td></tr>
-        @endforeach
-    </table>
+@if($payable instanceof \App\Models\Booking && $payable->payment_scheme === 'cicilan' && $payable->payment_deadline && $invoice->type === 'invoice')
+    <p style="margin-top:12px">Cicilan bebas (kapan saja &amp; berapa kali saja). <b>Batas pelunasan: {{ $payable->payment_deadline->translatedFormat('d F Y') }}</b>
+        (H-{{ (int) config('payment.settlement_days_before_departure', 40) }} sebelum keberangkatan {{ $payable->departure->departure_date->translatedFormat('d F Y') }}).</p>
 @endif
 
 <table style="width:100%; margin-top:26px">
