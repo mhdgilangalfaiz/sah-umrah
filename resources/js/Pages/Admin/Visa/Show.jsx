@@ -127,6 +127,7 @@ const NEXT = {
     menunggu_dokumen: [['ditolak', 'Tolak pengajuan']],
     diverifikasi: [['diproses', 'Diproses'], ['menunggu_dokumen', 'Minta berkas ulang'], ['ditolak', 'Ditolak']],
     diproses: [['terbit', 'Terbit'], ['ditolak', 'Ditolak']],
+    ditolak: [['menunggu_dokumen', 'Buka kembali (minta berkas ulang)'], ['dibatalkan', 'Batalkan pengajuan']],
 };
 
 /**

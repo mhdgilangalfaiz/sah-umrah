@@ -133,6 +133,23 @@ class AgentController extends Controller
         return back()->with('success', "Pesan sedang dikirim ke {$agents->count()} agen. Status tiap agen ada di Riwayat siaran.");
     }
 
+    /** Kirim satu pesan tes untuk memastikan sambungan WhatsApp (Fonnte) berjalan */
+    public function test(Request $request, \App\Services\WhatsAppService $wa)
+    {
+        $data = $request->validate(['phone' => ['required', 'regex:/^(\+?62|0)8[0-9]{7,12}$/']], ['phone.regex' => 'Nomor WhatsApp tidak valid, mis. 0856xxxxxxxx.']);
+        $res = $wa->sendDetailed($data['phone'], "Tes WhatsApp otomatis SAH ✅
+Jika pesan ini sampai, pengiriman informasi ke agen sudah aktif.
+
+_".now()->translatedFormat('d M Y H:i').'_');
+        Audit::log('konten.agen_tes_wa', 'Kirim pesan tes WhatsApp ke '.$wa->normalize($data['phone']).' — '.($res['ok'] ? 'berhasil' : 'gagal'));
+
+        return match (true) {
+            $res['simulated'] => back()->with('error', 'WhatsApp masih mode simulasi: WHATSAPP_TOKEN di .env belum diisi.'),
+            $res['ok'] => back()->with('success', 'Pesan tes terkirim ke '.$data['phone'].'. Cek WhatsApp Anda.'),
+            default => back()->with('error', 'Gagal mengirim: '.$res['reason']),
+        };
+    }
+
     /** Status kirim per agen untuk satu siaran (dipantau berkala dari halaman) */
     public function status(AgentBroadcast $broadcast)
     {

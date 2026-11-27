@@ -16,12 +16,21 @@ class NotificationController extends Controller
             $q->where('data', 'like', '%"category":"'.addcslashes($c, '%_').'"%');
         }
 
-        return Inertia::render($user->isAdmin() ? 'Admin/Notifications' : 'Customer/Notifications', [
+        $page = Inertia::render($user->isAdmin() ? 'Admin/Notifications' : 'Customer/Notifications', [
+            // read_at diambil SEBELUM ditandai dibaca → notifikasi baru tetap tampil tersorot di daftar
             'notifications' => $q->paginate(20)->withQueryString()->through(fn ($n) => [
                 'id' => $n->id, 'data' => $n->data, 'read_at' => $n->read_at, 'created_at' => $n->created_at->diffForHumans(),
             ]),
             'filter' => $c,
         ]);
+
+        // Pelanggan: membuka daftar notifikasi (lewat lonceng) = sudah melihat semuanya → angka di lonceng hilang.
+        // Admin tetap per item: notifikasi hilang saat item yang dimaksud dibuka.
+        if (! $user->isAdmin()) {
+            $user->unreadNotifications()->update(['read_at' => now()]);
+        }
+
+        return $page;
     }
 
     public function latest(Request $request)

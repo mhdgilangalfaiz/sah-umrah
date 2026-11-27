@@ -1,5 +1,5 @@
 import { Images, Play, Video } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import GalleryLightbox from './GalleryLightbox';
 import { cn } from './lib';
 import { Stagger, StaggerItem } from './motion';
@@ -17,6 +17,25 @@ export default function Gallery({ heading, photos, videos = [], audio = null }: 
 }) {
     const [tab, setTab] = useState<Tab>('foto');
     const [index, setIndex] = useState<number | null>(null);
+
+    // Tautan bagikan (?galeri=ID&jenis=foto|video#galeri) → langsung buka item tersebut
+    useEffect(() => {
+        try {
+            const q = new URLSearchParams(window.location.search);
+            const id = q.get('galeri');
+            if (!id) return;
+            const kind: Tab = q.get('jenis') === 'video' ? 'video' : 'foto';
+            const list = kind === 'video' ? videos : photos;
+            const i = list.findIndex((g) => String(g.id) === id);
+            if (i < 0) return;
+            setTab(kind);
+            setIndex(i);
+            document.getElementById('galeri')?.scrollIntoView({ block: 'start' });
+            // bersihkan alamat agar tidak terbuka lagi saat dimuat ulang
+            window.history.replaceState(window.history.state, '', `${window.location.pathname}#galeri`);
+        } catch { /* abaikan */ }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const items = tab === 'foto' ? photos : videos;
 
     const tabs = (

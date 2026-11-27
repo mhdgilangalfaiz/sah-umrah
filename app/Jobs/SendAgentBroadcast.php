@@ -37,11 +37,11 @@ class SendAgentBroadcast
             if (! $first && $delay > 0 && ! $simulate) usleep((int) ($delay * 1_000_000));
             $first = false;
 
-            $ok = $wa->send($r->phone, AgentMessage::personalize($broadcast->message, $r->name));
+            $res = $wa->sendDetailed($r->phone, AgentMessage::personalize($broadcast->message, $r->name));
             $r->update([
-                'status' => $ok ? ($simulate ? 'simulasi' : 'terkirim') : 'gagal',
-                'error' => $ok ? null : 'Ditolak penyedia WhatsApp',
-                'sent_at' => $ok ? now() : null,
+                'status' => $res['ok'] ? ($res['simulated'] ? 'simulasi' : 'terkirim') : 'gagal',
+                'error' => $res['ok'] ? null : ($res['reason'] ?? 'Ditolak penyedia WhatsApp'),
+                'sent_at' => $res['ok'] ? now() : null,
             ]);
         }
     }

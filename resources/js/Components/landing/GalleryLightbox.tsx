@@ -1,4 +1,4 @@
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Expand, Image as ImageIcon, MapPin, Share2, Video, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Copy, Expand, Image as ImageIcon, MapPin, Share2, Smartphone, Video, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, TouchEvent } from 'react';
 import AmbientAudio from './AmbientAudio';
@@ -29,14 +29,15 @@ export default function GalleryLightbox({ albums, album, onClose, audio }: Galle
         : a.photos.map((url, pi) => ({ ai, pi, url, video: false })))), [albums]);
     const [pos, setPos] = useState(0);
     const [zoom, setZoom] = useState(false);
-    const [shared, setShared] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
+    const [copied, setCopied] = useState(false);
     const touch = useRef<number | null>(null);
     const stage = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         if (album !== null) setPos(Math.max(0, slides.findIndex((s) => s.ai === album)));
     }, [album, slides]);
-    useEffect(() => { setZoom(false); }, [pos]);
+    useEffect(() => { setZoom(false); setShareOpen(false); }, [pos]);
 
     const open = album !== null && slides.length > 0;
     const slide = slides[pos];
@@ -63,14 +64,33 @@ export default function GalleryLightbox({ albums, album, onClose, audio }: Galle
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
         else el.requestFullscreen?.().catch(() => {});
     };
-    const share = async () => {
-        const url = `${window.location.origin}/#galeri`;
-        const title = current?.title ?? 'Galeri Kegiatan SAH';
-        try {
-            if (navigator.share) await navigator.share({ title, text: current?.subtitle ?? title, url });
-            else { await navigator.clipboard.writeText(url); setShared(true); window.setTimeout(() => setShared(false), 2000); }
-        } catch { /* dibatalkan pengguna */ }
+    // Tautan langsung ke item ini: membuka halaman utama, menggulir ke galeri, lalu membuka foto/video tersebut
+    const shareUrl = current ? `${window.location.origin}/?galeri=${current.id}&jenis=${current.type}#galeri` : '';
+    const shareTitle = current?.title ?? 'Galeri Kegiatan SAH';
+    const shareText = `${shareTitle}${current?.subtitle ? ` — ${current.subtitle}` : ''}`;
+    const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+    const nativeShare = async () => {
+        try { await navigator.share({ title: shareTitle, text: shareText, url: shareUrl }); } catch { /* dibatalkan pengguna */ }
     };
+    // Salin tautan: Clipboard API hanya ada di HTTPS → cadangan textarea agar tetap jalan di http (lokal)
+    const copyLink = async () => {
+        let ok = false;
+        try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(shareUrl); ok = true; } } catch { /* lanjut cadangan */ }
+        if (!ok) {
+            const ta = document.createElement('textarea');
+            ta.value = shareUrl; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            try { ok = document.execCommand('copy'); } catch { ok = false; }
+            ta.remove();
+        }
+        if (ok) { setCopied(true); window.setTimeout(() => setCopied(false), 2000); } else window.prompt('Salin tautan ini:', shareUrl);
+    };
+    const enc = encodeURIComponent;
+    const shareLinks = [
+        { label: 'WhatsApp', href: `https://wa.me/?text=${enc(`${shareText}\n${shareUrl}`)}`, cls: 'bg-[#25D366] text-white', icon: <WaIcon /> },
+        { label: 'Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${enc(shareUrl)}`, cls: 'bg-[#1877F2] text-white', icon: <FbIcon /> },
+        { label: 'X', href: `https://twitter.com/intent/tweet?text=${enc(shareText)}&url=${enc(shareUrl)}`, cls: 'bg-neutral-900 text-white', icon: <XIcon /> },
+    ];
 
     const isVideo = !!slide?.video;
     const count = current ? (current.type === 'video' ? 1 : current.photos.length) : 0;
@@ -152,12 +172,37 @@ export default function GalleryLightbox({ albums, album, onClose, audio }: Galle
                                 {current.description || 'Dokumentasi perjalanan ibadah umrah bersama jamaah SAH.'}
                             </DialogDescription>
                             <div className="mt-5 flex flex-wrap items-center gap-2">
-                                <button type="button" onClick={share}
+                                <button type="button" onClick={() => setShareOpen((o) => !o)} aria-expanded={shareOpen}
                                     className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-700 to-primary-900 px-5 text-sm font-bold text-white shadow-md shadow-primary-700/25 transition hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2">
-                                    {shared ? <><Check className="h-4 w-4" />Tautan disalin</> : <><Share2 className="h-4 w-4" />Bagikan</>}
+                                    <Share2 className="h-4 w-4" />Bagikan
                                 </button>
                                 {audio && <AmbientAudio src={audio.url} title={audio.title} active={open} />}
                             </div>
+                            {shareOpen && (
+                                <div className="mt-3 animate-pop rounded-2xl border border-primary-100 bg-white p-3 shadow-[0_12px_30px_-14px_rgba(11,77,42,0.45)]">
+                                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-primary-700">Bagikan ke</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {shareLinks.map((l) => (
+                                            <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
+                                                className={cn('inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-bold shadow-sm transition hover:opacity-90', l.cls)}>
+                                                {l.icon}{l.label}
+                                            </a>
+                                        ))}
+                                        {canNativeShare && (
+                                            <button type="button" onClick={nativeShare} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary-50 px-3.5 text-xs font-bold text-primary-800 ring-1 ring-primary-100 hover:bg-primary-100">
+                                                <Smartphone className="h-3.5 w-3.5" />Lainnya
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="mt-2.5 flex items-center gap-2 rounded-xl bg-primary-50/70 p-1.5 pl-3 ring-1 ring-primary-100">
+                                        <span className="min-w-0 flex-1 truncate text-xs text-slate-600" title={shareUrl}>{shareUrl}</span>
+                                        <button type="button" onClick={copyLink}
+                                            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-bold text-primary-800 shadow-sm ring-1 ring-primary-100 hover:bg-primary-50">
+                                            {copied ? <><Check className="h-3.5 w-3.5 text-primary-700" />Disalin</> : <><Copy className="h-3.5 w-3.5" />Salin</>}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <DialogClose aria-label="Tutup"
@@ -181,4 +226,14 @@ function Ornament() {
             <path d="M0 66 C 220 36, 400 91, 620 62 S 1000 26, 1200 54" fill="none" stroke="#e8b923" strokeWidth="3" />
         </svg>
     );
+}
+
+function WaIcon() {
+    return <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true"><path d="M12.04 2a9.9 9.9 0 0 0-8.5 15l-1.3 4.8 4.9-1.3A9.9 9.9 0 1 0 12.04 2Zm5.8 14.1c-.25.7-1.45 1.33-2 1.38-.53.05-1.03.25-3.47-.72-2.92-1.15-4.8-4.14-4.95-4.33-.14-.2-1.18-1.57-1.18-3s.75-2.13 1.02-2.42c.26-.29.57-.36.76-.36h.55c.18 0 .42-.07.65.5.25.58.83 2 .9 2.15.08.14.12.31.03.5-.1.2-.14.31-.29.48-.14.17-.3.38-.43.5-.14.15-.29.3-.12.6.16.28.73 1.2 1.57 1.95 1.08.96 1.99 1.26 2.27 1.4.29.14.45.12.62-.07.17-.2.71-.83.9-1.12.19-.29.38-.24.64-.14.26.1 1.66.78 1.95.92.28.15.47.22.54.34.07.12.07.7-.18 1.4Z" /></svg>;
+}
+function FbIcon() {
+    return <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true"><path d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.86.25-1.45 1.5-1.45h1.5V4.5a20 20 0 0 0-2.2-.1c-2.2 0-3.7 1.34-3.7 3.8v2.3H8.1v3h2.5V21h2.9Z" /></svg>;
+}
+function XIcon() {
+    return <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true"><path d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.3l4.4 5.9L17.8 3Zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5Z" /></svg>;
 }

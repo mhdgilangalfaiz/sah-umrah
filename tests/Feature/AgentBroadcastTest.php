@@ -91,4 +91,26 @@ class AgentBroadcastTest extends TestCase
         $this->post(route('admin.agents.send'), ['item_type' => 'bebas', 'title' => 'Info', 'message' => 'Assalamualaikum {nama}, info terbaru'])->assertSessionHasNoErrors();
         $this->assertSame('simulasi', AgentBroadcast::sole()->recipientsList()->first()->status);
     }
+
+    public function test_fonnte_rejection_is_recorded_and_test_message(): void
+    {
+        config(['services.whatsapp.token' => 'token-uji']);
+        // HTTP 200 tapi gagal (2x), lalu berhasil
+        Http::fakeSequence('api.fonnte.com/*')->push(['status' => false, 'reason' => 'device disconnected'])
+            ->push(['status' => false, 'reason' => 'device disconnected'])->push(['status' => true]);
+
+        $a = User::factory()->create(['name' => 'Agen Tes', 'phone' => '085658000000']);
+        $a->forceFill(['is_agent' => true])->save();
+        $admin = $this->admin();
+        $this->actingAs($admin)->post(route('admin.agents.send'), ['item_type' => 'bebas', 'title' => 'Info', 'message' => 'Assalamualaikum {nama}, info'])->assertSessionHasNoErrors();
+        $r = AgentBroadcast::sole()->recipientsList()->first();
+        $this->assertSame('gagal', $r->status);
+        $this->assertSame('device disconnected', $r->error);
+
+        $this->post(route('admin.agents.test'), ['phone' => '0856 5807'])->assertSessionHasErrors('phone');
+        $this->post(route('admin.agents.test'), ['phone' => '085658000000'])->assertSessionHas('error', 'Gagal mengirim: device disconnected');
+
+        $this->post(route('admin.agents.test'), ['phone' => '085658000000'])->assertSessionHas('success');
+        Http::assertSent(fn ($req) => $req['target'] === '6285658000000');
+    }
 }

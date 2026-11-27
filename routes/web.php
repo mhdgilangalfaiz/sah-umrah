@@ -254,6 +254,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::get('/agen/cari', [Admin\AgentController::class, 'search'])->name('agents.search');
         Route::post('/agen/pratinjau', [Admin\AgentController::class, 'preview'])->name('agents.preview');
         Route::post('/agen/kirim', [Admin\AgentController::class, 'send'])->middleware('throttle:5,1')->name('agents.send');
+        Route::post('/agen/tes-wa', [Admin\AgentController::class, 'test'])->middleware('throttle:10,1')->name('agents.test');
         Route::get('/agen/siaran/{broadcast}', [Admin\AgentController::class, 'status'])->name('agents.status');
         Route::post('/agen/{user}', [Admin\AgentController::class, 'mark'])->name('agents.mark');
         Route::put('/agen/{user}', [Admin\AgentController::class, 'note'])->name('agents.note');

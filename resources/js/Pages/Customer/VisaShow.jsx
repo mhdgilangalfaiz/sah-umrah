@@ -21,7 +21,12 @@ export default function VisaShow({ application: v, statuses, payments, documents
             <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
                 <div className="min-w-0 space-y-6">
                     {v.status === 'menunggu_invoice' && <div className="flex gap-3 rounded-2xl bg-sand-100 p-4 text-sm"><Hourglass className="h-5 w-5 text-gold-600" />Pengajuan diterima. Admin sedang menyiapkan invoice — Anda akan mendapat notifikasi saat invoice terbit.</div>}
-                    {v.status === 'ditolak' && <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-800 ring-1 ring-red-200"><b>Pengajuan ditolak.</b> {v.rejection_reason}</div>}
+                    {v.status === 'ditolak' && (
+                        <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-800 ring-1 ring-red-200">
+                            <b>Pengajuan ditolak.</b> {v.rejection_reason && <>Alasan: {v.rejection_reason}</>}
+                            {canUpload && <p className="mt-1 text-red-700">Anda dapat <b>mengajukan ulang</b>: perbaiki dokumen sesuai alasan di atas, lalu unggah berkas baru di bagian <b>Ajukan ulang</b> di bawah.</p>}
+                        </div>
+                    )}
 
                     {visaDocs.length > 0 && (
                         <Card title="Visa terbit">
@@ -31,7 +36,7 @@ export default function VisaShow({ application: v, statuses, payments, documents
                     )}
 
                     {(canUpload || berkas.length > 0) && (
-                        <Card title="Berkas pemohon (ZIP/RAR)">
+                        <Card title={v.status === 'ditolak' ? 'Ajukan ulang — unggah berkas baru (ZIP/RAR)' : 'Berkas pemohon (ZIP/RAR)'}>
                             {canUpload && (
                                 <form onSubmit={(e) => { e.preventDefault(); upload.post(route('customer.visa.upload', v.code), { forceFormData: true, onSuccess: () => upload.reset() }); }} className="mb-4 rounded-xl border-2 border-dashed border-brand-200 bg-brand-50/50 p-5 text-center">
                                     <FileArchive className="mx-auto h-8 w-8 text-brand-600" />
@@ -39,7 +44,7 @@ export default function VisaShow({ application: v, statuses, payments, documents
                                     <input type="file" accept=".zip,.rar" onChange={(e) => upload.setData('file', e.target.files[0])} className="mx-auto mt-3 block text-sm" />
                                     {upload.errors.file && <p className="error">{upload.errors.file}</p>}
                                     {upload.progress && <p className="mt-2 text-xs text-slate-500">Mengunggah {upload.progress.percentage}%</p>}
-                                    <button disabled={!upload.data.file || upload.processing} className="btn-primary mt-3"><Upload className="h-4 w-4" />Unggah Berkas</button>
+                                    <button disabled={!upload.data.file || upload.processing} className="btn-primary mt-3"><Upload className="h-4 w-4" />{v.status === 'ditolak' ? 'Ajukan Ulang' : 'Unggah Berkas'}</button>
                                 </form>
                             )}
                             {berkas[0]?.status === 'ditolak' && canUpload && (

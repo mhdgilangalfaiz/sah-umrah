@@ -29,6 +29,7 @@ export default function Agents({ agents, filters, options, types, broadcasts, wa
                     <p><b>WhatsApp belum aktif (mode simulasi).</b> Pesan belum benar-benar terkirim, hanya dicatat. Isi <code className="rounded bg-white px-1">WHATSAPP_TOKEN</code> (token Fonnte) di file .env untuk mengirim sungguhan.</p>
                 </div>
             )}
+            <WaTest active={waActive} />
 
             <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
                 <Composer options={options} types={types} total={agents.length} reachable={reachable} />
@@ -289,5 +290,22 @@ function HistoryRow({ b }) {
                 </div>
             )}
         </li>
+    );
+}
+
+/** Cek sambungan WhatsApp: kirim satu pesan tes ke nomor sendiri */
+function WaTest({ active }) {
+    const form = useForm({ phone: '' });
+    return (
+        <form onSubmit={(e) => { e.preventDefault(); form.post(route('admin.agents.test'), { preserveScroll: true }); }}
+            className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-white bg-white/90 p-4 shadow-sm">
+            <span className={cx('inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ring-1', active ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-amber-50 text-amber-800 ring-amber-600/20')}>
+                <MessageCircle className="h-3.5 w-3.5" />{active ? 'WhatsApp aktif (Fonnte)' : 'Mode simulasi'}
+            </span>
+            <span className="text-sm text-slate-600">Cek sambungan sebelum mengirim ke semua agen:</span>
+            <input className="input w-52 py-1.5 text-sm" inputMode="tel" placeholder="0856xxxxxxxx" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value.replace(/[^0-9+]/g, ''))} />
+            <button disabled={!form.data.phone || form.processing} className="btn-outline btn-sm">{form.processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}Kirim pesan tes</button>
+            {form.errors.phone && <p className="error w-full">{form.errors.phone}</p>}
+        </form>
     );
 }

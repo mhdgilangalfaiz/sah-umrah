@@ -47,7 +47,13 @@ class OrderController extends Controller
     public function bookings(Request $request)
     {
         return Inertia::render('Customer/Bookings', [
-            'bookings' => Booking::with('departure.package:id,name,slug,cover_image')->where('user_id', $request->user()->id)->latest()->paginate(10),
+            'bookings' => Booking::with('departure.package:id,name,slug,cover_image')->where('user_id', $request->user()->id)->latest()->paginate(10)
+                ->through(fn (Booking $b) => $b->toArray() + [
+                    // keterangan singkat di daftar: perubahan terakhir & pengajuan yang masih ditinjau
+                    'last_change' => ($c = $b->changes()->first()) ? ['type' => $c->type, 'label' => \App\Models\BookingChange::TYPES[$c->type] ?? $c->type,
+                        'text' => \Illuminate\Support\Str::before($c->description, '. Alasan:'), 'at' => $c->created_at->format('d/m/Y')] : null,
+                    'pending_request' => ($r = $b->refunds()->where('status', 'diajukan')->latest()->first()) ? \App\Models\Refund::TYPES[$r->type] ?? $r->type : null,
+                ]),
         ]);
     }
 
@@ -192,7 +198,8 @@ class OrderController extends Controller
             'payments' => $v->payments()->get(),
             'documents' => self::documentsOf($v),
             'payBox' => self::payBox($v, 'visa'),
-            'canUpload' => in_array($v->status, ['menunggu_dokumen'], true),
+            // ditolak → pelanggan boleh mengajukan ulang dengan berkas baru (admin memeriksa lagi)
+            'canUpload' => in_array($v->status, ['menunggu_dokumen', 'ditolak'], true),
         ]);
     }
 
@@ -200,7 +207,8 @@ class OrderController extends Controller
     public function uploadVisaFiles(Request $request, VisaApplication $visaApplication)
     {
         $this->ensureOwner($visaApplication);
-        abort_unless($visaApplication->status === 'menunggu_dokumen', 422, 'Berkas hanya dapat diunggah setelah invoice lunas.');
+        abort_unless(in_array($visaApplication->status, ['menunggu_dokumen', 'ditolak'], true), 422, 'Berkas hanya dapat diunggah setelah invoice lunas.');
+        $resubmit = $visaApplication->status === 'ditolak';
 
         $request->validate([
             'file' => ['required', 'file', 'max:51200', 'mimes:zip,rar', 'mimetypes:application/zip,application/x-zip-compressed,application/x-rar-compressed,application/vnd.rar,application/x-rar,application/octet-stream'],
@@ -209,13 +217,20 @@ class OrderController extends Controller
         $doc = FileStorage::storeDocument($request->file('file'), $request->user(), 'berkas_visa', [
             'documentable_type' => $visaApplication->getMorphClass(), 'documentable_id' => $visaApplication->id,
         ]);
-        $visaApplication->statusLogs()->create([
-            'from_status' => 'menunggu_dokumen', 'to_status' => 'menunggu_dokumen',
-            'note' => 'Berkas '.$doc->file_name.' diunggah, menunggu verifikasi admin.', 'changed_by' => $request->user()->id,
-        ]);
-        Audit::log('visa.berkas_unggah', "Unggah berkas visa {$doc->file_name} untuk {$visaApplication->code}", $visaApplication);
-        AdminNotifier::notify('dokumen', 'Berkas visa masuk — '.$visaApplication->code, 'Mohon verifikasi berkas '.$doc->file_name, route('admin.visa.show', $visaApplication));
+        if ($resubmit) {
+            // Pengajuan ulang: status kembali ke Menunggu Dokumen, admin memeriksa berkas baru per dokumen
+            $visaApplication->rejection_reason = null;
+            $visaApplication->transitionTo('menunggu_dokumen', 'Pengajuan ulang — berkas baru '.$doc->file_name.' diunggah, menunggu verifikasi admin.', $request->user()->id);
+        } else {
+            $visaApplication->statusLogs()->create([
+                'from_status' => 'menunggu_dokumen', 'to_status' => 'menunggu_dokumen',
+                'note' => 'Berkas '.$doc->file_name.' diunggah, menunggu verifikasi admin.', 'changed_by' => $request->user()->id,
+            ]);
+        }
+        Audit::log('visa.berkas_unggah', ($resubmit ? 'Pengajuan ulang' : 'Unggah berkas')." visa {$doc->file_name} untuk {$visaApplication->code}", $visaApplication);
+        AdminNotifier::notify('dokumen', ($resubmit ? 'Pengajuan ulang visa — ' : 'Berkas visa masuk — ').$visaApplication->code,
+            'Mohon verifikasi berkas '.$doc->file_name, route('admin.visa.show', $visaApplication));
 
-        return back()->with('success', 'Berkas berhasil diunggah. Admin akan segera memverifikasi.');
+        return back()->with('success', $resubmit ? 'Pengajuan ulang terkirim. Admin akan memeriksa berkas baru Anda.' : 'Berkas berhasil diunggah. Admin akan segera memverifikasi.');
     }
 }

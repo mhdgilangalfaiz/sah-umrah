@@ -199,6 +199,8 @@ class VisaController extends Controller
             'menunggu_dokumen' => ['ditolak', 'dibatalkan'],
             'diverifikasi' => ['diproses', 'menunggu_dokumen', 'ditolak', 'dibatalkan'],
             'diproses' => ['terbit', 'ditolak', 'dibatalkan'],
+            // ditolak: buka kembali agar pelanggan mengunggah berkas baru, atau batalkan bila penolakan final
+            'ditolak' => ['menunggu_dokumen', 'dibatalkan'],
         ][$visaApplication->status] ?? ['dibatalkan'];
         if (! in_array($data['status'], $allowed, true) && ! ($data['document_id'] ?? null)) {
             throw ValidationException::withMessages(['status' => 'Status "'.VisaApplication::STATUSES[$data['status']].'" tidak bisa dipilih dari tahap "'.VisaApplication::STATUSES[$visaApplication->status].'".']);
@@ -219,6 +221,8 @@ class VisaController extends Controller
         }
         if ($data['status'] === 'ditolak') {
             $visaApplication->rejection_reason = $data['note'];
+        } elseif ($data['status'] === 'menunggu_dokumen') {
+            $visaApplication->rejection_reason = null; // dibuka kembali → pelanggan mengunggah berkas baru
         }
 
         $from = $visaApplication->status;
