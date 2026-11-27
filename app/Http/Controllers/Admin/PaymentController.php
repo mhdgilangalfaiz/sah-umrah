@@ -15,12 +15,16 @@ use Inertia\Inertia;
 /** Monitoring pembayaran + rekonsiliasi dengan data gateway */
 class PaymentController extends Controller
 {
+    /** Filter jenis layanan → model pesanan */
+    public const SERVICES = ['umrah' => \App\Models\Booking::class, 'tiket' => \App\Models\FlightOrder::class, 'visa' => \App\Models\VisaApplication::class];
+
     public function index(Request $request)
     {
         return Inertia::render('Admin/Payments/Index', [
             'payments' => Payment::with('user:id,name,customer_code', 'payable')
                 ->when($request->status, fn ($q, $s) => $q->where('status', $s))
                 ->when($request->method, fn ($q, $m) => $q->where('method', $m))
+                ->when(self::SERVICES[$request->layanan] ?? null, fn ($q, $model) => $q->where('payable_type', (new $model)->getMorphClass()))
                 ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('code', 'like', "%$s%")->orWhere('va_number', 'like', "%$s%")))
                 ->when($request->dari, fn ($q, $d) => $q->whereDate('created_at', '>=', $d))
                 ->when($request->sampai, fn ($q, $d) => $q->whereDate('created_at', '<=', $d))
@@ -32,7 +36,7 @@ class PaymentController extends Controller
                     'paid_at' => $p->paid_at?->format('d/m/Y H:i'), 'expires_at' => $p->expires_at?->format('d/m/Y H:i'),
                     'proof_url' => $p->proof_url, 'needs_proof' => $p->needs_proof, 'proof_note' => $p->proof_note,
                 ]),
-            'filters' => $request->only('status', 'method', 'q', 'dari', 'sampai'),
+            'filters' => $request->only('status', 'method', 'layanan', 'q', 'dari', 'sampai'),
             'methods' => Payment::METHODS,
             'summary' => [
                 'paid_today' => (int) Payment::where('status', 'dibayar')->whereDate('paid_at', today())->sum('amount'),

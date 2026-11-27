@@ -24,7 +24,8 @@ export default function Index({ payments, filters, methods, summary }) {
             </div>
             <FilterBar routeName="admin.payments.index" filters={filters} fields={[
                 { name: 'q', type: 'search', label: 'Kode / nomor VA' },
-                { name: 'status', type: 'select', label: 'Semua status', options: { menunggu_pembayaran: 'Menunggu', dibayar: 'Dibayar', kedaluwarsa: 'Kedaluwarsa', gagal: 'Gagal', refund: 'Refund' } },
+                { name: 'status', type: 'select', label: 'Semua status', options: { menunggu_pembayaran: 'Menunggu', menunggu_verifikasi: 'Menunggu verifikasi (tunai)', dibayar: 'Dibayar', ditolak: 'Ditolak', kedaluwarsa: 'Kedaluwarsa', gagal: 'Gagal', refund: 'Refund' } },
+                { name: 'layanan', type: 'select', label: 'Semua layanan', options: { umrah: 'Paket Umrah', tiket: 'Tiket Pesawat', visa: 'Visa' } },
                 { name: 'method', type: 'select', label: 'Semua metode', options: methods },
                 { name: 'dari', type: 'date', label: 'Dari' }, { name: 'sampai', type: 'date', label: 'Sampai' },
             ]} />

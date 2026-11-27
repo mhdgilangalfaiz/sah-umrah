@@ -20,7 +20,7 @@ class InvoiceController extends Controller
     {
         $filters = $request->validate([
             'q' => 'nullable|string|max:100',
-            'status' => 'nullable|in:belum_lunas,lunas,batal,direvisi',
+            'status' => 'nullable|in:belum_lunas,lunas,batal',
             'layanan' => 'nullable|in:umrah,tiket,visa',
             'dari' => 'nullable|date',
             'sampai' => 'nullable|date',
@@ -29,8 +29,9 @@ class InvoiceController extends Controller
         $to = Carbon::parse($filters['sampai'] ?? now())->endOfDay();
         $serviceMap = ['umrah' => Booking::class, 'tiket' => FlightOrder::class, 'visa' => VisaApplication::class];
 
-        $q = Invoice::with(['user:id,name,email', 'invoiceable'])
-            ->where('type', 'invoice')
+        // hanya invoice terbaru tiap pesanan (invoice yang sudah diganti revisi tampil di riwayat pesanannya)
+        $q = Invoice::with(['user:id,name,email', 'invoiceable' => fn ($m) => $m->morphWith([Booking::class => ['departure'], FlightOrder::class => ['flight']])])
+            ->where('type', 'invoice')->where('status', '!=', 'direvisi')
             ->whereBetween('issued_at', [$from, $to])
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($filters['layanan'] ?? null, fn ($q, $v) => $q->where('invoiceable_type', (new $serviceMap[$v])->getMorphClass()))
@@ -46,7 +47,7 @@ class InvoiceController extends Controller
             ->when($filters['layanan'] ?? null, fn ($q, $v) => $q->where('payable_type', (new $serviceMap[$v])->getMorphClass()));
 
         return Inertia::render('Admin/Invoices', [
-            'invoices' => $q->latest('issued_at')->latest('id')->paginate(25)->withQueryString()->through(fn (Invoice $i) => [
+            'invoices' => $this->withHistory($q->orderBy('number')->orderBy('id')->paginate(25)->withQueryString())->through(fn (Invoice $i) => [
                 'id' => $i->id,
                 'number' => $i->number,
                 'type' => $i->type,
@@ -57,9 +58,13 @@ class InvoiceController extends Controller
                 'customer' => $i->user?->name,
                 'email' => $i->user?->email,
                 'service' => $i->invoiceable ? (self::SERVICES[$i->invoiceable::class] ?? '-') : '-',
+                // tanggal keberangkatan & batas pelunasan → admin tahu tagihan mana yang paling mendesak
+                ...$this->schedule($i->invoiceable),
                 'order_code' => $i->invoiceable?->code,
                 'order_url' => $this->orderUrl($i),
                 'pdf_url' => route('invoices.pdf', $i),
+                // seluruh invoice pesanan ini, dari yang pertama terbit sampai yang terbaru
+                'history' => $i->getAttribute('history') ?? [],
             ]),
             'summary' => [
                 'invoice_count' => (int) $counted->where('type', 'invoice')->sum('n'),
@@ -71,6 +76,54 @@ class InvoiceController extends Controller
             ],
             'filters' => $filters + ['dari' => $from->format('Y-m-d'), 'sampai' => $to->format('Y-m-d')],
         ]);
+    }
+
+    /** Lampirkan riwayat invoice tiap pesanan di halaman ini (satu query untuk semua baris) */
+    private function withHistory($page)
+    {
+        $items = $page->getCollection();
+        $all = Invoice::where('type', 'invoice')
+            ->where(function ($w) use ($items) {
+                foreach ($items->groupBy('invoiceable_type') as $type => $rows) {
+                    $w->orWhere(fn ($x) => $x->where('invoiceable_type', $type)->whereIn('invoiceable_id', $rows->pluck('invoiceable_id')));
+                }
+            })
+            ->orderBy('issued_at')->orderBy('id')->get()
+            ->groupBy(fn ($i) => $i->invoiceable_type.'#'.$i->invoiceable_id);
+
+        $items->each(function (Invoice $i) use ($all) {
+            $list = $all->get($i->invoiceable_type.'#'.$i->invoiceable_id, collect());
+            $i->setRelation('invoiceable', $i->invoiceable); // pakai pesanan yang sudah dimuat untuk label status
+            $i->setAttribute('history', $list->map(function (Invoice $h) use ($i) {
+                $h->setRelation('invoiceable', $i->invoiceable);
+
+                return [
+                    'id' => $h->id, 'number' => $h->number, 'revision' => $h->revision, 'status' => $h->display_status,
+                    'amount' => (int) $h->amount, 'issued_at' => $h->issued_at?->format('Y-m-d H:i'), 'notes' => $h->notes,
+                    'current' => $h->id === $i->id, 'pdf_url' => route('invoices.pdf', $h),
+                ];
+            })->values()->all());
+        });
+
+        return $page;
+    }
+
+    /** Tanggal keberangkatan, batas pelunasan, dan sisa tagihan pesanan */
+    private function schedule($o): array
+    {
+        [$depart, $deadline] = match (true) {
+            $o instanceof Booking => [$o->departure?->departure_date, $o->payment_deadline],
+            $o instanceof FlightOrder => [$o->flight?->depart_at, $o->settlement_due_at],
+            $o instanceof VisaApplication => [$o->planned_departure, null],
+            default => [null, null],
+        };
+        $open = $o && ! in_array($o->status, ['dibatalkan', 'kedaluwarsa', 'refund', 'ditolak'], true);
+
+        return [
+            'departure_date' => $depart?->format('Y-m-d'),
+            'deadline' => $deadline?->format('Y-m-d'),
+            'outstanding' => $o && $open ? $o->outstandingAmount() : 0,
+        ];
     }
 
     private function orderUrl(Invoice $i): ?string

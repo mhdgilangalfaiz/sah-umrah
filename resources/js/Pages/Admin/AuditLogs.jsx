@@ -1,13 +1,13 @@
 import { Link, router } from '@inertiajs/react';
 import {
-    Box, CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, FileText, Filter, Image, KeyRound, Layers, ListChecks, LogIn, LogOut,
+    Box, CalendarDays, ClipboardList, Download, FileText, Filter, Image, KeyRound, Layers, ListChecks, LogIn, LogOut,
     Monitor, Pencil, Search, ShieldAlert, ShoppingBag, User, Wallet, Wifi,
 } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import UserAvatar from '@/Components/portal/UserAvatar';
 import { panel } from '@/Components/admin/activity/widgets';
-import { Empty, cx } from '@/Components/ui';
+import { Empty, cx, PageJump } from '@/Components/ui';
 
 const field = 'h-11 w-full rounded-xl border border-slate-200 bg-white text-sm text-slate-800 focus:border-primary-500 focus:ring-primary-500/30';
 const ROLE_TONE = { admin: 'bg-primary-100 text-primary-900', super_admin: 'bg-gold-100 text-amber-800', customer: 'bg-sky-100 text-sky-800', system: 'bg-violet-100 text-violet-800' };
@@ -104,18 +104,13 @@ export default function AuditLogs({ logs, filters, groups, roles, isSuper }) {
 
                 <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm text-slate-600">
                     <span>Menampilkan {logs.from ?? 0}–{logs.to ?? 0} dari {logs.total} data</span>
+                    <PageJump current={logs.current_page} last={logs.last_page} onGo={(n) => visit({ ...filters, page: n })} />
                     <span className="flex items-center gap-3">
                         <label className="flex items-center gap-2">Per Halaman:
                             <select value={filters.per} onChange={(e) => visit({ ...filters, per: e.target.value, page: undefined })} className="rounded-xl border-slate-200 py-1.5 pl-3 pr-8 text-sm">
                                 {[10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
                             </select>
                         </label>
-                        <span className="flex items-center gap-1">
-                            <PageBtn url={logs.prev_page_url} label="Sebelumnya"><ChevronLeft className="h-4 w-4" /></PageBtn>
-                            <span className="grid h-9 min-w-9 place-items-center rounded-xl bg-gradient-to-r from-primary-700 to-primary-900 px-2 font-bold text-white">{logs.current_page}</span>
-                            <span className="px-1 text-xs text-slate-400">/ {logs.last_page}</span>
-                            <PageBtn url={logs.next_page_url} label="Berikutnya"><ChevronRight className="h-4 w-4" /></PageBtn>
-                        </span>
                     </span>
                 </div>
             </section>
@@ -132,9 +127,4 @@ function Select({ label, icon: Icon, value, onChange, options }) {
                 </select></span>
         </label>
     );
-}
-
-function PageBtn({ url, label, children }) {
-    const cls = 'grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white';
-    return url ? <Link href={url} preserveScroll aria-label={label} className={cx(cls, 'hover:bg-primary-50')}>{children}</Link> : <span aria-disabled="true" className={cx(cls, 'opacity-40')}>{children}</span>;
 }

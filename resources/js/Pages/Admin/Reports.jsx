@@ -7,19 +7,22 @@ import IllustratedStat from '@/Components/admin/IllustratedStat';
 import { Card, PageHeader } from '@/Components/ui';
 import { date, rupiah, shortRupiah } from '@/lib/format';
 
-export default function Reports({ period, summary, byService, byMethod, daily, rows }) {
+export default function Reports({ period, summary, byService, byMethod, daily, rows, serviceLabel }) {
     // Super Admin tidak punya akses ke Refund & Data Jamaah → kartu itu tidak bisa diklik
     const isAdmin = usePage().props.auth.user.role === 'admin';
     return (
         <AdminLayout title="Rekap Penjualan" icon={BarChart3}>
-            <PageHeader title="Laporan Keuangan & Pesanan" subtitle={`Periode ${date(period.dari)} – ${date(period.sampai)}`} actions={<>
+            <PageHeader title="Laporan Keuangan & Pesanan" subtitle={`Periode ${date(period.dari)} – ${date(period.sampai)}${serviceLabel ? ` · ${serviceLabel}` : ' · semua layanan'}`} actions={<>
                 <a href={route('admin.reports.export', { ...period, format: 'xlsx' })} className="btn-outline"><FileSpreadsheet className="h-4 w-4 text-emerald-700" />Excel</a>
                 <a href={route('admin.reports.export', { ...period, format: 'pdf' })} className="btn-outline"><FileDown className="h-4 w-4 text-red-600" />PDF</a>
             </>} />
-            <FilterBar routeName="admin.reports.index" filters={period} fields={[{ name: 'dari', type: 'date', label: 'Dari' }, { name: 'sampai', type: 'date', label: 'Sampai' }]} />
+            <FilterBar routeName="admin.reports.index" filters={period} fields={[
+                { name: 'layanan', type: 'select', label: 'Semua layanan', options: { umrah: 'Paket Umrah', tiket: 'Tiket Pesawat', visa: 'Visa' } },
+                { name: 'dari', type: 'date', label: 'Dari' }, { name: 'sampai', type: 'date', label: 'Sampai' },
+            ]} />
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <IllustratedStat label="Pemasukan" value={rupiah(summary.revenue)} sub={`${summary.transactions} transaksi`} image="/images/admin/kartu/rekap-pemasukan.webp" tone="green"
-                    href={route('admin.payments.index', { status: 'dibayar', dari: period.dari, sampai: period.sampai })} />
+                    href={route('admin.payments.index', { status: 'dibayar', dari: period.dari, sampai: period.sampai, ...(period.layanan ? { layanan: period.layanan } : {}) })} />
                 <IllustratedStat label="Refund Dibayar" value={rupiah(summary.refunds)} sub="Dikembalikan ke jamaah" image="/images/admin/kartu/rekap-refund.webp" tone="red"
                     href={isAdmin ? route('admin.refunds.index') : undefined} />
                 <IllustratedStat label="Pesanan Baru" value={summary.new_bookings + summary.new_flights + summary.new_visas} sub={`${summary.new_bookings} umrah · ${summary.new_flights} tiket · ${summary.new_visas} visa`} image="/images/admin/kartu/rekap-pesanan.webp" tone="blue" href={route('admin.bookings.index')} />

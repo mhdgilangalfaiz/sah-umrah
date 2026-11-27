@@ -164,30 +164,63 @@ export function Stepper({ steps, current, failed = false }) {
     );
 }
 
+/**
+ * Navigasi halaman: [‹ sebelumnya]  Halaman [ 3 ] dari 12  [berikutnya ›]
+ * Ketik nomor lalu Enter untuk langsung ke halaman itu. Dipakai semua tabel (termasuk Log aktivitas & Audit log).
+ */
+export function PageJump({ current, last, onGo }) {
+    const [value, setValue] = useState(String(current));
+    useEffect(() => setValue(String(current)), [current]);
+    if (!last || last <= 1) return null;
+
+    const open = (n) => {
+        const page = Math.min(last, Math.max(1, n));
+        setValue(String(page));
+        if (page !== current) onGo(page);
+    };
+    const submit = (e) => {
+        e.preventDefault();
+        open(parseInt(value, 10) || current);
+    };
+    const btn = 'grid h-9 w-9 place-items-center rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600';
+
+    return (
+        <form onSubmit={submit} className="flex items-center gap-2 text-sm text-slate-600">
+            <button type="button" onClick={() => open(current - 1)} disabled={current <= 1} aria-label="Halaman sebelumnya"
+                className={cx(btn, current <= 1 ? 'cursor-not-allowed bg-slate-100 text-slate-300' : 'bg-brand-700 text-white hover:bg-brand-800')}>
+                <ChevronLeft className="h-4 w-4" />
+            </button>
+            <label htmlFor="page-jump" className="whitespace-nowrap">Halaman</label>
+            <input id="page-jump" type="number" inputMode="numeric" min={1} max={last} value={value}
+                onChange={(e) => setValue(e.target.value)} onBlur={() => { if (!value) setValue(String(current)); }}
+                className="w-16 rounded-lg border-slate-200 px-2 py-1.5 text-center text-sm font-semibold focus:border-brand-600 focus:ring-brand-600 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" aria-label={`Nomor halaman, 1 sampai ${last}`} />
+            <span className="whitespace-nowrap">dari {last}</span>
+            <button type="button" onClick={() => open(current + 1)} disabled={current >= last} aria-label="Halaman berikutnya"
+                className={cx(btn, current >= last ? 'cursor-not-allowed bg-slate-100 text-slate-300' : 'bg-brand-700 text-white hover:bg-brand-800')}>
+                <ChevronRight className="h-4 w-4" />
+            </button>
+        </form>
+    );
+}
+
+/** Alamat halaman ke-n dari meta paginator Laravel (nama parameter halaman dideteksi otomatis, mis. ?page / ?inv / ?pay). */
+function pageUrl(meta, n) {
+    const first = new URL(meta.first_page_url, window.location.origin);
+    const lastUrl = new URL(meta.last_page_url, window.location.origin);
+    const key = [...first.searchParams.keys()].find((k) => first.searchParams.get(k) !== lastUrl.searchParams.get(k)) ?? 'page';
+    first.searchParams.set(key, String(n));
+    return first.toString();
+}
+
 export function Pagination({ meta }) {
     if (!meta?.links || meta.last_page <= 1) return null;
     return (
-        <nav className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-sm">
+        <nav className="grid grid-cols-1 items-center gap-3 border-t border-slate-100 px-4 py-3 text-sm sm:grid-cols-[1fr_auto_1fr]">
             <p className="text-slate-500">
                 {meta.from}–{meta.to} dari {meta.total}
             </p>
-            <div className="flex flex-wrap gap-1">
-                {meta.links.map((l, i) => {
-                    const label = i === 0 ? <ChevronLeft className="h-4 w-4" /> : i === meta.links.length - 1 ? <ChevronRight className="h-4 w-4" /> : l.label;
-                    return l.url ? (
-                        <Link
-                            key={i}
-                            href={l.url}
-                            preserveScroll
-                            className={cx('grid min-w-[34px] place-items-center rounded-lg px-2 py-1.5', l.active ? 'bg-brand-700 font-semibold text-white' : 'text-slate-600 hover:bg-slate-100')}
-                        >
-                            {label}
-                        </Link>
-                    ) : (
-                        <span key={i} className="grid min-w-[34px] place-items-center px-2 py-1.5 text-slate-300">{label}</span>
-                    );
-                })}
-            </div>
+            <PageJump current={meta.current_page} last={meta.last_page} onGo={(n) => router.get(pageUrl(meta, n), {}, { preserveScroll: true, preserveState: true })} />
+            <span className="hidden sm:block" />
         </nav>
     );
 }

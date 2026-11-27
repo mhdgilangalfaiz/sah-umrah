@@ -1,8 +1,8 @@
 import { Link, router } from '@inertiajs/react';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Download, History, KeyRound, Layers, LogIn, LogOut, Monitor, MoreHorizontal, ShieldAlert, User } from 'lucide-react';
+import { CalendarDays, Clock, Download, History, KeyRound, Layers, LogIn, LogOut, Monitor, MoreHorizontal, ShieldAlert, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import UserAvatar from '@/Components/portal/UserAvatar';
-import { Empty, cx } from '@/Components/ui';
+import { Empty, cx, PageJump } from '@/Components/ui';
 import { BrowserIcon, panel } from './widgets';
 
 const ACTION = {
@@ -52,34 +52,17 @@ export default function LogTable({ logs, filters }) {
 
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm text-slate-600">
                 <span>Menampilkan {logs.from ?? 0}–{logs.to ?? 0} dari {logs.total} data</span>
+                <PageJump current={logs.current_page} last={logs.last_page} onGo={(n) => go({ page: n })} />
                 <span className="flex items-center gap-3">
                     <label className="flex items-center gap-2">Per Halaman:
                         <select value={filters.per} onChange={(e) => go({ per: e.target.value, page: 1 })} className="rounded-xl border-slate-200 py-1.5 pl-3 pr-8 text-sm">
                             {[10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
                         </select>
                     </label>
-                    <span className="flex items-center gap-1">
-                        <PageBtn url={logs.prev_page_url} label="Sebelumnya"><ChevronLeft className="h-4 w-4" /></PageBtn>
-                        {pageList(logs.current_page, logs.last_page).map((p, i) => p === '…'
-                            ? <span key={`e${i}`} className="px-1 text-slate-400">…</span>
-                            : <button key={p} type="button" onClick={() => go({ page: p })} aria-current={p === logs.current_page ? 'page' : undefined}
-                                className={cx('grid h-9 min-w-9 place-items-center rounded-xl px-2 font-bold', p === logs.current_page ? 'bg-gradient-to-r from-primary-700 to-primary-900 text-white' : 'border border-slate-200 bg-white hover:bg-primary-50')}>{p}</button>)}
-                        <PageBtn url={logs.next_page_url} label="Berikutnya"><ChevronRight className="h-4 w-4" /></PageBtn>
-                    </span>
                 </span>
             </div>
         </section>
     );
-}
-
-function pageList(cur, last) {
-    const set = [...new Set([1, cur - 1, cur, cur + 1, last].filter((p) => p >= 1 && p <= last))].sort((a, b) => a - b);
-    return set.flatMap((p, i) => (i && p - set[i - 1] > 1 ? ['…', p] : [p]));
-}
-
-function PageBtn({ url, label, children }) {
-    const cls = 'grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white';
-    return url ? <Link href={url} preserveScroll aria-label={label} className={cx(cls, 'hover:bg-primary-50')}>{children}</Link> : <span aria-disabled="true" className={cx(cls, 'opacity-40')}>{children}</span>;
 }
 
 /** Tombol ⋯: rincian lengkap satu log. */
