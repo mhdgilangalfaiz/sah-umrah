@@ -16,21 +16,23 @@ class InvoiceController extends Controller
 {
     private const SERVICES = [Booking::class => 'Paket Umrah', FlightOrder::class => 'Tiket Pesawat', VisaApplication::class => 'Visa'];
 
-    public function index(Request $request)
+    private function filters(Request $request): array
     {
-        $filters = $request->validate([
+        return $request->validate([
             'q' => 'nullable|string|max:100',
             'status' => 'nullable|in:belum_lunas,lunas,batal',
             'layanan' => 'nullable|in:umrah,tiket,visa',
             'dari' => 'nullable|date',
             'sampai' => 'nullable|date',
         ]);
-        $from = Carbon::parse($filters['dari'] ?? now()->startOfMonth())->startOfDay();
-        $to = Carbon::parse($filters['sampai'] ?? now())->endOfDay();
+    }
+
+    /** Invoice terbaru tiap pesanan sesuai filter (invoice yang sudah diganti revisi ada di riwayat pesanannya) */
+    private function query(array $filters, Carbon $from, Carbon $to)
+    {
         $serviceMap = ['umrah' => Booking::class, 'tiket' => FlightOrder::class, 'visa' => VisaApplication::class];
 
-        // hanya invoice terbaru tiap pesanan (invoice yang sudah diganti revisi tampil di riwayat pesanannya)
-        $q = Invoice::with(['user:id,name,email', 'invoiceable' => fn ($m) => $m->morphWith([Booking::class => ['departure'], FlightOrder::class => ['flight']])])
+        return Invoice::with(['user:id,name,email', 'invoiceable' => fn ($m) => $m->morphWith([Booking::class => ['departure'], FlightOrder::class => ['flight']])])
             ->where('type', 'invoice')->where('status', '!=', 'direvisi')
             ->whereBetween('issued_at', [$from, $to])
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
@@ -38,6 +40,37 @@ class InvoiceController extends Controller
             ->when($filters['q'] ?? null, fn ($q, $v) => $q->where(fn ($w) => $w
                 ->where('number', 'like', "%$v%")
                 ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%$v%")->orWhere('email', 'like', "%$v%"))));
+    }
+
+    /** Unduh rekap Laporan Invoice (Excel / PDF), urut No. Invoice, sesuai filter yang aktif */
+    public function export(Request $request, \App\Services\InvoiceReportExport $export)
+    {
+        $filters = $this->filters($request);
+        $from = Carbon::parse($filters['dari'] ?? now()->startOfMonth())->startOfDay();
+        $to = Carbon::parse($filters['sampai'] ?? now())->endOfDay();
+        $rows = $export->rows($this->query($filters, $from, $to)->orderBy('number')->orderBy('id')->get());
+
+        $labels = ['umrah' => 'Paket Umrah', 'tiket' => 'Tiket Pesawat', 'visa' => 'Visa'];
+        $subtitle = 'Periode '.$from->translatedFormat('d F Y').' s/d '.$to->translatedFormat('d F Y').' · '.($labels[$filters['layanan'] ?? ''] ?? 'Semua layanan')
+            .(! empty($filters['status']) ? ' · status '.str_replace('_', ' ', $filters['status']) : '').' · '.count($rows).' invoice';
+        $name = 'laporan-invoice-'.$from->format('Y-m-d').'_'.$to->format('Y-m-d').(! empty($filters['layanan']) ? '-'.$filters['layanan'] : '');
+        \App\Support\Audit::log('laporan.ekspor_invoice', "Ekspor laporan invoice {$from->format('Y-m-d')} s/d {$to->format('Y-m-d')} ({$request->query('format', 'xlsx')})");
+
+        if ($request->query('format') === 'pdf') {
+            return \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.invoice-report', ['rows' => $rows, 'subtitle' => $subtitle, 'company' => \App\Models\Setting::allCached()])
+                ->setPaper('a4', 'landscape')->download($name.'.pdf');
+        }
+
+        return response()->download($export->excel($rows, 'LAPORAN INVOICE', $subtitle), $name.'.xlsx')->deleteFileAfterSend();
+    }
+
+    public function index(Request $request)
+    {
+        $filters = $this->filters($request);
+        $from = Carbon::parse($filters['dari'] ?? now()->startOfMonth())->startOfDay();
+        $to = Carbon::parse($filters['sampai'] ?? now())->endOfDay();
+        $serviceMap = ['umrah' => Booking::class, 'tiket' => FlightOrder::class, 'visa' => VisaApplication::class];
+        $q = $this->query($filters, $from, $to);
 
         $summary = (clone $q)->selectRaw('type, status, COUNT(*) as n, SUM(amount) as total')->groupBy('type', 'status')->get();
         $counted = $summary->reject(fn ($r) => $r->type === 'invoice' && in_array($r->status, Invoice::INACTIVE, true));

@@ -30,7 +30,7 @@ export default function FloatingActions({ showTop, chat }: { showTop: boolean; c
     useEffect(() => { entered = true; }, []);
 
     // geser: klik setelah menggeser tidak dianggap membuka chat
-    const bounds = useRef<HTMLDivElement>(null);
+    const box = useRef<HTMLDivElement>(null);
     const x = useMotionValue(0);
     const y = useMotionValue(0);
 
@@ -41,15 +41,31 @@ export default function FloatingActions({ showTop, chat }: { showTop: boolean; c
         animate(y, 0, { duration: 0.3 });
     }), [x, y, reduce]);
     const moved = useRef(false);
+
+    /*
+     * Tanpa dragConstraints (batas berbasis elemen dihitung ulang library saat halaman meluncur jauh dan bisa
+     * menggeser tombol ke bawah bar navigasi). Cukup: setelah selesai digeser, rapikan agar tetap di dalam layar
+     * dan tidak menutupi navigasi bawah HP (±100px).
+     */
+    const keepInside = () => {
+        const el = box.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        const m = 12;
+        const bottom = window.innerHeight - (window.innerWidth >= 1024 ? 16 : 100);
+        const dx = r.left < m ? m - r.left : r.right > window.innerWidth - m ? window.innerWidth - m - r.right : 0;
+        const dy = r.top < m ? m - r.top : r.bottom > bottom ? bottom - r.bottom : 0;
+        if (dx) animate(x, x.get() + dx, { duration: 0.2 });
+        if (dy) animate(y, y.get() + dy, { duration: 0.2 });
+    };
     const guard = (fn: () => void) => () => { if (moved.current) return; fn(); };
     const toTop = () => window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
 
     return (
         <>
-            <div ref={bounds} className="pointer-events-none fixed inset-x-3 top-3 bottom-[6.25rem] z-40 sm:inset-x-4 sm:top-4 lg:bottom-4" aria-hidden="true" />
-            <motion.div drag dragConstraints={bounds} dragMomentum={false} dragElastic={0.05} style={{ x, y, touchAction: 'none' }}
+            <motion.div ref={box} drag dragMomentum={false} style={{ x, y, touchAction: 'none' }}
                 onDragStart={() => { moved.current = true; }}
-                onDragEnd={() => { setTimeout(() => { moved.current = false; }, 80); }}
+                onDragEnd={() => { keepInside(); setTimeout(() => { moved.current = false; }, 80); }}
                 title="Geser untuk memindahkan"
                 className="fixed bottom-[6.25rem] right-4 z-50 flex cursor-grab flex-col items-end gap-3 active:cursor-grabbing sm:right-6 lg:bottom-6">
                 <AnimatePresence>

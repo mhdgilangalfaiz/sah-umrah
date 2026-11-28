@@ -14,7 +14,7 @@ export default function Index({ payments, filters, methods, summary }) {
     return (
         <AdminLayout title="Pembayaran" icon={CreditCard}>
             <PageHeader title="Monitoring Pembayaran" subtitle="Status diperbarui otomatis oleh webhook payment gateway." actions={<Link href={route('admin.payments.reconcile')} className="btn-outline"><Scale className="h-4 w-4" />Rekonsiliasi</Link>} />
-            <div className="mb-6 grid gap-4 md:grid-cols-3">
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 [&>*:last-child:nth-child(odd)]:col-span-2 md:[&>*:last-child:nth-child(odd)]:col-span-1">
                 <IllustratedStat label="Diterima Hari Ini" value={rupiah(summary.paid_today)} sub="Pembayaran berhasil hari ini" image="/images/admin/kartu/bayar-diterima.webp" tone="green"
                     href={route('admin.payments.index', { status: 'dibayar' })} />
                 <IllustratedStat label="Transaksi Pending" value={summary.pending} sub="Menunggu dibayar jamaah" image="/images/admin/kartu/bayar-pending.webp" tone="gold"

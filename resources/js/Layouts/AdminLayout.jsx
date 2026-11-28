@@ -42,8 +42,8 @@ export default function AdminLayout({ title, icon: TitleIcon = LayoutDashboard, 
                         <button type="button" onClick={() => setSheet(true)} aria-label="Buka menu admin" className="grid h-10 w-10 place-items-center rounded-full text-primary-900 hover:bg-primary-100 lg:hidden">
                             <Menu className="h-5 w-5" />
                         </button>
-                        <h1 className="flex min-w-0 flex-1 items-center gap-2.5 font-jakarta text-lg font-extrabold tracking-tight text-neutral-900 sm:text-xl">
-                            <TitleIcon className="hidden h-6 w-6 shrink-0 text-primary-700 sm:block" aria-hidden="true" /><span className="truncate">{title}</span>
+                        <h1 className="flex min-w-0 flex-1 items-center gap-2.5 font-jakarta text-[15px] font-extrabold leading-tight tracking-tight text-neutral-900 sm:text-xl">
+                            <TitleIcon className="hidden h-6 w-6 shrink-0 text-primary-700 sm:block" aria-hidden="true" /><span className="line-clamp-2 break-words sm:line-clamp-1">{title}</span>
                         </h1>
                         {paymentMode === 'simulator' && (
                             <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 md:inline-flex" title="Pembayaran tidak sungguhan">

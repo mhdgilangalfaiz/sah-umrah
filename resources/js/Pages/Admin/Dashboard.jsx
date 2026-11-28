@@ -45,17 +45,17 @@ export default function Dashboard({ stats, chart, departures, recentPayments, al
                 </Link>
             )}
 
-            <Stagger gap={0.08} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Stagger gap={0.08} className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                 {cards.map(([label, value, sub, img, href, from, accent]) => (
                     <StaggerItem key={label}>
-                        <Link href={href} className={cn(panel, 'group relative flex h-full min-h-[120px] items-stretch overflow-hidden bg-gradient-to-br to-white transition hover:-translate-y-0.5', from)}>
-                            <img src={img} alt="" className="w-[27%] max-w-[118px] shrink-0 object-cover [mask-image:linear-gradient(to_right,#000_70%,transparent)]" />
-                            <span className="min-w-0 flex-1 py-4 pl-2 pr-9">
-                                <span className="block text-[11px] font-extrabold uppercase tracking-wider text-neutral-600">{label}</span>
-                                <span className="mt-1 block whitespace-nowrap font-jakarta text-[clamp(1.15rem,1.75vw,1.9rem)] font-extrabold leading-none tracking-tight">{value}</span>
-                                <span className="mt-1.5 block truncate text-xs text-neutral-600">{sub}</span>
+                        <Link href={href} className={cn(panel, 'group relative flex h-full min-h-[120px] flex-col items-stretch overflow-hidden bg-gradient-to-br to-white transition hover:-translate-y-0.5 sm:flex-row', from)}>
+                            <img src={img} alt="" className="h-16 w-full shrink-0 object-cover [mask-image:linear-gradient(to_bottom,#000_55%,transparent)] sm:h-auto sm:w-[27%] sm:max-w-[118px] sm:[mask-image:linear-gradient(to_right,#000_70%,transparent)]" />
+                            <span className="min-w-0 flex-1 px-3 pb-3 pt-1 sm:py-4 sm:pl-2 sm:pr-9">
+                                <span className="block text-[10px] font-extrabold uppercase leading-tight tracking-wide text-neutral-600 sm:text-[11px] sm:tracking-wider">{label}</span>
+                                <span className="mt-1 block whitespace-nowrap font-jakarta text-[clamp(1.05rem,1.75vw,1.9rem)] font-extrabold leading-none tracking-tight">{value}</span>
+                                <span className="mt-1.5 block truncate text-[11px] text-neutral-600 sm:text-xs">{sub}</span>
                             </span>
-                            <ChevronRight className="absolute right-2.5 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-white/80 p-1.5 text-primary-700 shadow-sm transition group-hover:translate-x-0.5" aria-hidden="true" />
+                            <ChevronRight className="absolute right-2.5 top-1/2 hidden h-7 w-7 -translate-y-1/2 rounded-full bg-white/80 p-1.5 text-primary-700 shadow-sm transition group-hover:translate-x-0.5 sm:block" aria-hidden="true" />
                             <span className={cn('absolute inset-x-0 bottom-0 h-1 opacity-70', accent)} aria-hidden="true" />
                         </Link>
                     </StaggerItem>
@@ -86,7 +86,7 @@ export default function Dashboard({ stats, chart, departures, recentPayments, al
                 <Reveal delay={0.2} className={panel}>
                     <PanelHead icon={Wallet} title="Pembayaran terbaru" action={seeAll(route('admin.payments.index'))} />
                     <div className="overflow-x-auto p-3">
-                        <table className="w-full min-w-[560px] text-sm">
+                        <table className="w-full min-w-[560px] text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
                             <thead><tr className="bg-primary-50 text-left text-xs font-bold uppercase tracking-wide text-neutral-600">
                                 <th className="rounded-l-xl px-3 py-2.5">Kode</th><th className="px-3 py-2.5">Pelanggan</th><th className="px-3 py-2.5">Metode</th><th className="px-3 py-2.5 text-right">Nominal</th><th className="rounded-r-xl px-3 py-2.5">Waktu</th>
                             </tr></thead>

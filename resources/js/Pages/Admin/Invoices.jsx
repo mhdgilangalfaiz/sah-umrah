@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { FileDown, History, Receipt, X } from 'lucide-react';
+import { FileDown, FileSpreadsheet, History, Receipt, X } from 'lucide-react';
 import { useState } from 'react';
 import Modal from '@/Components/Modal';
 import AdminLayout from '@/Layouts/AdminLayout';
@@ -31,7 +31,10 @@ export default function Invoices({ invoices, summary, filters }) {
     const [history, setHistory] = useState(null);
     return (
         <AdminLayout title="Laporan Invoice" icon={Receipt}>
-            <PageHeader title="Laporan Invoice" subtitle={`Invoice terbaru tiap pesanan, terbit ${date(filters.dari)} – ${date(filters.sampai)}`} />
+            <PageHeader title="Laporan Invoice" subtitle={`Invoice terbaru tiap pesanan, terbit ${date(filters.dari)} – ${date(filters.sampai)}`} actions={<>
+                <a href={route('admin.invoices.export', { ...filters, format: 'xlsx' })} className="btn-outline"><FileSpreadsheet className="h-4 w-4 text-emerald-700" />Excel</a>
+                <a href={route('admin.invoices.export', { ...filters, format: 'pdf' })} className="btn-outline"><FileDown className="h-4 w-4 text-red-600" />PDF</a>
+            </>} />
             <FilterBar routeName="admin.invoices.index" filters={filters} fields={[
                 { name: 'q', type: 'search', label: 'No. invoice / nama / email pelanggan' },
                 { name: 'layanan', type: 'select', label: 'Semua layanan', options: { umrah: 'Paket Umrah', tiket: 'Tiket Pesawat', visa: 'Visa' } },
@@ -39,7 +42,7 @@ export default function Invoices({ invoices, summary, filters }) {
                 { name: 'dari', type: 'date', label: 'Dari' }, { name: 'sampai', type: 'date', label: 'Sampai' },
             ]} />
 
-            <div className="mb-6 grid gap-4 md:grid-cols-3">
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 [&>*:last-child:nth-child(odd)]:col-span-2 md:[&>*:last-child:nth-child(odd)]:col-span-1">
                 <IllustratedStat label="Total Invoice" value={rupiah(summary.invoice_total)} sub={`${summary.invoice_count} invoice`} image="/images/admin/kartu/invoice-total.webp" tone="green" />
                 <IllustratedStat label="Belum Lunas" value={rupiah(summary.unpaid_total)} sub="Sisa tagihan dari invoice berlaku" image="/images/admin/kartu/invoice-belum.webp" tone="gold" />
                 <IllustratedStat label="Uang Diterima" value={rupiah(summary.receipt_total)} sub={`${summary.receipt_count} pembayaran`} image="/images/admin/kartu/invoice-kwitansi.webp" tone="blue" />

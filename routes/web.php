@@ -169,6 +169,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::get('/laporan', [Admin\ReportController::class, 'index'])->name('reports.index');
         Route::get('/laporan/ekspor', [Admin\ReportController::class, 'export'])->name('reports.export');
         Route::get('/invoice', [Admin\InvoiceController::class, 'index'])->name('invoices.index');
+        Route::get('/invoice/ekspor', [Admin\InvoiceController::class, 'export'])->name('invoices.export');
     });
 
     // ---- Admin: kelola seluruh isi website ----

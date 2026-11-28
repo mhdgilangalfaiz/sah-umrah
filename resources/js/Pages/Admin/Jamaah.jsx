@@ -20,7 +20,7 @@ export default function Jamaah({ accounts, summary, filters }) {
         <AdminLayout title="Data Jamaah" icon={BookUser}>
             <PageHeader title="Data Jamaah" subtitle="Dikelompokkan per akun perwakilan (yang memesan). Buka Detail untuk melihat semua jamaah, dokumen, dan riwayat pesanan akun tersebut." />
 
-            <div className="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                 {tiles.map(([label, value, sub, img, tone, key]) => (
                     <IllustratedStat key={label} label={label} value={value} sub={sub} image={`/images/admin/kartu/${img}.webp`} tone={tone}
                         href={route('admin.jamaah.index', key ? { paspor: key } : {})} />

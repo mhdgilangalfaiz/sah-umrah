@@ -70,6 +70,17 @@ class AdminServiceFilterTest extends TestCase
             ->where('invoices.data.0.history.0.number', $first->number) // riwayat: invoice awal → terbaru
             ->where('invoices.data.0.history.1.current', true));
 
+        // ekspor rekap: urut No. Invoice, invoice terbaru per pesanan
+        $rows = app(\App\Services\InvoiceReportExport::class)->rows(Invoice::with('invoiceable', 'user')->where('type', 'invoice')->where('status', '!=', 'direvisi')->orderBy('number')->get());
+        $this->assertSame([$r1->number, $rows[1]['number']], array_column($rows, 'number'));
+        $this->assertSame(2, $rows[0]['qty']);
+        $this->assertSame(10000000, $rows[0]['rate']);
+        $this->assertSame('-', $rows[0]['paid_off']);                      // tiket belum lunas
+        $this->assertNotSame('-', $rows[1]['paid_off']);                   // visa lunas → tanggal pelunasan
+        $this->actingAs($this->admin)->get(route('admin.invoices.export', ['format' => 'xlsx']))->assertOk()->assertDownload();
+        $this->actingAs($this->admin)->get(route('admin.invoices.export', ['format' => 'pdf', 'layanan' => 'tiket']))->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->actingAs(User::factory()->admin('super_admin', true)->create())->get(route('admin.invoices.export', ['format' => 'xlsx']))->assertOk();
+
         $this->actingAs($this->admin)->get(route('admin.invoices.index', ['layanan' => 'visa']))
             ->assertInertia(fn (Assert $p) => $p->has('invoices.data', 1)->where('invoices.data.0.service', 'Visa'));
         $this->assertSame(3, Invoice::where('type', 'invoice')->count());

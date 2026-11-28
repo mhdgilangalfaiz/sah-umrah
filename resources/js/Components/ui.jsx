@@ -71,7 +71,7 @@ export function PageHeader({ title, subtitle, actions, back }) {
                         <ChevronLeft className="h-4 w-4" /> Kembali
                     </Link>
                 )}
-                {title && <h1 className="text-2xl sm:text-3xl">{title}</h1>}
+                {title && <h1 className="text-xl leading-tight sm:text-3xl">{title}</h1>}
                 {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
             </div>
             {actions && <div className="flex flex-wrap gap-2">{actions}</div>}

@@ -16,7 +16,9 @@ export const revealVariants = (variant: RevealVariant = 'up'): Variants => ({
     show: { opacity: 1, x: 0, y: 0, scale: 1, transition: { duration: 0.6, ease: 'easeOut' } },
 });
 
-const VIEWPORT = { once: true, amount: 0.2 } as const;
+/* 'some' + margin: cukup sebagian kecil masuk layar. Angka persen (mis. 0.2) membuat grid yang lebih tinggi dari
+   layar HP (4 kartu paket bertumpuk ±3.900px) tidak pernah terpicu sehingga kartunya tetap transparan. */
+const VIEWPORT = { once: true, amount: 'some', margin: '0px 0px -12% 0px' } as const;
 
 interface RevealProps {
     children: ReactNode;

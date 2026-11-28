@@ -74,10 +74,10 @@ export default function Navbar({ scroll, account, onHome }: NavbarProps) {
             <motion.header className="fixed inset-x-0 top-0 z-40 px-3" initial={false}
                 animate={{ y: hidden ? -120 : scrolled ? 12 : 48 }} transition={{ duration: reduce ? 0 : 0.35, ease: 'easeOut' }}>
                 <nav aria-label="Navigasi utama"
-                    className={cn('mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-3xl border px-4 transition-[height,background-color,box-shadow] duration-300 sm:px-5',
-                        scrolled ? 'h-16 border-primary-100 bg-white shadow-[0_12px_32px_-12px_rgba(11,77,42,0.3)]' : 'h-20 border-white/80 bg-white/80 shadow-[0_8px_30px_-14px_rgba(11,77,42,0.25)]')}>
+                    className={cn('mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-2xl border px-3 transition-[height,background-color,box-shadow] duration-300 sm:rounded-3xl sm:px-5',
+                        scrolled ? 'h-12 border-primary-100 bg-white shadow-[0_12px_32px_-12px_rgba(11,77,42,0.3)] sm:h-16' : 'h-14 border-white/80 bg-white/80 shadow-[0_8px_30px_-14px_rgba(11,77,42,0.25)] sm:h-20')}>
                     <SectionLink id="beranda" onHome={onHome} onNavigate={go} className="shrink-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
-                        <img src="/images/logo-sah.png" alt="SAH - PT. Sumatera Andalan Haramain" className={cn('w-auto transition-[height] duration-300', scrolled ? 'h-11' : 'h-14')} />
+                        <img src="/images/logo-sah.png" alt="SAH - PT. Sumatera Andalan Haramain" className={cn('w-auto transition-[height] duration-300', scrolled ? 'h-8 sm:h-11' : 'h-10 sm:h-14')} />
                     </SectionLink>
 
                     <ul className="hidden items-center gap-1 lg:flex">
@@ -94,8 +94,8 @@ export default function Navbar({ scroll, account, onHome }: NavbarProps) {
                     </ul>
 
                     <Link href={cta.href}
-                        className="inline-flex shrink-0 items-center gap-2 rounded-full bg-gradient-to-r from-primary-700 to-primary-900 px-4 py-2 text-sm font-bold text-white shadow-md shadow-primary-700/25 transition hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 sm:px-6 sm:py-2.5">
-                        <CtaIcon className="h-4 w-4" aria-hidden="true" /> {cta.label}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-primary-700 to-primary-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-primary-700/25 transition hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 sm:gap-2 sm:px-6 sm:py-2.5 sm:text-sm">
+                        <CtaIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" /> {cta.label}
                     </Link>
                 </nav>
             </motion.header>

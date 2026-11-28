@@ -20,7 +20,7 @@ export default function Reports({ period, summary, byService, byMethod, daily, r
                 { name: 'layanan', type: 'select', label: 'Semua layanan', options: { umrah: 'Paket Umrah', tiket: 'Tiket Pesawat', visa: 'Visa' } },
                 { name: 'dari', type: 'date', label: 'Dari' }, { name: 'sampai', type: 'date', label: 'Sampai' },
             ]} />
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                 <IllustratedStat label="Pemasukan" value={rupiah(summary.revenue)} sub={`${summary.transactions} transaksi`} image="/images/admin/kartu/rekap-pemasukan.webp" tone="green"
                     href={route('admin.payments.index', { status: 'dibayar', dari: period.dari, sampai: period.sampai, ...(period.layanan ? { layanan: period.layanan } : {}) })} />
                 <IllustratedStat label="Refund Dibayar" value={rupiah(summary.refunds)} sub="Dikembalikan ke jamaah" image="/images/admin/kartu/rekap-refund.webp" tone="red"
