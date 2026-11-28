@@ -12,7 +12,7 @@ interface FooterProps {
 
 export default function Footer({ company, onHome }: FooterProps) {
     return (
-        <footer id="kontak" className="relative scroll-mt-24 bg-primary-900 text-white/80">
+        <footer id="kontak" className="relative scroll-mt-24 bg-primary-900 pb-24 text-white/80 lg:pb-0">
             {/* gelombang di atas footer */}
             <svg viewBox="0 0 1440 80" preserveAspectRatio="none" aria-hidden="true" className="absolute inset-x-0 bottom-full h-10 w-full text-primary-900 sm:h-16">
                 <path fill="currentColor" d="M0 48c120-24 240-36 360-30s240 30 360 30 240-24 360-30 240 6 360 18v44H0z" />

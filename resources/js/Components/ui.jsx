@@ -138,12 +138,12 @@ export function Stepper({ steps, current, failed = false }) {
                 const done = i < current;
                 const active = i === current;
                 return (
-                    <li key={s} className="flex min-w-[84px] flex-1 flex-col items-center text-center">
+                    <li key={s} className="flex min-w-0 flex-1 flex-col items-center text-center sm:min-w-[84px]">
                         <div className="flex w-full items-center">
                             <div className={cx('h-0.5 flex-1', i === 0 ? 'opacity-0' : done || active ? 'bg-brand-600' : 'bg-slate-200')} />
                             <div
                                 className={cx(
-                                    'grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 text-sm font-bold transition',
+                                    'grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 text-xs font-bold transition sm:h-9 sm:w-9 sm:text-sm',
                                     done && 'border-brand-700 bg-brand-700 text-white',
                                     active && !failed && 'border-gold-400 bg-gold-50 text-brand-800 ring-4 ring-gold-100',
                                     active && failed && 'border-red-500 bg-red-50 text-red-600',
@@ -154,7 +154,7 @@ export function Stepper({ steps, current, failed = false }) {
                             </div>
                             <div className={cx('h-0.5 flex-1', i === steps.length - 1 ? 'opacity-0' : done ? 'bg-brand-600' : 'bg-slate-200')} />
                         </div>
-                        <span className={cx('mt-2 px-1 text-[11px] font-medium leading-tight sm:text-xs', active ? (failed ? 'text-red-600' : 'text-brand-800') : done ? 'text-slate-700' : 'text-slate-400')}>
+                        <span className={cx('mt-1.5 break-words px-0.5 text-[10px] font-medium leading-tight sm:mt-2 sm:px-1 sm:text-xs', active ? (failed ? 'text-red-600' : 'text-brand-800') : done ? 'text-slate-700' : 'text-slate-400')}>
                             {s}
                         </span>
                     </li>

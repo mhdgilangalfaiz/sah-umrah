@@ -5,7 +5,7 @@ import { arrowShift, IslamicStar } from '@/Components/landing/shared';
 /** Banner ajakan pesan paket: foto Ka'bah memudar ke kiri, gelombang hijau + garis emas di bawah. */
 export default function PromoBanner() {
     return (
-        <section className="relative overflow-hidden rounded-3xl border border-white bg-gradient-to-br from-white via-[#F4FAF6] to-[#E6F2EA] p-6 shadow-[0_10px_30px_-16px_rgba(11,77,42,0.3),inset_0_1px_0_#fff] sm:p-8">
+        <section className="relative overflow-hidden rounded-3xl border border-white bg-gradient-to-br from-white via-[#F4FAF6] to-[#E6F2EA] p-5 shadow-[0_10px_30px_-16px_rgba(11,77,42,0.3),inset_0_1px_0_#fff] sm:p-8">
             <img src="/images/landing/hero-kaabah.webp" alt="" aria-hidden="true" loading="lazy"
                 className="absolute inset-y-0 right-0 hidden h-full w-[60%] object-cover sm:block object-[40%_45%] [mask-image:linear-gradient(to_right,transparent,#000_55%)]" />
             <IslamicStar className="absolute right-6 top-4 h-24 w-24 text-white opacity-20" />

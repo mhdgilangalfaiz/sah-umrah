@@ -58,13 +58,13 @@ export default function LoginForm({ status, canResetPassword, captchaEnabled, bu
             <PasswordInput icon={Lock} label="Kata sandi" name="password" autoComplete="current-password" value={form.data.password}
                 onChange={(e) => form.setData('password', e.target.value)} error={errors.password} />
 
-            <div className="flex items-center justify-between gap-3 text-sm">
-                <label className="flex cursor-pointer items-center gap-2 text-neutral-900">
+            <div className="flex items-center justify-between gap-2 text-[13px] sm:gap-3 sm:text-sm">
+                <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-neutral-900">
                     <input type="checkbox" checked={form.data.remember} onChange={(e) => form.setData('remember', e.target.checked)}
                         className="h-4 w-4 rounded border-primary-500 text-primary-700 focus:ring-primary-500" />
                     Ingat saya (30 hari)
                 </label>
-                {canResetPassword && <Link href={route('password.request')} className="font-semibold text-primary-700 underline-offset-2 hover:underline">Lupa password?</Link>}
+                {canResetPassword && <Link href={route('password.request')} className="whitespace-nowrap font-semibold text-primary-700 underline-offset-2 hover:underline">Lupa password?</Link>}
             </div>
 
             {captchaEnabled && (
@@ -73,9 +73,9 @@ export default function LoginForm({ status, canResetPassword, captchaEnabled, bu
                             value={form.data.captcha} onChange={(e) => form.setData('captcha', e.target.value.toUpperCase())}
                             style={{ letterSpacing: form.data.captcha ? '0.35em' : undefined }} error={errors.captcha} />
                         <img src={`${route('captcha.login')}?t=${captchaKey}`} alt="Kode keamanan" width={180} height={56} draggable={false}
-                            className="h-11 w-[118px] shrink-0 select-none rounded-xl border border-primary-900/10 bg-primary-50 object-cover sm:w-[132px]" />
+                            className="h-11 w-[100px] shrink-0 select-none rounded-xl border border-primary-900/10 bg-primary-50 object-contain min-[400px]:w-[112px] sm:w-[132px] sm:object-cover" />
                         <button type="button" onClick={refreshCaptcha} aria-label="Ganti kode keamanan" title="Ganti kode"
-                            className="group grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-primary-900/10 bg-white/75 text-primary-700 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                            className="group grid h-11 w-10 shrink-0 place-items-center rounded-xl border border-primary-900/10 bg-white/75 sm:w-11 text-primary-700 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                             <RefreshCw className="h-4 w-4 transition-transform duration-500 group-hover:rotate-180" />
                         </button>
                 </div>

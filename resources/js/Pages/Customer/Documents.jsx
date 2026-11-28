@@ -11,7 +11,7 @@ export default function Documents({ jamaah, documents, types }) {
         <CustomerLayout title="Dokumen">
             <PageHeader title="Dokumen Jamaah" subtitle="Unggah paspor, pas foto, KTP, KK, dan buku nikah. File dienkripsi & hanya dapat diunduh lewat tautan aman berbatas waktu." />
             <Card title="Unggah dokumen" className="mb-6">
-                <form onSubmit={(e) => { e.preventDefault(); post(route('customer.documents.store'), { forceFormData: true, onSuccess: () => reset('file') }); }} className="grid gap-4 md:grid-cols-[1fr_1fr_1.4fr_auto] md:items-end">
+                <form onSubmit={(e) => { e.preventDefault(); post(route('customer.documents.store'), { forceFormData: true, onSuccess: () => reset('file') }); }} className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-[1fr_1fr_1.4fr_auto] md:items-end">
                     <Select label="Jamaah" value={data.jamaah_id} onChange={(e) => setData('jamaah_id', e.target.value)} options={Object.fromEntries(jamaah.map((j) => [j.id, j.full_name]))} placeholder="(Pemilik akun)" error={errors.jamaah_id} />
                     <Select label="Jenis dokumen" value={data.type} onChange={(e) => setData('type', e.target.value)} options={types} error={errors.type} />
                     <div>

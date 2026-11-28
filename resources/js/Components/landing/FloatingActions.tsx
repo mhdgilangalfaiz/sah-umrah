@@ -46,12 +46,12 @@ export default function FloatingActions({ showTop, chat }: { showTop: boolean; c
 
     return (
         <>
-            <div ref={bounds} className="pointer-events-none fixed inset-3 z-40 sm:inset-4" aria-hidden="true" />
+            <div ref={bounds} className="pointer-events-none fixed inset-x-3 top-3 bottom-[6.25rem] z-40 sm:inset-x-4 sm:top-4 lg:bottom-4" aria-hidden="true" />
             <motion.div drag dragConstraints={bounds} dragMomentum={false} dragElastic={0.05} style={{ x, y, touchAction: 'none' }}
                 onDragStart={() => { moved.current = true; }}
                 onDragEnd={() => { setTimeout(() => { moved.current = false; }, 80); }}
                 title="Geser untuk memindahkan"
-                className="fixed bottom-4 right-4 z-50 flex cursor-grab flex-col items-end gap-3 active:cursor-grabbing sm:bottom-6 sm:right-6">
+                className="fixed bottom-[6.25rem] right-4 z-50 flex cursor-grab flex-col items-end gap-3 active:cursor-grabbing sm:right-6 lg:bottom-6">
                 <AnimatePresence>
                     {showTop && !open && (
                         <motion.button type="button" onClick={guard(toTop)} aria-label="Kembali ke atas"

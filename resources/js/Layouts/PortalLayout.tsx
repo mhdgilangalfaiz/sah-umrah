@@ -1,7 +1,9 @@
 import { Head } from '@inertiajs/react';
+import { Ellipsis, FileText, House, Landmark, Receipt } from 'lucide-react';
 import { MotionConfig } from 'motion/react';
 import { useState, type ReactNode } from 'react';
 import AuthBackground from '@/Components/auth/AuthBackground';
+import BottomNav from '@/Components/landing/BottomNav';
 import FloatingActions from '@/Components/landing/FloatingActions';
 import { useScrollState } from '@/Components/landing/hooks';
 import { cn } from '@/Components/landing/lib';
@@ -15,6 +17,15 @@ const KEY = 'sah.portal.sidebar';
 function readCollapsed(): boolean {
     try { return window.localStorage.getItem(KEY) === '1'; } catch { return false; }
 }
+
+/** Menu yang tampil langsung di BottomNav HP; sisanya lewat tombol "Lainnya". */
+const MOBILE_MENU = [
+    { label: 'Dashboard', route: 'dashboard', icon: House },
+    { label: 'Umrah', route: 'customer.bookings.index', match: 'customer.bookings.*', icon: Landmark },
+    { label: 'Tagihan', route: 'customer.billing', icon: Receipt },
+    { label: 'Dokumen', route: 'customer.documents.index', icon: FileText },
+];
+const isCurrent = (m: { route: string; match?: string }) => route().current(m.route) || (!!m.match && route().current(m.match));
 
 /**
  * Layout area pribadi jamaah: latar mint seperti halaman login, sidebar kaca yang bisa dilipat
@@ -42,14 +53,19 @@ export default function PortalLayout({ title, children }: { title?: string; chil
                 </aside>
 
                 <div className="min-w-0 flex-1">
-                    <Topbar onMenu={() => setSheet(true)} />
-                    <main className="mt-6">{children}</main>
+                    <Topbar />
+                    <main className="mt-6 pb-24 lg:pb-0">{children}</main>
                 </div>
             </div>
 
             {/* Chat Bot (chatbot internal) + kembali ke atas, sama seperti di situs */}
             <div className="landing-ds font-jakarta">
                 <FloatingActions showTop={scroll.far} chat />
+                {/* HP/tablet: 4 menu utama + "Lainnya" (membuka daftar menu lengkap) di bar kaca bawah */}
+                <BottomNav label="Menu portal jamaah" idPrefix="portal-bnav" items={[
+                    ...MOBILE_MENU.map((m) => ({ key: m.route, label: m.label, icon: m.icon, href: route(m.route), active: !sheet && isCurrent(m) })),
+                    { key: 'more', label: 'Lainnya', icon: Ellipsis, expanded: sheet, onClick: () => setSheet(true), active: sheet || !MOBILE_MENU.some(isCurrent) },
+                ]} />
             </div>
 
             <Sheet open={sheet} onOpenChange={setSheet} title="Menu portal jamaah" side="left" className="bg-gradient-to-b from-[#F4FAF6] to-white p-4">

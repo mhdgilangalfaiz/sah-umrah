@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    ChevronsLeft, FileText, Headset, House, Landmark, Plane, Receipt, RotateCcw, Stamp, Users, type LucideIcon,
+    ArrowUpRight, ChevronsLeft, FileText, Globe, Headset, House, Landmark, Plane, Receipt, RotateCcw, Stamp, Users, type LucideIcon,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn, waLink } from '@/Components/landing/lib';
@@ -73,6 +73,15 @@ export default function SidebarNav({ collapsed = false, pillId, onToggle, onNavi
                         );
                     })}
                 </ul>
+                {/* Menu HP (sheet "Lainnya"): jalan pintas kembali ke website/landing page */}
+                {onNavigate && (
+                    <Link href={route('home')} onClick={onNavigate}
+                        className="mt-3 flex h-11 items-center gap-3 rounded-2xl border border-primary-100 bg-white/80 px-4 text-sm font-semibold text-primary-900 transition hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                        <Globe className="h-5 w-5 shrink-0 text-primary-700" aria-hidden="true" />
+                        <span className="flex-1 truncate">Kembali ke Website SAH</span>
+                        <ArrowUpRight className="h-4 w-4 shrink-0 text-primary-700" aria-hidden="true" />
+                    </Link>
+                )}
             </nav>
 
             <div className={cn('mt-4 rounded-2xl border border-white short:mt-2 bg-gradient-to-br from-white/85 to-primary-50/80 shadow-[inset_0_1px_0_#fff]', collapsed ? 'p-2' : 'p-4')}>

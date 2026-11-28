@@ -60,7 +60,7 @@ export default function CheckoutPackage({ package: p, selectedDeparture, selecte
                 <h1 className="text-2xl sm:text-3xl">Pemesanan Paket Umrah</h1>
                 <div className="card mt-6 p-4 sm:p-6"><Stepper steps={STEPS} current={step} /></div>
 
-                <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
+                <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="min-w-0 space-y-4">
                         {step === 0 && (
                             <div className="card card-pad space-y-6">

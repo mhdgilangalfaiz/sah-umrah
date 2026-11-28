@@ -18,7 +18,7 @@ export default function VisaShow({ application: v, statuses, payments, documents
             <PageHeader back={route('customer.visa.index')} title={v.service.name} subtitle={`${v.code} · ${v.pax_count} pemohon`} actions={<StatusBadge status={v.status} label={statuses[v.status]} />} />
             <div className="card mb-6 p-4"><Stepper steps={VISA_STEPS} current={visaStep(v.status)} failed={v.status === 'ditolak'} /></div>
 
-            <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="min-w-0 space-y-6">
                     {v.status === 'menunggu_invoice' && <div className="flex gap-3 rounded-2xl bg-sand-100 p-4 text-sm"><Hourglass className="h-5 w-5 text-gold-600" />Pengajuan diterima. Admin sedang menyiapkan invoice — Anda akan mendapat notifikasi saat invoice terbit.</div>}
                     {v.status === 'ditolak' && (

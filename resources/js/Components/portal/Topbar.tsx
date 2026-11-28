@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Bell, ChevronDown, LogOut, Menu, User } from 'lucide-react';
+import { Bell, ChevronDown, Globe, LogOut, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/Components/landing/lib';
@@ -10,22 +10,19 @@ import type { SharedProps } from '@/Components/landing/types';
 type Props = SharedProps & { unreadNotifications: number; auth: { user: { name: string; email: string; is_admin: boolean; avatar: string | null } } };
 
 /** Sama dengan menu halaman utama (Navbar landing), tanpa ikon */
-const SITE_LINKS: Array<[string, string]> = [['Beranda', ''], ['Layanan Kami', 'layanan'], ['Galeri', 'galeri'], ['Tentang Kami', 'tentang'], ['Kontak', 'kontak']];
+const SITE_LINKS: Array<[string, string]> = [['Beranda', ''], ['Tentang Kami', 'tentang'], ['Layanan Kami', 'layanan'], ['Galeri', 'galeri'], ['Kontak', 'kontak']];
 const linkCls = 'block whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-neutral-600 transition hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500';
 
 /**
  * Bar atas portal: pill menu situs (≥1280px) selebar sisa ruang — ikut melebar saat sidebar dilipat,
  * menu dibagi rata dengan jarak sama (termasuk ke tepi pill). Lonceng notifikasi & menu akun di luar pill.
+ * Menu portal di HP ada di BottomNav (tombol "Lainnya" membuka daftar lengkap).
  */
-export default function Topbar({ onMenu }: { onMenu: () => void }) {
+export default function Topbar() {
     const { auth, unreadNotifications } = usePage<Props>().props;
 
     return (
         <header className="flex items-center gap-3">
-            <button type="button" onClick={onMenu} aria-label="Buka menu portal"
-                className="grid h-11 w-11 place-items-center rounded-full border border-white bg-white/80 text-primary-900 shadow-sm lg:hidden">
-                <Menu className="h-5 w-5" />
-            </button>
             <Link href={route('home')} className="lg:hidden"><img src="/images/logo-sah.png" alt="SAH" className="h-10 w-auto" /></Link>
 
             <nav aria-label="Tautan situs" className="hidden min-w-0 flex-1 rounded-full border border-white bg-white/85 p-1.5 shadow-[0_8px_24px_-14px_rgba(11,77,42,0.3),inset_0_1px_0_#fff] xl:block">
@@ -86,6 +83,9 @@ function AccountMenu({ name, email, avatar }: { name: string; email: string; ava
                         </div>
                         <Link href={route('profile.edit')} role="menuitem" className="mt-1 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-neutral-900 hover:bg-primary-50">
                             <User className="h-4 w-4 text-primary-700" aria-hidden="true" /> Profil
+                        </Link>
+                        <Link href={route('home')} role="menuitem" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-neutral-900 hover:bg-primary-50">
+                            <Globe className="h-4 w-4 text-primary-700" aria-hidden="true" /> Website SAH
                         </Link>
                         <Link href={route('logout')} method="post" as="button" role="menuitem" className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50">
                             <LogOut className="h-4 w-4" aria-hidden="true" /> Keluar

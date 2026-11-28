@@ -18,7 +18,7 @@ export default function FlightOrderShow({ order: o, payments, documents, payBox,
         <CustomerLayout title={o.code}>
             <PageHeader back={route('customer.flight-orders.index')} title="Pesanan Tiket" subtitle={`${o.code} · ${dateTime(o.created_at)}`} actions={<StatusBadge status={o.status} />} />
             {!closed && <div className="card mb-6 p-4"><Stepper steps={['Pesan Seat', 'Bayar DP', 'Cicil sampai Lunas', 'Upload Manifest', 'E-Ticket']} current={step} /></div>}
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="min-w-0 space-y-6">
                     <StatusNote o={o} deposit={deposit} manifest={manifest} />
                     {revisionNote && (
@@ -42,10 +42,10 @@ export default function FlightOrderShow({ order: o, payments, documents, payBox,
                     )}
 
                     <Card title="Tagihan">
-                        <div className="grid grid-cols-3 gap-3 text-center text-sm">
-                            <div className="rounded-xl bg-sand-100 p-3"><p className="text-slate-500">Total ({o.pax_count} seat)</p><p className="font-bold">{rupiah(o.total_amount)}</p></div>
-                            <div className="rounded-xl bg-emerald-50 p-3"><p className="text-slate-500">Dibayar</p><p className="font-bold text-emerald-700">{rupiah(o.paid_amount)}</p></div>
-                            <div className="rounded-xl bg-amber-50 p-3"><p className="text-slate-500">Sisa</p><p className="font-bold text-amber-700">{rupiah(outstanding)}</p></div>
+                        <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3 sm:gap-3 sm:text-center">
+                            <div className="flex items-center justify-between gap-3 rounded-xl bg-sand-100 p-3 sm:block"><p className="text-slate-500">Total ({o.pax_count} seat)</p><p className="font-bold">{rupiah(o.total_amount)}</p></div>
+                            <div className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-3 sm:block"><p className="text-slate-500">Dibayar</p><p className="font-bold text-emerald-700">{rupiah(o.paid_amount)}</p></div>
+                            <div className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 p-3 sm:block"><p className="text-slate-500">Sisa</p><p className="font-bold text-amber-700">{rupiah(outstanding)}</p></div>
                         </div>
                         <div className="mt-4">
                             <DefList items={[

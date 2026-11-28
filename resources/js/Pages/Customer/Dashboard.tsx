@@ -38,12 +38,13 @@ export default function Dashboard({ stats, activeTrip, calendarEvents = [], noti
                 </Reveal>
             )}
 
-            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-                <div className="space-y-6">
+            {/* grid-cols-[minmax(0,1fr)]: di HP kolom tidak boleh lebih lebar dari layar (dulu kartu terpotong di kanan) */}
+            <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-4 sm:mt-6 sm:gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+                <div className="min-w-0 space-y-4 sm:space-y-6">
                     <Reveal delay={0.1}><ActiveTrip trip={activeTrip} /></Reveal>
                     <Reveal delay={0.2}><PromoBanner /></Reveal>
                 </div>
-                <div className="space-y-6">
+                <div className="min-w-0 space-y-4 sm:space-y-6">
                     {/* kalender berisi jatuh tempo cicilan + keberangkatan (menggantikan kartu Jadwal Cicilan) */}
                     <Reveal delay={0.15}><TripCalendar events={calendarEvents} /></Reveal>
                     <Reveal delay={0.25}><NotificationsCard items={notifications} /></Reveal>

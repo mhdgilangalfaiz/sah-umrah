@@ -39,13 +39,13 @@ export default function BookingShow({ booking: b, outstanding, overdue, deposit,
                 </div>
             )}
 
-            <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
                 <div className="min-w-0 space-y-6">
                     <Card title="Ringkasan pembayaran">
-                        <div className="grid grid-cols-3 gap-3 text-center">
-                            <div className="rounded-xl bg-sand-100 p-3"><p className="text-xs text-slate-500">Total</p><p className="font-bold">{rupiah(b.total_amount)}</p></div>
-                            <div className="rounded-xl bg-emerald-50 p-3"><p className="text-xs text-slate-500">Dibayar</p><p className="font-bold text-emerald-700">{rupiah(b.paid_amount)}</p></div>
-                            <div className="rounded-xl bg-amber-50 p-3"><p className="text-xs text-slate-500">Sisa</p><p className="font-bold text-amber-700">{rupiah(outstanding)}</p></div>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3 sm:text-center">
+                            <div className="flex items-center justify-between gap-3 rounded-xl bg-sand-100 p-3 sm:block"><p className="text-xs text-slate-500">Total</p><p className="font-bold">{rupiah(b.total_amount)}</p></div>
+                            <div className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-3 sm:block"><p className="text-xs text-slate-500">Dibayar</p><p className="font-bold text-emerald-700">{rupiah(b.paid_amount)}</p></div>
+                            <div className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 p-3 sm:block"><p className="text-xs text-slate-500">Sisa</p><p className="font-bold text-amber-700">{rupiah(outstanding)}</p></div>
                         </div>
                         <Progress className="mt-4" value={(b.paid_amount / b.total_amount) * 100} />
                         {b.payment_scheme === 'cicilan' && (
@@ -57,7 +57,20 @@ export default function BookingShow({ booking: b, outstanding, overdue, deposit,
                     </Card>
 
                     <Card title="Riwayat transaksi" pad={false}>
-                        <div className="overflow-x-auto">
+                        {/* HP: kartu bertumpuk */}
+                        <ul className="divide-y divide-slate-100 sm:hidden">
+                            {payments.length === 0 && <li className="p-4 text-center text-sm text-slate-400">Belum ada transaksi</li>}
+                            {payments.map((p) => (
+                                <li key={p.id} className="flex items-start justify-between gap-3 p-4">
+                                    <div className="min-w-0">
+                                        <Link href={route('payments.show', p.code)} className="block truncate font-semibold text-brand-700 hover:underline">{p.code}</Link>
+                                        <p className="text-xs text-slate-500">{p.method_label} · {dateTime(p.paid_at ?? p.created_at)}</p>
+                                    </div>
+                                    <div className="shrink-0 text-right"><p className="text-sm font-bold">{rupiah(p.amount)}</p><StatusBadge status={p.status} /></div>
+                                </li>
+                            ))}
+                        </ul>
+                        <div className="hidden overflow-x-auto sm:block">
                             <table className="table-app">
                                 <thead><tr><th>Kode</th><th>Metode</th><th className="!text-right">Nominal</th><th>Status</th><th>Waktu</th></tr></thead>
                                 <tbody className="divide-y divide-slate-100">

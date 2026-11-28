@@ -102,7 +102,7 @@ export default function ChatWidget({ open: openProp, onOpenChange, launcher = tr
             </button>}
 
             {open && (
-                <div className="fixed inset-x-2 bottom-20 z-50 flex max-h-[78vh] animate-pop flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-[390px]">
+                <div className="fixed inset-x-2 bottom-[10.25rem] z-50 flex max-h-[calc(100dvh-12rem)] animate-pop flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:inset-x-auto sm:right-6 sm:w-[390px] lg:bottom-24 lg:max-h-[78vh]">
                     <div className="relative overflow-hidden bg-brand-800 px-4 py-3 text-white">
                         <div className="absolute inset-0 bg-pattern opacity-40" />
                         <div className="relative flex items-center gap-3">
@@ -127,7 +127,7 @@ export default function ChatWidget({ open: openProp, onOpenChange, launcher = tr
                         )}
                     </div>
 
-                    <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto bg-sand-50 px-3 py-4">
+                    <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-sand-50 px-3 py-4">
                         {data.messages.map((m) => (
                             <Message key={m.id} m={m} />
                         ))}
@@ -135,16 +135,17 @@ export default function ChatWidget({ open: openProp, onOpenChange, launcher = tr
                     </div>
 
                     {quick.length > 0 && !sending && (
-                        <div className="flex gap-2 overflow-x-auto border-t border-slate-100 bg-white px-3 py-2 scrollbar-none">
+                        /* shrink-0: baris tombol tidak boleh terhimpit area pesan (dulu tombol terpotong & teks tidak sejajar) */
+                        <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-t border-slate-100 bg-white px-3 py-2.5 scrollbar-none">
                             {quick.map((q) => (
-                                <button key={q} onClick={() => send(q)} className="shrink-0 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-800 hover:bg-brand-100">
+                                <button key={q} onClick={() => send(q)} className="inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-full border border-brand-200 bg-brand-50 px-3.5 text-xs font-medium leading-none text-brand-800 hover:bg-brand-100">
                                     {q}
                                 </button>
                             ))}
                         </div>
                     )}
                     {lastBot?.options?.login_required && !auth.user && (
-                        <div className="flex gap-2 border-t border-slate-100 bg-white px-3 py-2">
+                        <div className="flex shrink-0 gap-2 border-t border-slate-100 bg-white px-3 py-2">
                             <Link href={route('login')} className="btn-primary btn-sm flex-1">Masuk</Link>
                             <Link href={route('register')} className="btn-outline btn-sm flex-1">Daftar</Link>
                         </div>
@@ -155,7 +156,7 @@ export default function ChatWidget({ open: openProp, onOpenChange, launcher = tr
                             e.preventDefault();
                             send();
                         }}
-                        className="flex items-center gap-2 border-t border-slate-200 bg-white p-2"
+                        className="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white p-2"
                     >
                         <input
                             value={text}
@@ -168,7 +169,7 @@ export default function ChatWidget({ open: openProp, onOpenChange, launcher = tr
                             <Send className="h-4 w-4" />
                         </button>
                     </form>
-                    <p className="flex items-center justify-center gap-1 bg-white pb-2 text-[10px] text-slate-400">
+                    <p className="flex shrink-0 items-center justify-center gap-1 bg-white pb-2 text-[10px] text-slate-400">
                         <ShieldCheck className="h-3 w-3" /> Percakapan tersimpan aman di sistem
                     </p>
                 </div>
